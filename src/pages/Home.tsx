@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import VideoBackground from '../components/layout/VideoBackground';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
 
@@ -12,6 +11,24 @@ import 'swiper/css/pagination';
 
 const Home: React.FC = () => {
   const { user, canStartTrial } = useAuth();
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Hero slideshow effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % 4); // 4 slides total
+    }, 5000); // Change slide every 5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Update active slide based on currentSlide state
+  useEffect(() => {
+    const slides = document.querySelectorAll('.hero-slide');
+    slides.forEach((slide, index) => {
+      slide.classList.toggle('active', index === currentSlide);
+    });
+  }, [currentSlide]);
 
   const lotteryTypes = [
     {
@@ -134,281 +151,111 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-page">
-      {/* Enhanced Hero Section with Video Background */}
-      <VideoBackground className="text-white">
-        <section id="home" className="hero-section">
-          <div className="container">
-            <div className="row align-items-center min-vh-100">
-              <div className="col-lg-6 hero-content">
-                <h1 className="hero-title fade-in">
+      {/* New Single Column Hero Section */}
+      <section id="home" className="hero-section-new">
+        <div className="hero-background">
+          <div className="hero-slide hero-slide-1 active"></div>
+          <div className="hero-slide hero-slide-2"></div>
+          <div className="hero-slide hero-slide-3"></div>
+          <div className="hero-slide hero-slide-4"></div>
+          <div className="hero-overlay"></div>
+        </div>
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-lg-8 col-xl-6 text-center">
+              <div className="hero-content-new">
+                <h1 className="hero-title-new fade-in">
                   Advanced Lottery Prediction Technology
                 </h1>
-                <p className="hero-subtitle fade-in animate-delay-1">
+                <p className="hero-subtitle-new fade-in animate-delay-1">
                   Leverage AI-powered analytics and machine learning algorithms to identify non-viable numbers with 95%+ accuracy. 
                   Join over 50,000 professionals who trust Obyyo for data-driven lottery strategies.
                 </p>
-                <div className="d-flex flex-wrap gap-3 mb-5 fade-in animate-delay-2">
+                <div className="d-flex flex-wrap gap-3 justify-content-center mb-5 fade-in animate-delay-2">
                   {user ? (
-                    <Link to="/dashboard" className="btn btn-light btn-lg px-5 hover-lift">
+                    <Link to="/dashboard" className="btn btn-primary btn-lg px-5 hover-lift">
                       <i className="bi bi-speedometer2 me-2"></i>
                       Go to Dashboard
                     </Link>
                   ) : (
                     <>
                       {canStartTrial() ? (
-                        <Link to="/register" className="btn btn-light btn-lg px-5 hover-lift">
+                        <Link to="/register" className="btn btn-primary btn-lg px-5 hover-lift">
                           <i className="bi bi-rocket-takeoff me-2"></i>
                           Start Free Trial
                         </Link>
                       ) : (
-                        <Link to="/pricing" className="btn btn-light btn-lg px-5 hover-lift">
+                        <Link to="/pricing" className="btn btn-primary btn-lg px-5 hover-lift">
                           <i className="bi bi-credit-card me-2"></i>
                           View Pricing
                         </Link>
                       )}
-                      <Link to="/how-it-works" className="btn btn-outline-light btn-lg px-4 hover-lift">
+                      <Link to="/how-it-works" className="btn btn-secondary btn-lg px-4 hover-lift">
                         <i className="bi bi-question-circle me-2"></i>
                         How It Works
                       </Link>
                     </>
                   )}
                 </div>
-                <div className="hero-stats fade-in animate-delay-3">
-                  <div className="row text-center">
-                    <div className="col-4">
-                      <div className="hero-stat">
-                        <span className="hero-stat-number">50K+</span>
-                        <span className="hero-stat-label">Active Users</span>
-                      </div>
-                    </div>
-                    <div className="col-4">
-                      <div className="hero-stat">
-                        <span className="hero-stat-number">95%</span>
-                        <span className="hero-stat-label">Success Rate</span>
-                      </div>
-                    </div>
-                    <div className="col-4">
-                      <div className="hero-stat">
-                        <span className="hero-stat-number">$2M+</span>
-                        <span className="hero-stat-label">Winnings Generated</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+
               </div>
-              <div className="col-lg-6 text-center">
-                <div className="hero-visual fade-in animate-delay-4">
-                  <div className="lottery-showcase-container">
-                    {/* Animated Background Elements */}
-                    <div className="showcase-background">
-                      <div className="magic-circle circle-1"></div>
-                      <div className="magic-circle circle-2"></div>
-                      <div className="magic-circle circle-3"></div>
-                      <div className="magic-circle circle-4"></div>
-                      <div className="energy-waves">
-                        <div className="wave wave-1"></div>
-                        <div className="wave wave-2"></div>
-                        <div className="wave wave-3"></div>
-                        <div className="wave wave-4"></div>
-                        <div className="wave wave-5"></div>
-                      </div>
-                      <div className="holographic-overlay">
-                        <div className="hologram-line line-1"></div>
-                        <div className="hologram-line line-2"></div>
-                        <div className="hologram-line line-3"></div>
-                        <div className="hologram-line line-4"></div>
-                      </div>
-                      <div className="lightning-effects">
-                        <div className="lightning lightning-1"></div>
-                        <div className="lightning lightning-2"></div>
-                        <div className="lightning lightning-3"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Enhanced Lottery Types Section with Swiper */}
+      <section className="py-5 enhanced-lottery-section" style={{ backgroundColor: 'var(--gray-50)' }}>
+        <div className="container">
+          <div className="text-center mb-5">
+            <h2 className="display-5 fw-bold mb-3 gradient-text">Supported Lotteries</h2>
+            <p className="lead text-muted mb-4">
+              Choose from our comprehensive list of lottery predictions with advanced AI analysis
+            </p>
+            
+            {/* Enhanced Stats Bar */}
+            <div className="row justify-content-center mb-5">
+              <div className="col-lg-8">
+                <div className="lottery-stats-bar">
+                  <div className="row g-3">
+                    <div className="col-md-3 col-6">
+                      <div className="stat-item">
+                        <div className="stat-icon">🎯</div>
+                        <div className="stat-number">5+</div>
+                        <div className="stat-label">Lottery Types</div>
                       </div>
                     </div>
-
-                    {/* Main Lottery Balls Container */}
-                    <div className="lottery-balls-container">
-                      <div className="lottery-balls">
-                        {/* Lottery Ball 1 */}
-                        <div className="lottery-ball ball-1">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">17</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 2 */}
-                        <div className="lottery-ball ball-2">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">23</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 3 */}
-                        <div className="lottery-ball ball-3">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">41</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 4 */}
-                        <div className="lottery-ball ball-4">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">15</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 5 */}
-                        <div className="lottery-ball ball-5">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">38</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 6 */}
-                        <div className="lottery-ball ball-6">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">19</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 7 */}
-                        <div className="lottery-ball ball-7">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">52</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 8 */}
-                        <div className="lottery-ball ball-8">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">18</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 9 */}
-                        <div className="lottery-ball ball-9">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">34</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 10 */}
-                        <div className="lottery-ball ball-10">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">67</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 11 */}
-                        <div className="lottery-ball ball-11">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">29</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                        
-                        {/* Lottery Ball 12 */}
-                        <div className="lottery-ball ball-12">
-                          <div className="ball-glow"></div>
-                          <div className="ball-aura"></div>
-                          <span className="ball-number">44</span>
-                          <div className="ball-shine"></div>
-                          <div className="ball-sparkles">
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Advanced Visual Elements */}
-                      <div className="neural-network">
-                        <div className="neural-node node-1"></div>
-                        <div className="neural-node node-2"></div>
-                        <div className="neural-node node-3"></div>
-                        <div className="neural-node node-4"></div>
-                        <div className="neural-node node-5"></div>
-                        <div className="neural-node node-6"></div>
-                        <div className="neural-connection conn-1"></div>
-                        <div className="neural-connection conn-2"></div>
-                        <div className="neural-connection conn-3"></div>
-                        <div className="neural-connection conn-4"></div>
-                        <div className="neural-connection conn-5"></div>
-                        <div className="neural-connection conn-6"></div>
-                      </div>
-
-                      {/* Energy Connections */}
-                      <div className="energy-connections">
-                        <div className="connection connection-1"></div>
-                        <div className="connection connection-2"></div>
-                        <div className="connection connection-3"></div>
-                        <div className="connection connection-4"></div>
-                        <div className="connection connection-5"></div>
-                        <div className="connection connection-6"></div>
+                    <div className="col-md-3 col-6">
+                      <div className="stat-item">
+                        <div className="stat-icon">📊</div>
+                        <div className="stat-number">95%</div>
+                        <div className="stat-label">Accuracy Rate</div>
                       </div>
                     </div>
-
-                    {/* Floating Text Elements */}
-                    <div className="floating-text">
-                      <div className="text-element text-1">LUCKY</div>
-                      <div className="text-element text-2">WIN</div>
-                      <div className="text-element text-3">JACKPOT</div>
-                      <div className="text-element text-4">MAGIC</div>
+                    <div className="col-md-3 col-6">
+                      <div className="stat-item">
+                        <div className="stat-icon">🔄</div>
+                        <div className="stat-number">24/7</div>
+                        <div className="stat-label">Monitoring</div>
+                      </div>
+                    </div>
+                    <div className="col-md-3 col-6">
+                      <div className="stat-item">
+                        <div className="stat-icon">👥</div>
+                        <div className="stat-number">50K+</div>
+                        <div className="stat-label">Users</div>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </section>
-      </VideoBackground>
-
-      {/* Enhanced Lottery Types Section with Swiper */}
-      <section className="py-5" style={{ backgroundColor: 'var(--gray-50)' }}>
-        <div className="container">
-          <div className="text-center mb-5">
-            <h2 className="display-5 fw-bold mb-3 gradient-text">Supported Lotteries</h2>
-            <p className="lead text-muted">
-              Choose from our comprehensive list of lottery predictions
-            </p>
-          </div>
           
           <div className="lottery-swiper-container">
             <Swiper
               modules={[Navigation, Pagination, Autoplay]}
-              spaceBetween={30}
+              spaceBetween={20}
               slidesPerView={1}
               navigation={{
                 nextEl: '.swiper-button-next-custom',
@@ -419,21 +266,21 @@ const Home: React.FC = () => {
                 el: '.swiper-pagination-custom',
               }}
               autoplay={{
-                delay: 3000,
+                delay: 4000,
                 disableOnInteraction: false,
               }}
               breakpoints={{
                 640: {
-                  slidesPerView: 2,
+                  slidesPerView: 1.1,
                   spaceBetween: 20,
                 },
                 768: {
-                  slidesPerView: 2,
-                  spaceBetween: 30,
+                  slidesPerView: 1.3,
+                  spaceBetween: 25,
                 },
                 1024: {
                   slidesPerView: 3,
-                  spaceBetween: 30,
+                  spaceBetween: 20,
                 },
               }}
               loop={true}
@@ -441,47 +288,89 @@ const Home: React.FC = () => {
             >
               {lotteryTypes.map((lottery, index) => (
                 <SwiperSlide key={lottery.type}>
-                  <div className="lottery-card h-100 fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                    <div className="lottery-icon">
-                      <span style={{ fontSize: '2.5rem' }}>{lottery.icon}</span>
+                  <div className="enhanced-lottery-card h-100 fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                    {/* Card Header with Gradient */}
+                    <div className="card-header-gradient">
+                      <div className="lottery-icon-enhanced">
+                        <span className="lottery-emoji">{lottery.icon}</span>
+                        <div className="icon-glow"></div>
+                      </div>
+                      <div className="popular-badge">
+                        <i className="bi bi-star-fill"></i>
+                        Popular
+                      </div>
                     </div>
-                    <h4 className="lottery-name">{lottery.name}</h4>
-                    <p className="lottery-state">{lottery.state}</p>
-                    <p className="lottery-description">{lottery.description}</p>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <span className="lottery-price">${lottery.price}/prediction</span>
+                    
+                    {/* Card Content */}
+                    <div className="card-content">
+                      <h4 className="lottery-name-enhanced">{lottery.name}</h4>
+                      <p className="lottery-state-enhanced">
+                        <i className="bi bi-geo-alt-fill me-1"></i>
+                        {lottery.state}
+                      </p>
+                      <p className="lottery-description-enhanced">{lottery.description}</p>
+                      
+                      {/* Enhanced Features */}
+                      <div className="lottery-features">
+                        <div className="feature-item">
+                          <i className="bi bi-check-circle-fill text-success"></i>
+                          <span>AI Predictions</span>
+                        </div>
+                        <div className="feature-item">
+                          <i className="bi bi-check-circle-fill text-success"></i>
+                          <span>Real-time Updates</span>
+                        </div>
+                        <div className="feature-item">
+                          <i className="bi bi-check-circle-fill text-success"></i>
+                          <span>SMS Alerts</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Card Footer */}
+                    <div className="card-footer-enhanced">
+                      <div className="price-section">
+                        <span className="price-label">Starting from</span>
+                        <span className="lottery-price-enhanced">${lottery.price}</span>
+                        <span className="price-unit">/prediction</span>
+                      </div>
                       <Link 
                         to={`/predictions?lottery=${lottery.type}`}
-                        className="btn btn-outline-primary hover-lift"
+                        className="btn btn-primary-enhanced hover-lift"
                       >
-                        <i className="bi bi-arrow-right me-1"></i>
-                        View Predictions
+                        <i className="bi bi-arrow-right me-2"></i>
+                        Get Predictions
+                        <i className="bi bi-lightning-fill ms-2"></i>
                       </Link>
                     </div>
+                    
+                    {/* Hover Effects */}
+                    <div className="card-hover-overlay"></div>
                   </div>
                 </SwiperSlide>
               ))}
             </Swiper>
             
-            {/* Custom Navigation Buttons */}
-            <div className="swiper-button-prev-custom">
+            {/* Enhanced Navigation Buttons */}
+            <div className="swiper-button-prev-custom enhanced-nav-btn">
               <i className="bi bi-chevron-left"></i>
             </div>
-            <div className="swiper-button-next-custom">
+            <div className="swiper-button-next-custom enhanced-nav-btn">
               <i className="bi bi-chevron-right"></i>
             </div>
             
-            {/* Custom Pagination */}
-            <div className="swiper-pagination-custom"></div>
+            {/* Enhanced Pagination */}
+            <div className="swiper-pagination-custom enhanced-pagination"></div>
           </div>
+          
         </div>
       </section>
 
       {/* Enhanced Features Section */}
       <section id="features" className="py-5">
         <div className="container">
-          <div className="text-center mb-5">
-            <h2 className="display-5 fw-bold mb-3 gradient-text">Why Choose Obyyo?</h2>
+          <div className="text-center mb-4">
+            <h2 className="display-5 fw-bold mb-2 gradient-text">Why Choose Obyyo?</h2>
             <p className="lead text-muted">
               Advanced prediction technology designed to maximize your winning potential
             </p>
@@ -489,20 +378,37 @@ const Home: React.FC = () => {
           <div className="row g-4">
             {features.map((feature, index) => (
               <div key={index} className="col-lg-4 col-md-6">
-                <div className="card h-100 border-0 shadow-custom hover-lift fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                  <div className="card-body p-4">
-                    <div className="feature-icon mb-4">
-                      <div className={`d-inline-flex align-items-center justify-content-center rounded-circle bg-${feature.color} bg-opacity-10`}
+                <div className="card h-100 border-0 features-card-enhanced fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div className="card-body p-3">
+                    <div className="feature-icon mb-3">
+                      <div className="feature-icon-enhanced d-inline-flex align-items-center justify-content-center rounded-3"
                            style={{ 
-                             width: '70px', 
-                             height: '70px',
-                             boxShadow: 'var(--shadow-md)'
+                             width: '80px', 
+                             height: '80px',
+                             background: `linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)`,
+                             border: '2px solid rgba(99, 102, 241, 0.2)',
+                             boxShadow: '0 8px 25px rgba(99, 102, 241, 0.15)',
+                             position: 'relative',
+                             overflow: 'hidden'
                            }}>
-                        <i className={`${feature.icon} text-${feature.color} fs-3`}></i>
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: 'radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 50%)',
+                          pointerEvents: 'none'
+                        }}></div>
+                        <i className={`${feature.icon} text-primary fs-2`} style={{ 
+                          zIndex: 2,
+                          position: 'relative',
+                          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
+                        }}></i>
                       </div>
                     </div>
-                    <h5 className="fw-bold mb-3 text-dark">{feature.title}</h5>
-                    <p className="text-muted lh-lg">{feature.description}</p>
+                    <h5 className="fw-bold mb-2 text-dark">{feature.title}</h5>
+                    <p className="text-muted lh-lg small">{feature.description}</p>
                   </div>
                 </div>
               </div>
@@ -551,80 +457,145 @@ const Home: React.FC = () => {
       {/* Professional Pricing Section */}
       <section id="pricing" className="py-5" style={{ backgroundColor: 'var(--gray-50)' }}>
         <div className="container">
-          <div className="text-center mb-5">
-            <h2 className="display-5 fw-bold mb-3 gradient-text">Transparent Pricing</h2>
+          <div className="text-center mb-4">
+            <h2 className="display-5 fw-bold mb-2 gradient-text">Transparent Pricing</h2>
             <p className="lead text-muted">
               Choose the plan that fits your needs. No hidden fees, no long-term commitments.
             </p>
           </div>
           <div className="row g-4 justify-content-center">
             {/* Starter Plan - Centered */}
-            <div className="col-lg-6 col-md-8 col-sm-10 mb-4">
-              <div className="card border-0 h-100 fade-in" style={{ 
+            <div className="col-lg-4 col-md-6 col-sm-8 mb-4">
+              <div className="card border-0 h-100 fade-in pricing-card-enhanced" style={{ 
                 background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
-                borderRadius: '20px',
-                boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
-                transition: 'all 0.3s ease'
+                borderRadius: '24px',
+                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08), 0 8px 25px rgba(99, 102, 241, 0.1)',
+                transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                border: '2px solid rgba(255, 255, 255, 0.3)',
+                backdropFilter: 'blur(20px)',
+                position: 'relative',
+                overflow: 'hidden'
               }}>
                 <div className="card-body p-4 text-center">
-                  <div className="plan-header mb-4">
-                    <div className="plan-icon mb-3">
-                      <div style={{
+                  <div className="plan-header mb-3">
+                    <div className="plan-icon mb-2">
+                      <div className="pricing-icon-enhanced" style={{
                         width: '80px',
                         height: '80px',
-                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #3b82f6 100%)',
                         borderRadius: '20px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        margin: '0 auto'
+                        margin: '0 auto',
+                        boxShadow: '0 8px 25px rgba(99, 102, 241, 0.3)',
+                        position: 'relative',
+                        overflow: 'hidden'
                       }}>
-                        <i className="bi bi-lightning text-white fs-2"></i>
+                        <div style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 50%)',
+                          pointerEvents: 'none'
+                        }}></div>
+                        <i className="bi bi-lightning text-white fs-2" style={{ 
+                          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
+                          zIndex: 2,
+                          position: 'relative'
+                        }}></i>
                       </div>
                     </div>
-                    <h4 className="fw-bold mb-2">Starter Plan</h4>
-                    <p className="text-muted mb-0">Pay as you go - Simple and transparent</p>
+                    <h5 className="fw-bold mb-1">Starter Plan</h5>
+                    <p className="text-muted mb-0 small">Pay as you go - Simple and transparent</p>
                   </div>
                   
-                  <div className="pricing mb-4">
+                  <div className="pricing mb-3">
+                    <div className="pricing-badge mb-2">
+                      <span className="badge bg-gradient-primary text-white px-3 py-2 rounded-pill fw-semibold">
+                        Most Popular
+                      </span>
+                    </div>
                     <div className="d-flex align-items-baseline justify-content-center">
-                      <span className="display-3 fw-bold text-primary">$1</span>
-                      <span className="text-muted ms-1 fs-5">/prediction</span>
+                      <span className="display-4 fw-bold pricing-price" style={{
+                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                      }}>$1</span>
+                      <span className="text-muted ms-1 small fw-semibold">/prediction</span>
                     </div>
                   </div>
 
-                  <div className="features mb-4">
+                  <div className="features mb-3">
                     <div className="row g-3">
                       <div className="col-6">
-                        <div className="feature-item text-center">
-                          <i className="bi bi-check2-circle text-success fs-4 mb-2 d-block"></i>
+                        <div className="feature-item-enhanced text-center p-2 rounded-3" style={{
+                          background: 'rgba(99, 102, 241, 0.05)',
+                          border: '1px solid rgba(99, 102, 241, 0.1)',
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <i className="bi bi-check2-circle text-success fs-5 mb-1 d-block"></i>
                           <span className="small fw-semibold">95%+ accuracy</span>
                         </div>
                       </div>
                       <div className="col-6">
-                        <div className="feature-item text-center">
-                          <i className="bi bi-check2-circle text-success fs-4 mb-2 d-block"></i>
+                        <div className="feature-item-enhanced text-center p-2 rounded-3" style={{
+                          background: 'rgba(99, 102, 241, 0.05)',
+                          border: '1px solid rgba(99, 102, 241, 0.1)',
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <i className="bi bi-check2-circle text-success fs-5 mb-1 d-block"></i>
                           <span className="small fw-semibold">All lottery types</span>
                         </div>
                       </div>
                       <div className="col-6">
-                        <div className="feature-item text-center">
-                          <i className="bi bi-check2-circle text-success fs-4 mb-2 d-block"></i>
+                        <div className="feature-item-enhanced text-center p-2 rounded-3" style={{
+                          background: 'rgba(99, 102, 241, 0.05)',
+                          border: '1px solid rgba(99, 102, 241, 0.1)',
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <i className="bi bi-check2-circle text-success fs-5 mb-1 d-block"></i>
                           <span className="small fw-semibold">SMS notifications</span>
                         </div>
                       </div>
                       <div className="col-6">
-                        <div className="feature-item text-center">
-                          <i className="bi bi-check2-circle text-success fs-4 mb-2 d-block"></i>
+                        <div className="feature-item-enhanced text-center p-2 rounded-3" style={{
+                          background: 'rgba(99, 102, 241, 0.05)',
+                          border: '1px solid rgba(99, 102, 241, 0.1)',
+                          transition: 'all 0.3s ease'
+                        }}>
+                          <i className="bi bi-check2-circle text-success fs-5 mb-1 d-block"></i>
                           <span className="small fw-semibold">Number generator</span>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <Link to="/register" className="btn btn-primary btn-lg w-100 rounded-pill fw-bold">
-                    <i className="bi bi-rocket-takeoff me-2"></i>
-                    Get Started Now
+                  <Link to="/register" className="btn btn-primary w-100 rounded-pill fw-bold pricing-btn-enhanced" style={{
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    border: 'none',
+                    boxShadow: '0 8px 25px rgba(99, 102, 241, 0.3)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    <span style={{ position: 'relative', zIndex: 2 }}>
+                      <i className="bi bi-rocket-takeoff me-2"></i>
+                      Get Started Now
+                    </span>
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: '-100%',
+                      width: '100%',
+                      height: '100%',
+                      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent)',
+                      transition: 'left 0.5s ease'
+                    }}></div>
                   </Link>
                 </div>
               </div>

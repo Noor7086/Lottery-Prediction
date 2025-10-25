@@ -11,6 +11,9 @@ export interface User {
   isInTrial: boolean;
   hasUsedTrial: boolean;
   walletBalance: number;
+  totalDeposited: number;
+  totalWithdrawn: number;
+  transactionCount: number;
   role: 'user' | 'admin';
   notificationsEnabled: boolean;
 }

@@ -11,6 +11,9 @@ const Navbar: React.FC = () => {
   const [isPredictionsOpen, setIsPredictionsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Check if we're on the homepage
+  const isHomePage = location.pathname === '/';
 
   // Close dropdowns when clicking outside
   useEffect(() => {
@@ -39,8 +42,13 @@ const Navbar: React.FC = () => {
   useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
-      setIsScrolled(scrollTop > 50);
+      const scrolled = scrollTop > 50;
+      setIsScrolled(scrolled);
+      console.log('Scroll position:', scrollTop, 'Is scrolled:', scrolled); // Debug log
     };
+
+    // Set initial state
+    handleScroll();
 
     window.addEventListener('scroll', handleScroll);
     return () => {
@@ -88,11 +96,16 @@ const Navbar: React.FC = () => {
   ];
 
   return (
-    <nav className={`navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top ${isScrolled ? 'scrolled' : ''}`}>
+    <nav className={`navbar navbar-expand-lg fixed-top ${isScrolled ? 'navbar-light bg-white shadow-sm' : (isHomePage ? 'navbar-dark' : 'navbar-light bg-white shadow-sm')}`} 
+         style={!isScrolled && isHomePage ? { 
+           backgroundColor: 'transparent',
+           background: 'transparent',
+           borderBottom: 'none'
+         } : {}}>
       <div className="container">
         {/* Logo */}
-        <Link className="navbar-brand fw-bold" to="/">
-          <i className="bi bi-eye-fill me-2 text-primary"></i>
+        <Link className={`navbar-brand fw-bold ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`} to="/">
+          <i className={`bi bi-eye-fill me-2 ${(isScrolled || !isHomePage) ? 'text-primary' : 'text-white'}`}></i>
           Obyyo
         </Link>
 
@@ -110,10 +123,22 @@ const Navbar: React.FC = () => {
 
         {/* Navigation menu */}
         <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
-          <ul className="navbar-nav me-auto">
+          {/* Mobile Close Button */}
+          <button 
+            className="mobile-close-btn d-lg-none"
+            onClick={closeMobileMenu}
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
+          
+          {/* Left Section - Logo (already positioned) */}
+          
+          {/* Center Section - Navigation Menus */}
+          <ul className="navbar-nav mx-auto">
             <li className="nav-item">
               <button 
-                className="nav-link" 
+                className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                 onClick={() => {
                   handleSmoothScroll('home');
                   closeMobileMenu();
@@ -124,7 +149,7 @@ const Navbar: React.FC = () => {
             </li>
             <li className="nav-item">
               <Link 
-                className="nav-link" 
+                className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                 to="/features"
                 onClick={closeMobileMenu}
               >
@@ -133,7 +158,7 @@ const Navbar: React.FC = () => {
             </li>
             <li className="nav-item dropdown">
               <a 
-                className={`nav-link dropdown-toggle ${isActive('/predictions') ? 'active' : ''}`} 
+                className={`nav-link dropdown-toggle ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'} ${isActive('/predictions') ? 'active' : ''}`} 
                 href="#" 
                 role="button" 
                 onClick={(e) => {
@@ -162,7 +187,7 @@ const Navbar: React.FC = () => {
             </li>
             <li className="nav-item">
             <Link 
-                className="nav-link" 
+                className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                 to="/how-it-works"
                 onClick={closeMobileMenu}
               >
@@ -171,7 +196,7 @@ const Navbar: React.FC = () => {
             </li>
             <li className="nav-item">
               <Link 
-                className="nav-link" 
+                className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                 to="/pricing"
                 onClick={closeMobileMenu}
               >
@@ -180,7 +205,7 @@ const Navbar: React.FC = () => {
             </li>
             <li className="nav-item">
               <Link 
-                className="nav-link" 
+                className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                 to="/contact"
                 onClick={closeMobileMenu}
               >
@@ -189,12 +214,12 @@ const Navbar: React.FC = () => {
             </li>
           </ul>
 
-          {/* User menu */}
+          {/* Right Section - User Menu / Login */}
           <ul className="navbar-nav">
             {user && (
               <li className="nav-item">
                 <Link 
-                  className="nav-link d-flex align-items-center" 
+                  className={`nav-link d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                   to="/wallet"
                   onClick={closeMobileMenu}
                 >
@@ -209,7 +234,7 @@ const Navbar: React.FC = () => {
             {user ? (
               <li className="nav-item dropdown">
                 <a 
-                  className="nav-link dropdown-toggle d-flex align-items-center" 
+                  className={`nav-link dropdown-toggle d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                   href="#" 
                   role="button" 
                   onClick={(e) => {
@@ -308,7 +333,7 @@ const Navbar: React.FC = () => {
               <>
                 <li className="nav-item">
                   <Link 
-                    className="nav-link" 
+                    className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                     to="/login"
                     onClick={closeMobileMenu}
                   >
@@ -317,7 +342,7 @@ const Navbar: React.FC = () => {
                 </li>
                 <li className="nav-item">
                   <Link 
-                    className="btn btn-primary ms-2" 
+                    className={`btn ms-2 ${(isScrolled || !isHomePage) ? 'btn-primary' : 'btn-secondary'}`}
                     to={canStartTrial() ? "/register" : "/pricing"}
                     onClick={closeMobileMenu}
                   >
