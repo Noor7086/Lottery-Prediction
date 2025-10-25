@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -30,6 +30,52 @@ const Home: React.FC = () => {
     });
   }, [currentSlide]);
 
+  // Scroll-triggered animations for pricing and how it works sections
+  useEffect(() => {
+    const observerOptions = {
+      threshold: 0.3,
+      rootMargin: '0px 0px -100px 0px'
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          // Find elements within the observed section
+          const leftElements = entry.target.querySelectorAll('.fade-in-left');
+          const rightElements = entry.target.querySelectorAll('.fade-in-right');
+          
+          leftElements.forEach(element => {
+            element.classList.add('animate');
+          });
+          
+          rightElements.forEach(element => {
+            element.classList.add('animate');
+          });
+        }
+      });
+    }, observerOptions);
+
+    // Observe both pricing and how it works sections
+    const pricingSection = document.getElementById('pricing');
+    const howItWorksSection = document.getElementById('how-it-works');
+    
+    if (pricingSection) {
+      observer.observe(pricingSection);
+    }
+    if (howItWorksSection) {
+      observer.observe(howItWorksSection);
+    }
+
+    return () => {
+      if (pricingSection) {
+        observer.unobserve(pricingSection);
+      }
+      if (howItWorksSection) {
+        observer.unobserve(howItWorksSection);
+      }
+    };
+  }, []);
+
   const lotteryTypes = [
     {
       type: 'gopher5',
@@ -53,7 +99,7 @@ const Home: React.FC = () => {
       state: 'USA',
       description: 'Pick 5 from 52 + 1 from 10',
       price: 1,
-      icon: '🇺🇸'
+      icon: '🎯'
     },
     {
       type: 'megamillion',
@@ -151,6 +197,19 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-page">
+      {/* Snooker Balls Light Effect Background */}
+      {/* <div className="snooker-balls-bg">
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+        <div className="snooker-ball"></div>
+      </div> */}
       {/* New Single Column Hero Section */}
       <section id="home" className="hero-section-new">
         <div className="hero-background">
@@ -159,53 +218,53 @@ const Home: React.FC = () => {
           <div className="hero-slide hero-slide-3"></div>
           <div className="hero-slide hero-slide-4"></div>
           <div className="hero-overlay"></div>
-        </div>
+                    </div>
         <div className="container">
           <div className="row justify-content-center">
             <div className="col-lg-8 col-xl-6 text-center">
               <div className="hero-content-new">
                 <h1 className="hero-title-new fade-in">
                   Advanced Lottery Prediction Technology
-                </h1>
+                    </h1>
                 <p className="hero-subtitle-new fade-in animate-delay-1">
                   Leverage AI-powered analytics and machine learning algorithms to identify non-viable numbers with 95%+ accuracy. 
                   Join over 50,000 professionals who trust Obyyo for data-driven lottery strategies.
-                </p>
+                    </p>
                 <div className="d-flex flex-wrap gap-3 justify-content-center mb-5 fade-in animate-delay-2">
-                  {user ? (
+                      {user ? (
                     <Link to="/dashboard" className="btn btn-primary btn-lg px-5 hover-lift">
-                      <i className="bi bi-speedometer2 me-2"></i>
+                          <i className="bi bi-speedometer2 me-2"></i>
                       Go to Dashboard
-                    </Link>
-                  ) : (
-                    <>
-                      {canStartTrial() ? (
-                        <Link to="/register" className="btn btn-primary btn-lg px-5 hover-lift">
-                          <i className="bi bi-rocket-takeoff me-2"></i>
-                          Start Free Trial
                         </Link>
                       ) : (
+                        <>
+                          {canStartTrial() ? (
+                        <Link to="/register" className="btn btn-primary btn-lg px-5 hover-lift">
+                              <i className="bi bi-rocket-takeoff me-2"></i>
+                          Start Free Trial
+                            </Link>
+                          ) : (
                         <Link to="/pricing" className="btn btn-primary btn-lg px-5 hover-lift">
-                          <i className="bi bi-credit-card me-2"></i>
+                              <i className="bi bi-credit-card me-2"></i>
                           View Pricing
-                        </Link>
-                      )}
+                            </Link>
+                          )}
                       <Link to="/how-it-works" className="btn btn-secondary btn-lg px-4 hover-lift">
-                        <i className="bi bi-question-circle me-2"></i>
-                        How It Works
-                      </Link>
-                    </>
-                  )}
-                </div>
+                            <i className="bi bi-question-circle me-2"></i>
+                            How It Works
+                          </Link>
+                        </>
+                      )}
+                        </div>
 
-              </div>
-            </div>
-          </div>
+                            </div>
+                            </div>
+                            </div>
         </div>
       </section>
 
       {/* Enhanced Lottery Types Section with Swiper */}
-      <section className="py-5 enhanced-lottery-section" style={{ backgroundColor: 'var(--gray-50)' }}>
+      <section className="py-5 enhanced-lottery-section">
         <div className="container">
           <div className="text-center mb-5">
             <h2 className="display-5 fw-bold mb-3 gradient-text">Supported Lotteries</h2>
@@ -213,43 +272,6 @@ const Home: React.FC = () => {
               Choose from our comprehensive list of lottery predictions with advanced AI analysis
             </p>
             
-            {/* Enhanced Stats Bar */}
-            <div className="row justify-content-center mb-5">
-              <div className="col-lg-8">
-                <div className="lottery-stats-bar">
-                  <div className="row g-3">
-                    <div className="col-md-3 col-6">
-                      <div className="stat-item">
-                        <div className="stat-icon">🎯</div>
-                        <div className="stat-number">5+</div>
-                        <div className="stat-label">Lottery Types</div>
-                      </div>
-                    </div>
-                    <div className="col-md-3 col-6">
-                      <div className="stat-item">
-                        <div className="stat-icon">📊</div>
-                        <div className="stat-number">95%</div>
-                        <div className="stat-label">Accuracy Rate</div>
-                      </div>
-                    </div>
-                    <div className="col-md-3 col-6">
-                      <div className="stat-item">
-                        <div className="stat-icon">🔄</div>
-                        <div className="stat-number">24/7</div>
-                        <div className="stat-label">Monitoring</div>
-                      </div>
-                    </div>
-                    <div className="col-md-3 col-6">
-                      <div className="stat-item">
-                        <div className="stat-icon">👥</div>
-                        <div className="stat-number">50K+</div>
-                        <div className="stat-label">Users</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
           
           <div className="lottery-swiper-container">
@@ -294,7 +316,7 @@ const Home: React.FC = () => {
                       <div className="lottery-icon-enhanced">
                         <span className="lottery-emoji">{lottery.icon}</span>
                         <div className="icon-glow"></div>
-                      </div>
+                    </div>
                       <div className="popular-badge">
                         <i className="bi bi-star-fill"></i>
                         Popular
@@ -310,21 +332,6 @@ const Home: React.FC = () => {
                       </p>
                       <p className="lottery-description-enhanced">{lottery.description}</p>
                       
-                      {/* Enhanced Features */}
-                      <div className="lottery-features">
-                        <div className="feature-item">
-                          <i className="bi bi-check-circle-fill text-success"></i>
-                          <span>AI Predictions</span>
-                        </div>
-                        <div className="feature-item">
-                          <i className="bi bi-check-circle-fill text-success"></i>
-                          <span>Real-time Updates</span>
-                        </div>
-                        <div className="feature-item">
-                          <i className="bi bi-check-circle-fill text-success"></i>
-                          <span>SMS Alerts</span>
-                        </div>
-                      </div>
                     </div>
                     
                     {/* Card Footer */}
@@ -336,7 +343,17 @@ const Home: React.FC = () => {
                       </div>
                       <Link 
                         to={`/predictions?lottery=${lottery.type}`}
-                        className="btn btn-primary-enhanced hover-lift"
+                        className="btn hover-lift"
+                        style={{
+                          background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 50%, #f87171 100%)',
+                          border: 'none',
+                          color: 'white',
+                          fontWeight: '600',
+                          padding: '0.75rem 1.5rem',
+                          borderRadius: '12px',
+                          boxShadow: '0 4px 15px rgba(220, 38, 38, 0.3)',
+                          transition: 'all 0.3s ease'
+                        }}
                       >
                         <i className="bi bi-arrow-right me-2"></i>
                         Get Predictions
@@ -367,7 +384,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Enhanced Features Section */}
-      <section id="features" className="py-5">
+      <section id="features" className="py-5" style={{ backgroundColor: '#f8fafc', display: 'none' }}>
         <div className="container">
           <div className="text-center mb-4">
             <h2 className="display-5 fw-bold mb-2 gradient-text">Why Choose Obyyo?</h2>
@@ -378,38 +395,25 @@ const Home: React.FC = () => {
           <div className="row g-4">
             {features.map((feature, index) => (
               <div key={index} className="col-lg-4 col-md-6">
-                <div className="card h-100 border-0 features-card-enhanced fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
-                  <div className="card-body p-3">
-                    <div className="feature-icon mb-3">
-                      <div className="feature-icon-enhanced d-inline-flex align-items-center justify-content-center rounded-3"
+                <div className="feature-item-clean fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div className="feature-icon-clean mb-3">
+                    <div className="icon-wrapper-clean d-inline-flex align-items-center justify-content-center rounded-circle"
                            style={{ 
-                             width: '80px', 
-                             height: '80px',
-                             background: `linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%)`,
-                             border: '2px solid rgba(99, 102, 241, 0.2)',
-                             boxShadow: '0 8px 25px rgba(99, 102, 241, 0.15)',
-                             position: 'relative',
-                             overflow: 'hidden'
+                             width: '70px', 
+                             height: '70px',
+                           background: `linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)`,
+                           border: '1px solid rgba(99, 102, 241, 0.15)',
+                           position: 'relative',
+                           overflow: 'hidden'
                            }}>
-                        <div style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          background: 'radial-gradient(circle at 30% 30%, rgba(99, 102, 241, 0.1) 0%, transparent 50%)',
-                          pointerEvents: 'none'
-                        }}></div>
-                        <i className={`${feature.icon} text-primary fs-2`} style={{ 
-                          zIndex: 2,
-                          position: 'relative',
-                          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
-                        }}></i>
+                      <i className={`${feature.icon} text-primary fs-3`} style={{ 
+                        zIndex: 2,
+                        position: 'relative'
+                      }}></i>
                       </div>
                     </div>
-                    <h5 className="fw-bold mb-2 text-dark">{feature.title}</h5>
-                    <p className="text-muted lh-lg small">{feature.description}</p>
-                  </div>
+                  <h5 className="fw-bold mb-2 text-dark">{feature.title}</h5>
+                    <p className="text-muted lh-lg">{feature.description}</p>
                 </div>
               </div>
             ))}
@@ -418,7 +422,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Enhanced How It Works Section */}
-      <section id="how-it-works" className="py-5" style={{ backgroundColor: 'var(--gray-50)' }}>
+      <section id="how-it-works" className="py-5">
         <div className="container">
           <div className="text-center mb-5">
             <h2 className="display-5 fw-bold mb-3 gradient-text">How It Works</h2>
@@ -426,47 +430,575 @@ const Home: React.FC = () => {
               Simple steps to start improving your lottery odds
             </p>
           </div>
+          <div className="row g-4 align-items-center">
+            {/* How It Works Steps - Right Side */}
+            <div className="col-lg-8">
+              <div className="detailed-steps fade-in-right">
           <div className="row g-4">
-            {[
-              { step: 1, title: "Sign Up", description: "Create your free account and select your preferred lottery for a 7-day trial.", icon: "bi-person-plus" },
-              { step: 2, title: "Get Predictions", description: "Receive daily predictions showing non-viable numbers to avoid.", icon: "bi-graph-up" },
-              { step: 3, title: "Generate Numbers", description: "Use our number generator to create winning combinations from viable numbers.", icon: "bi-shuffle" },
-              { step: 4, title: "Win More", description: "Play smarter with higher probability numbers and improve your winning odds.", icon: "bi-trophy" }
-            ].map((step, index) => (
-              <div key={index} className="col-lg-3 col-md-6 text-center">
-                <div className="step-card fade-in" style={{ animationDelay: `${index * 0.2}s` }}>
-                  <div className="step-number mx-auto mb-4 d-flex align-items-center justify-content-center rounded-circle shadow-custom-lg" 
+                  {/* Step 1: Free Trial */}
+                  <div className="col-md-6">
+                    <div className="enhanced-step-item h-100" style={{
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(59, 130, 246, 0.1)',
+                      boxShadow: '0 8px 25px rgba(59, 130, 246, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      {/* Background Pattern */}
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: '100px',
+                        height: '100px',
+                        background: 'radial-gradient(circle, rgba(59, 130, 246, 0.05) 0%, transparent 70%)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                      }}></div>
+                      
+                      <div className="step-header d-flex align-items-center mb-3" style={{ position: 'relative', zIndex: 2 }}>
+                        <div className="step-number me-3 d-flex align-items-center justify-content-center rounded-circle" 
                        style={{ 
-                         width: '80px', 
-                         height: '80px', 
-                         background: 'var(--gradient-primary)',
-                         color: 'white'
-                       }}>
-                    <i className={`${step.icon} fs-3`}></i>
+                               width: '50px', 
+                               height: '50px', 
+                               minWidth: '50px',
+                               minHeight: '50px',
+                               borderRadius: '50%',
+                               background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                               color: 'white',
+                               fontSize: '1.2rem',
+                               fontWeight: 'bold',
+                               lineHeight: '1',
+                               display: 'flex',
+                               alignItems: 'center',
+                               justifyContent: 'center',
+                               boxShadow: '0 6px 20px rgba(59, 130, 246, 0.3)',
+                               position: 'relative'
+                             }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            left: '-2px',
+                            right: '-2px',
+                            bottom: '-2px',
+                            background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                            borderRadius: '50%',
+                            zIndex: -1,
+                            opacity: 0.3,
+                            animation: 'pulse 2s infinite'
+                          }}></div>
+                          1
+                        </div>
+                        <div>
+                          <h5 className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '1.1rem' }}>7-Day Free Trial</h5>
+                          <p className="text-muted mb-0" style={{ fontSize: '0.8rem', fontWeight: '500' }}>User Acquisition Strategy</p>
+                        </div>
+                      </div>
+                      <div className="step-content" style={{ position: 'relative', zIndex: 2 }}>
+                        <ul className="list-unstyled mb-0" style={{ fontSize: '0.8rem' }}>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-check text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Register with phone number for SMS alerts</span>
+                          </li>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-check text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Select one lottery from available options</span>
+                          </li>
+                          <li className="mb-0 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-check text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Receive daily free predictions for 7 days</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                  <h5 className="fw-bold mb-3">{step.title}</h5>
-                  <p className="text-muted">{step.description}</p>
+
+                  {/* Step 2: Pay-Per-Use */}
+                  <div className="col-md-6">
+                    <div className="enhanced-step-item h-100" style={{
+                      background: 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(220, 38, 38, 0.1)',
+                      boxShadow: '0 8px 25px rgba(220, 38, 38, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      {/* Background Pattern */}
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: '100px',
+                        height: '100px',
+                        background: 'radial-gradient(circle, rgba(220, 38, 38, 0.05) 0%, transparent 70%)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                      }}></div>
+                      
+                      <div className="step-header d-flex align-items-center mb-3" style={{ position: 'relative', zIndex: 2 }}>
+                        <div className="step-number me-3 d-flex align-items-center justify-content-center rounded-circle" 
+                             style={{ 
+                               width: '50px', 
+                               height: '50px', 
+                               minWidth: '50px',
+                               minHeight: '50px',
+                               borderRadius: '50%',
+                               background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                               color: 'white',
+                               fontSize: '1.2rem',
+                               fontWeight: 'bold',
+                               lineHeight: '1',
+                               display: 'flex',
+                               alignItems: 'center',
+                               justifyContent: 'center',
+                               boxShadow: '0 6px 20px rgba(220, 38, 38, 0.3)',
+                               position: 'relative'
+                             }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            left: '-2px',
+                            right: '-2px',
+                            bottom: '-2px',
+                            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                            borderRadius: '50%',
+                            zIndex: -1,
+                            opacity: 0.3,
+                            animation: 'pulse 2s infinite'
+                          }}></div>
+                          2
+                        </div>
+                        <div>
+                          <h5 className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '1.1rem' }}>Pay-Per-Prediction</h5>
+                          <p className="text-muted mb-0" style={{ fontSize: '0.8rem', fontWeight: '500' }}>Monetization Model</p>
+                        </div>
+                      </div>
+                      <div className="step-content" style={{ position: 'relative', zIndex: 2 }}>
+                        <ul className="list-unstyled mb-0" style={{ fontSize: '0.8rem' }}>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-currency-dollar text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Cost equals one lottery line (e.g., $1 for Lotto America)</span>
+                          </li>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-credit-card text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Two payment options: Pay-per-use or Preload wallet</span>
+                          </li>
+                          <li className="mb-0 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-shield-check text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Pricing tied to official lottery line costs</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 3: Customer Workflow */}
+                  <div className="col-md-6">
+                    <div className="enhanced-step-item h-100" style={{
+                      background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(5, 150, 105, 0.1)',
+                      boxShadow: '0 8px 25px rgba(5, 150, 105, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      {/* Background Pattern */}
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: '100px',
+                        height: '100px',
+                        background: 'radial-gradient(circle, rgba(5, 150, 105, 0.05) 0%, transparent 70%)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                      }}></div>
+                      
+                      <div className="step-header d-flex align-items-center mb-3" style={{ position: 'relative', zIndex: 2 }}>
+                        <div className="step-number me-3 d-flex align-items-center justify-content-center rounded-circle" 
+                             style={{ 
+                               width: '50px', 
+                               height: '50px', 
+                               minWidth: '50px',
+                               minHeight: '50px',
+                               borderRadius: '50%',
+                               background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                               color: 'white',
+                               fontSize: '1.2rem',
+                               fontWeight: 'bold',
+                               lineHeight: '1',
+                               display: 'flex',
+                               alignItems: 'center',
+                               justifyContent: 'center',
+                               boxShadow: '0 6px 20px rgba(5, 150, 105, 0.3)',
+                               position: 'relative'
+                             }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            left: '-2px',
+                            right: '-2px',
+                            bottom: '-2px',
+                            background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                            borderRadius: '50%',
+                            zIndex: -1,
+                            opacity: 0.3,
+                            animation: 'pulse 2s infinite'
+                          }}></div>
+                          3
+                        </div>
+                        <div>
+                          <h5 className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '1.1rem' }}>Access Predictions</h5>
+                          <p className="text-muted mb-0" style={{ fontSize: '0.8rem', fontWeight: '500' }}>Customer Workflow</p>
+                        </div>
+                      </div>
+                      <div className="step-content" style={{ position: 'relative', zIndex: 2 }}>
+                        <ul className="list-unstyled mb-0" style={{ fontSize: '0.8rem' }}>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-list-ul text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Select lottery from dropdown menu</span>
+                          </li>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-file-text text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Read & accept legal disclaimer</span>
+                          </li>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-credit-card text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Complete payment (balance or direct)</span>
+                          </li>
+                          <li className="mb-0 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-graph-up text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Access prediction & receive SMS alerts</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step 4: Value Proposition */}
+                  <div className="col-md-6">
+                    <div className="enhanced-step-item h-100" style={{
+                      background: 'linear-gradient(135deg, #ffffff 0%, #faf5ff 100%)',
+                      borderRadius: '16px',
+                      padding: '1.5rem',
+                      border: '1px solid rgba(124, 58, 237, 0.1)',
+                      boxShadow: '0 8px 25px rgba(124, 58, 237, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s ease'
+                    }}>
+                      {/* Background Pattern */}
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        right: 0,
+                        width: '100px',
+                        height: '100px',
+                        background: 'radial-gradient(circle, rgba(124, 58, 237, 0.05) 0%, transparent 70%)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                      }}></div>
+                      
+                      <div className="step-header d-flex align-items-center mb-3" style={{ position: 'relative', zIndex: 2 }}>
+                        <div className="step-number me-3 d-flex align-items-center justify-content-center rounded-circle" 
+                             style={{ 
+                               width: '50px', 
+                               height: '50px', 
+                               minWidth: '50px',
+                               minHeight: '50px',
+                               borderRadius: '50%',
+                               background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                               color: 'white',
+                               fontSize: '1.2rem',
+                               fontWeight: 'bold',
+                               lineHeight: '1',
+                               display: 'flex',
+                               alignItems: 'center',
+                               justifyContent: 'center',
+                               boxShadow: '0 6px 20px rgba(124, 58, 237, 0.3)',
+                               position: 'relative'
+                             }}>
+                          <div style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            left: '-2px',
+                            right: '-2px',
+                            bottom: '-2px',
+                            background: 'linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)',
+                            borderRadius: '50%',
+                            zIndex: -1,
+                            opacity: 0.3,
+                            animation: 'pulse 2s infinite'
+                          }}></div>
+                          4
+                        </div>
+                        <div>
+                          <h5 className="fw-bold mb-1" style={{ color: '#1e293b', fontSize: '1.1rem' }}>Improve Your Odds</h5>
+                          <p className="text-muted mb-0" style={{ fontSize: '0.8rem', fontWeight: '500' }}>Value Proposition</p>
+                        </div>
+                      </div>
+                      <div className="step-content" style={{ position: 'relative', zIndex: 2 }}>
+                        <ul className="list-unstyled mb-0" style={{ fontSize: '0.8rem' }}>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-exclamation-triangle text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Avoid "low vibration" numbers that waste money</span>
+                          </li>
+                          <li className="mb-2 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-graph-up-arrow text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Focus on higher probability number combinations</span>
+                          </li>
+                          <li className="mb-0 d-flex align-items-start">
+                            <div style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '10px',
+                              flexShrink: 0,
+                              marginTop: '2px'
+                            }}>
+                              <i className="bi bi-trophy text-white" style={{ fontSize: '0.7rem' }}></i>
+                            </div>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Maximize your lottery investment potential</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
+            </div>
+            
+            {/* iPhone Mockup - Left Side */}
+            <div className="col-lg-4">
+              <div className="iphone-mockup fade-in-left">
+                <div className="iphone-frame">
+                  <div className="iphone-screen">
+                    <div className="how-it-works-slider">
+                      <div className="how-it-works-slide active">
+                        <div className="slide-icon">
+                          <i className="bi bi-person-plus"></i>
+                        </div>
+                        <div className="slide-title">Sign Up</div>
+                        <div className="slide-description">Create your free account and select your preferred lottery for a 7-day trial.</div>
+                        <div className="slide-step">Step 1</div>
+                      </div>
+                      <div className="how-it-works-slide">
+                        <div className="slide-icon">
+                          <i className="bi bi-graph-up"></i>
+                        </div>
+                        <div className="slide-title">Get Predictions</div>
+                        <div className="slide-description">Receive daily predictions showing non-viable numbers to avoid.</div>
+                        <div className="slide-step">Step 2</div>
+                      </div>
+                      <div className="how-it-works-slide">
+                        <div className="slide-icon">
+                          <i className="bi bi-shuffle"></i>
+                        </div>
+                        <div className="slide-title">Generate Numbers</div>
+                        <div className="slide-description">Use our number generator to create winning combinations from viable numbers.</div>
+                        <div className="slide-step">Step 3</div>
+                      </div>
+                      <div className="how-it-works-slide">
+                        <div className="slide-icon">
+                          <i className="bi bi-trophy"></i>
+                        </div>
+                        <div className="slide-title">Win More</div>
+                        <div className="slide-description">Play smarter with higher probability numbers and improve your winning odds.</div>
+                        <div className="slide-step">Step 4</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
 
       {/* Professional Pricing Section */}
-      <section id="pricing" className="py-5" style={{ backgroundColor: 'var(--gray-50)' }}>
-        <div className="container">
-          <div className="text-center mb-4">
-            <h2 className="display-5 fw-bold mb-2 gradient-text">Transparent Pricing</h2>
+      <section id="pricing" className="py-5" style={{ 
+        paddingTop: '6rem'
+      }}>
+        
+        <div className="container" style={{ position: 'relative', zIndex: 2 }}>
+          <div className="text-center mb-4" style={{ paddingTop: '3rem' }}>
+            <h2 className="display-5 fw-bold mb-2 text-dark">Transparent Pricing</h2>
             <p className="lead text-muted">
               Choose the plan that fits your needs. No hidden fees, no long-term commitments.
             </p>
           </div>
-          <div className="row g-4 justify-content-center">
-            {/* Starter Plan - Centered */}
-            <div className="col-lg-4 col-md-6 col-sm-8 mb-4">
-              <div className="card border-0 h-100 fade-in pricing-card-enhanced" style={{ 
+          <div className="row g-4 align-items-center justify-content-center">
+            {/* Starter Plan - Left Side */}
+            <div className="col-lg-4 col-md-6 mb-4">
+              <div className="card border-0 h-100 fade-in-right pricing-card-enhanced" style={{ 
                 background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
                 borderRadius: '24px',
                 boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08), 0 8px 25px rgba(99, 102, 241, 0.1)',
@@ -476,12 +1008,12 @@ const Home: React.FC = () => {
                 position: 'relative',
                 overflow: 'hidden'
               }}>
-                <div className="card-body p-4 text-center">
-                  <div className="plan-header mb-3">
+                <div className="card-body p-3 text-center">
+                  <div className="plan-header mb-2">
                     <div className="plan-icon mb-2">
                       <div className="pricing-icon-enhanced" style={{
-                        width: '80px',
-                        height: '80px',
+                        width: '60px',
+                        height: '60px',
                         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #3b82f6 100%)',
                         borderRadius: '20px',
                         display: 'flex',
@@ -501,7 +1033,7 @@ const Home: React.FC = () => {
                           background: 'radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.2) 0%, transparent 50%)',
                           pointerEvents: 'none'
                         }}></div>
-                        <i className="bi bi-lightning text-white fs-2" style={{ 
+                        <i className="bi bi-lightning text-white fs-3" style={{ 
                           filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2))',
                           zIndex: 2,
                           position: 'relative'
@@ -512,8 +1044,8 @@ const Home: React.FC = () => {
                     <p className="text-muted mb-0 small">Pay as you go - Simple and transparent</p>
                   </div>
                   
-                  <div className="pricing mb-3">
-                    <div className="pricing-badge mb-2">
+                  <div className="pricing mb-2">
+                    <div className="pricing-badge mb-1">
                       <span className="badge bg-gradient-primary text-white px-3 py-2 rounded-pill fw-semibold">
                         Most Popular
                       </span>
@@ -584,8 +1116,8 @@ const Home: React.FC = () => {
                     overflow: 'hidden'
                   }}>
                     <span style={{ position: 'relative', zIndex: 2 }}>
-                      <i className="bi bi-rocket-takeoff me-2"></i>
-                      Get Started Now
+                    <i className="bi bi-rocket-takeoff me-2"></i>
+                    Get Started Now
                     </span>
                     <div style={{
                       position: 'absolute',
@@ -600,65 +1132,183 @@ const Home: React.FC = () => {
                 </div>
               </div>
             </div>
+            
+            {/* Smart Pricing - Right Side */}
+            <div className="col-lg-4 col-md-6 mb-4">
+              <div className="smart-pricing-white-container fade-in-left h-100" style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%)',
+                borderRadius: '32px',
+                padding: '2.5rem 2rem',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.08), 0 10px 30px rgba(99, 102, 241, 0.1)',
+                border: '1px solid rgba(99, 102, 241, 0.1)'
+              }}>
+                {/* Background Effects */}
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: `
+                    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
+                    radial-gradient(circle at 40% 60%, rgba(59, 130, 246, 0.03) 0%, transparent 50%)
+                  `,
+                  pointerEvents: 'none'
+                }}></div>
+
+                {/* Floating Icons */}
+                <div style={{
+                  position: 'absolute',
+                  top: '8%',
+                  right: '10%',
+                  fontSize: '2.5rem',
+                  opacity: 0.1,
+                  animation: 'floatIcon 8s ease-in-out infinite',
+                  zIndex: 1
+                }}>💎</div>
+                <div style={{
+                  position: 'absolute',
+                  bottom: '15%',
+                  left: '8%',
+                        fontSize: '1.5rem',
+                  opacity: 0.08,
+                  animation: 'floatIcon 10s ease-in-out infinite reverse',
+                  zIndex: 1
+                }}>⚡</div>
+
+                {/* Main Content */}
+                <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  {/* Badge */}
+                  <div style={{
+                    display: 'inline-block',
+                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                    color: 'white',
+                    padding: '0.3rem 1rem',
+                    borderRadius: '50px',
+                    fontSize: '0.7rem',
+                    fontWeight: '600',
+                    marginBottom: '1.2rem',
+                    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
+                    alignSelf: 'flex-start'
+                  }}>
+                    🎯 Smart Pricing Model
+                  </div>
+
+                  {/* Main Icon */}
+                  <div style={{
+                    fontSize: '2.5rem',
+                    marginBottom: '0.8rem',
+                    filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))',
+                    animation: 'iconPulse 3s ease-in-out infinite'
+                  }}>
+                    💰
+                  </div>
+
+                  {/* Title */}
+                  <h3 style={{
+                    background: 'linear-gradient(135deg, #1e293b, #3b82f6, #1d4ed8)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold',
+                    marginBottom: '0.6rem',
+                    lineHeight: '1.2'
+                  }}>
+                    Smart Pricing
+                  </h3>
+
+                  {/* Subtitle */}
+                  <p style={{
+                    color: '#64748b',
+                    fontSize: '0.85rem',
+                    marginBottom: '1.2rem',
+                    lineHeight: '1.4'
+                  }}>
+                    Revolutionary pricing that adapts to your success. Pay only when you win!
+                  </p>
+
+                  {/* Features Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '0.6rem',
+                    marginBottom: '1.2rem'
+                  }}>
+                    {[
+                      { icon: '🎯', title: 'Pay Per Win', desc: 'Only pay when you win' },
+                      { icon: '🔒', title: 'No Hidden Fees', desc: 'Complete transparency' },
+                      { icon: '⚡', title: 'Instant Access', desc: 'Get predictions immediately' },
+                      { icon: '📊', title: 'Real Analytics', desc: 'Data-driven insights' }
+                    ].map((feature, index) => (
+                      <div key={index} style={{
+                        background: 'rgba(255, 255, 255, 0.8)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '10px',
+                        padding: '0.8rem',
+                        border: '1px solid rgba(99, 102, 241, 0.1)',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer',
+                        animation: `featureSlideIn ${0.5 + index * 0.1}s ease-out`
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-5px)';
+                        e.currentTarget.style.boxShadow = '0 10px 30px rgba(99, 102, 241, 0.2)';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.1)';
+                      }}>
+                        <div style={{
+                          fontSize: '1.2rem',
+                          marginBottom: '0.3rem',
+                          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
+                        }}>
+                          {feature.icon}
+                        </div>
+                        <h4 style={{
+                          fontSize: '0.8rem',
+                          fontWeight: 'bold',
+                          color: '#1e293b',
+                          marginBottom: '0.15rem'
+                        }}>
+                          {feature.title}
+                        </h4>
+                        <p style={{
+                          fontSize: '0.7rem',
+                          color: '#64748b',
+                          margin: 0
+                        }}>
+                          {feature.desc}
+                        </p>
+        </div>
+                    ))}
+                  </div>
+
+                </div>
+
+                {/* Bottom Accent */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: '4px',
+                  background: 'linear-gradient(90deg, #3b82f6, #1d4ed8, #3b82f6)',
+                  backgroundSize: '200% 100%',
+                  animation: 'gradientShift 3s ease-in-out infinite'
+          }}></div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Enhanced CTA Section */}
-      <section className="py-5 bg-gradient-hero text-white position-relative overflow-hidden">
-        <div className="container text-center position-relative" style={{ zIndex: 2 }}>
-          <h2 className="display-5 fw-bold mb-3 text-white">Ready to Transform Your Lottery Strategy?</h2>
-          <p className="lead mb-4 text-white">
-            Join 50,000+ professionals who trust Obyyo for data-driven lottery predictions
-          </p>
-          <div className="d-flex flex-wrap gap-3 justify-content-center">
-            {user ? (
-              <Link to="/dashboard" className="btn btn-light btn-lg px-5 hover-lift">
-                <i className="bi bi-speedometer2 me-2"></i>
-                Go to Dashboard
-              </Link>
-            ) : (
-              <>
-                {canStartTrial() ? (
-                  <Link to="/register" className="btn btn-light btn-lg px-5 hover-lift">
-                    <i className="bi bi-rocket-takeoff me-2"></i>
-                    Start Free Trial
-                  </Link>
-                ) : (
-                  <Link to="/pricing" className="btn btn-light btn-lg px-5 hover-lift">
-                    <i className="bi bi-credit-card me-2"></i>
-                    View Pricing
-                  </Link>
-                )}
-                <Link to="/contact" className="btn btn-outline-light btn-lg px-4 hover-lift">
-                  <i className="bi bi-telephone me-2"></i>
-                  Schedule Demo
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="position-absolute top-0 start-0 w-100 h-100" style={{ zIndex: 1 }}>
-          <div className="position-absolute" style={{ 
-            top: '20%', 
-            left: '10%', 
-            width: '100px', 
-            height: '100px', 
-            background: 'rgba(255, 255, 255, 0.1)', 
-            borderRadius: '50%',
-            animation: 'float 6s ease-in-out infinite'
-          }}></div>
-          <div className="position-absolute" style={{ 
-            top: '60%', 
-            right: '15%', 
-            width: '60px', 
-            height: '60px', 
-            background: 'rgba(255, 255, 255, 0.1)', 
-            borderRadius: '50%',
-            animation: 'float 4s ease-in-out infinite reverse'
-          }}></div>
-        </div>
-      </section>
     </div>
   );
 };

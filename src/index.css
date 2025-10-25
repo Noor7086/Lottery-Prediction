@@ -228,9 +228,10 @@ body {
   font-family: var(--font-family-sans);
   line-height: 1.6;
   color: var(--gray-800);
-  background-color: var(--gray-50);
+  background: #f0f0f0 !important;
   font-size: 16px;
   overflow-x: hidden;
+  min-height: 100vh;
 }
 
 /* Typography improvements */
@@ -482,11 +483,40 @@ body {
   background-clip: text;
   transition: all 0.3s ease;
   position: relative;
+  box-shadow: none;
 }
 
 .navbar-brand:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
+}
+
+/* Remove box shadows and focus outlines from navbar buttons */
+.navbar .btn-primary,
+.navbar .btn-secondary {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.navbar .btn-primary:hover,
+.navbar .btn-secondary:hover {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.navbar .btn-primary:focus,
+.navbar .btn-secondary:focus,
+.navbar .btn-primary:active,
+.navbar .btn-secondary:active {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove focus outline from navbar brand */
+.navbar-brand:focus,
+.navbar-brand:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .navbar-brand i {
@@ -1459,19 +1489,6 @@ body {
   overflow: hidden;
 }
 
-.enhanced-lottery-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
-  pointer-events: none;
-  z-index: 1;
-}
 
 .enhanced-lottery-section > .container {
   position: relative;
@@ -1700,17 +1717,1985 @@ body {
   box-shadow: 0 12px 35px rgba(99, 102, 241, 0.3);
 }
 
+/* Red Get Predictions Button */
+.btn[style*="background: linear-gradient(135deg, #dc2626"]:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%) !important;
+  box-shadow: 0 6px 20px rgba(220, 38, 38, 0.4) !important;
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Clean Feature Items Design */
+.feature-item-clean {
+  text-align: center;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.feature-item-clean:hover {
+  transform: translateY(-2px);
+}
+
+.feature-icon-clean {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.icon-wrapper-clean {
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.feature-item-clean:hover .icon-wrapper-clean {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12) 0%, rgba(139, 92, 246, 0.12) 100%) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+}
+
+.icon-wrapper-clean::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: all 0.3s ease;
+  z-index: 1;
+}
+
+.feature-item-clean:hover .icon-wrapper-clean::before {
+  width: 100px;
+  height: 100px;
+}
+
+/* Detailed Steps Styles */
+.detailed-steps {
+  padding: 1rem 0;
+}
+
+.step-item {
+  position: relative;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 12px;
+  box-shadow: 
+    0 6px 24px rgba(0, 0, 0, 0.04),
+    0 2px 6px rgba(0, 0, 0, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.step-item:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+}
+
+.step-header {
+  margin-bottom: 1rem;
+}
+
+.step-number {
+  min-width: 50px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.step-content {
+  border-left: 3px solid #e2e8f0;
+  padding-left: 1.5rem;
+}
+
+.step-content ul li {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #64748b;
+}
+
+.step-content ul li i {
+  font-size: 1rem;
+}
+
+/* iPhone Mockup Styles */
+.iphone-mockup {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.iphone-frame {
+  width: 320px;
+  height: 640px;
+  background: linear-gradient(145deg, #2c2c2e 0%, #1c1c1e 100%);
+  border-radius: 45px;
+  padding: 10px;
+  box-shadow: 
+    0 25px 50px rgba(0, 0, 0, 0.3),
+    0 10px 20px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+}
+
+.iphone-frame::before {
+  content: '';
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 6px;
+  background: #1c1c1e;
+  border-radius: 3px;
+  z-index: 10;
+}
+
+.iphone-screen {
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border-radius: 35px;
+  overflow: hidden;
+  position: relative;
+}
+
+.how-it-works-slider {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.how-it-works-slide {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transform: translateX(100%);
+  transition: transform 0.8s ease-in-out;
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+  padding: 2rem;
+  text-align: center;
+}
+
+.how-it-works-slide.active {
+  transform: translateX(0);
+}
+
+.slide-icon {
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+}
+
+.slide-icon i {
+  font-size: 2rem;
+  color: white;
+}
+
+.slide-title {
+  color: #1e293b;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.slide-description {
+  color: #64748b;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  max-width: 200px;
+}
+
+.slide-step {
+  color: #3b82f6;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* iPhone Mockup Animation */
+@keyframes howItWorksSlideShow {
+  0% { transform: translateX(100%); }
+  20% { transform: translateX(0); }
+  25% { transform: translateX(0); }
+  45% { transform: translateX(-100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.how-it-works-slide:nth-child(1) {
+  animation: howItWorksSlideShow 12s infinite;
+}
+
+.how-it-works-slide:nth-child(2) {
+  animation: howItWorksSlideShow 12s infinite 3s;
+}
+
+.how-it-works-slide:nth-child(3) {
+  animation: howItWorksSlideShow 12s infinite 6s;
+}
+
+.how-it-works-slide:nth-child(4) {
+  animation: howItWorksSlideShow 12s infinite 9s;
+}
+
+/* Responsive layout starting from 1201px - Override Bootstrap lg breakpoint */
+@media (max-width: 1200px) and (min-width: 992px) {
+  #how-it-works .row.g-4.align-items-center {
+    flex-direction: column !important;
+  }
+  
+  #how-it-works .col-lg-6:first-child {
+    order: 1 !important;
+    margin-bottom: 3rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+  
+  #how-it-works .col-lg-6:last-child {
+    order: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+}
+
+/* Also apply to smaller screens */
+@media (max-width: 991.98px) {
+  #how-it-works .row.g-4.align-items-center {
+    flex-direction: column !important;
+  }
+  
+  #how-it-works .col-lg-6:first-child {
+    order: 1 !important;
+    margin-bottom: 3rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+  
+  #how-it-works .col-lg-6:last-child {
+    order: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    flex: 0 0 100% !important;
+  }
+}
+
+/* Responsive iPhone Mockup */
+@media (max-width: 768px) {
+  .iphone-mockup {
+    padding: 1rem;
+  }
+  
+  .iphone-frame {
+    width: 280px;
+    height: 560px;
+  }
+  
+  .lottery-slide img {
+    width: 100px;
+    height: 100px;
+  }
+  
+  .slide-text {
+    font-size: 1rem;
+  }
+}
+
+/* Snooker Balls Light Effect Background */
+.home-page {
+  position: relative;
+  overflow-x: hidden;
+  background: #ffffff;
+}
+
+
+
+/* Snooker Balls Light Effect */
+.snooker-balls-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.snooker-ball {
+  position: absolute;
+  border-radius: 50%;
+  box-shadow: 
+    0 0 20px rgba(0, 0, 0, 0.1),
+    inset 0 0 10px rgba(255, 255, 255, 0.3),
+    0 0 30px rgba(0, 0, 0, 0.05);
+  animation: floatSnookerBall 25s infinite linear;
+  filter: blur(0.5px);
+}
+
+/* Red Ball (1) */
+.snooker-ball:nth-child(1) {
+  width: 40px;
+  height: 40px;
+  left: 10%;
+  background: radial-gradient(circle at 30% 30%, #ff4757, #c44569, #8b2635);
+  animation-delay: 0s;
+  animation-duration: 30s;
+  box-shadow: 
+    0 0 25px rgba(255, 71, 87, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(255, 71, 87, 0.2);
+}
+
+/* Yellow Ball (2) */
+.snooker-ball:nth-child(2) {
+  width: 35px;
+  height: 35px;
+  left: 20%;
+  background: radial-gradient(circle at 30% 30%, #ffa502, #ff6348, #ff4757);
+  animation-delay: 3s;
+  animation-duration: 28s;
+  box-shadow: 
+    0 0 25px rgba(255, 165, 2, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(255, 165, 2, 0.2);
+}
+
+/* Green Ball (3) */
+.snooker-ball:nth-child(3) {
+  width: 45px;
+  height: 45px;
+  left: 30%;
+  background: radial-gradient(circle at 30% 30%, #2ed573, #1e90ff, #3742fa);
+  animation-delay: 6s;
+  animation-duration: 32s;
+  box-shadow: 
+    0 0 25px rgba(46, 213, 115, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(46, 213, 115, 0.2);
+}
+
+/* Brown Ball (4) */
+.snooker-ball:nth-child(4) {
+  width: 38px;
+  height: 38px;
+  left: 40%;
+  background: radial-gradient(circle at 30% 30%, #8b4513, #a0522d, #cd853f);
+  animation-delay: 9s;
+  animation-duration: 26s;
+  box-shadow: 
+    0 0 25px rgba(139, 69, 19, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(139, 69, 19, 0.2);
+}
+
+/* Blue Ball (5) */
+.snooker-ball:nth-child(5) {
+  width: 42px;
+  height: 42px;
+  left: 50%;
+  background: radial-gradient(circle at 30% 30%, #3742fa, #2f3542, #1e90ff);
+  animation-delay: 12s;
+  animation-duration: 29s;
+  box-shadow: 
+    0 0 25px rgba(55, 66, 250, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(55, 66, 250, 0.2);
+}
+
+/* Pink Ball (6) */
+.snooker-ball:nth-child(6) {
+  width: 36px;
+  height: 36px;
+  left: 60%;
+  background: radial-gradient(circle at 30% 30%, #ff6b9d, #ff8cc8, #ffa8d3);
+  animation-delay: 15s;
+  animation-duration: 27s;
+  box-shadow: 
+    0 0 25px rgba(255, 107, 157, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(255, 107, 157, 0.2);
+}
+
+/* Black Ball (7) */
+.snooker-ball:nth-child(7) {
+  width: 48px;
+  height: 48px;
+  left: 70%;
+  background: radial-gradient(circle at 30% 30%, #2f3542, #1e1e1e, #000000);
+  animation-delay: 18s;
+  animation-duration: 31s;
+  box-shadow: 
+    0 0 25px rgba(47, 53, 66, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.2),
+    0 0 40px rgba(47, 53, 66, 0.2);
+}
+
+/* White Ball (8) */
+.snooker-ball:nth-child(8) {
+  width: 44px;
+  height: 44px;
+  left: 80%;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #f1f2f6, #ddd);
+  animation-delay: 21s;
+  animation-duration: 25s;
+  box-shadow: 
+    0 0 25px rgba(255, 255, 255, 0.3),
+    inset 0 0 15px rgba(255, 255, 255, 0.6),
+    0 0 40px rgba(255, 255, 255, 0.1);
+}
+
+/* Additional Red Balls */
+.snooker-ball:nth-child(9) {
+  width: 33px;
+  height: 33px;
+  left: 90%;
+  background: radial-gradient(circle at 30% 30%, #ff4757, #c44569, #8b2635);
+  animation-delay: 24s;
+  animation-duration: 33s;
+  box-shadow: 
+    0 0 25px rgba(255, 71, 87, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(255, 71, 87, 0.2);
+}
+
+.snooker-ball:nth-child(10) {
+  width: 37px;
+  height: 37px;
+  left: 5%;
+  background: radial-gradient(circle at 30% 30%, #ff4757, #c44569, #8b2635);
+  animation-delay: 27s;
+  animation-duration: 28s;
+  box-shadow: 
+    0 0 25px rgba(255, 71, 87, 0.4),
+    inset 0 0 15px rgba(255, 255, 255, 0.4),
+    0 0 40px rgba(255, 71, 87, 0.2);
+}
+
+/* Keyframe Animations */
+@keyframes backgroundFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-20px) rotate(1deg);
+  }
+  66% {
+    transform: translateY(10px) rotate(-1deg);
+  }
+}
+
+@keyframes backgroundShift {
+  0%, 100% {
+    transform: translateX(0px) scale(1);
+  }
+  50% {
+    transform: translateX(10px) scale(1.02);
+  }
+}
+
+@keyframes floatSnookerBall {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.8);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(90vh) rotate(36deg) scale(0.9);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.1);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(10vh) rotate(324deg) scale(0.9);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.8);
+    opacity: 0;
+  }
+}
+
+/* Transparent Pricing Extraordinary Background Effect */
+.pricing-bg-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+
+/* Floating Price Numbers */
+.pricing-numbers-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.pricing-number {
+  position: absolute;
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: rgba(99, 102, 241, 0.12);
+  animation: floatPricingNumber 35s infinite linear;
+  user-select: none;
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+.pricing-number:nth-child(1) {
+  left: 8%;
+  animation-delay: 0s;
+  animation-duration: 40s;
+  color: rgba(99, 102, 241, 0.1);
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+.pricing-number:nth-child(2) {
+  left: 18%;
+  animation-delay: 6s;
+  animation-duration: 35s;
+  color: rgba(139, 92, 246, 0.1);
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+}
+
+.pricing-number:nth-child(3) {
+  left: 28%;
+  animation-delay: 12s;
+  animation-duration: 45s;
+  color: rgba(59, 130, 246, 0.1);
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+.pricing-number:nth-child(4) {
+  left: 38%;
+  animation-delay: 18s;
+  animation-duration: 38s;
+  color: rgba(16, 185, 129, 0.1);
+  text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.pricing-number:nth-child(5) {
+  left: 48%;
+  animation-delay: 24s;
+  animation-duration: 42s;
+  color: rgba(236, 72, 153, 0.1);
+  text-shadow: 0 0 20px rgba(236, 72, 153, 0.3);
+}
+
+.pricing-number:nth-child(6) {
+  left: 58%;
+  animation-delay: 30s;
+  animation-duration: 36s;
+  color: rgba(99, 102, 241, 0.1);
+  text-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+}
+
+/* Floating Dollar Signs */
+.pricing-symbols-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.pricing-symbol {
+  position: absolute;
+  font-size: 3rem;
+  font-weight: 900;
+  color: rgba(255, 215, 0, 0.15);
+  animation: floatPricingSymbol 28s infinite linear;
+  user-select: none;
+  text-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+}
+
+.pricing-symbol:nth-child(1) {
+  left: 12%;
+  animation-delay: 3s;
+  animation-duration: 32s;
+}
+
+.pricing-symbol:nth-child(2) {
+  left: 22%;
+  animation-delay: 9s;
+  animation-duration: 38s;
+}
+
+.pricing-symbol:nth-child(3) {
+  left: 32%;
+  animation-delay: 15s;
+  animation-duration: 34s;
+}
+
+.pricing-symbol:nth-child(4) {
+  left: 42%;
+  animation-delay: 21s;
+  animation-duration: 40s;
+}
+
+.pricing-symbol:nth-child(5) {
+  left: 52%;
+  animation-delay: 27s;
+  animation-duration: 36s;
+}
+
+.pricing-symbol:nth-child(6) {
+  left: 62%;
+  animation-delay: 33s;
+  animation-duration: 42s;
+}
+
+.pricing-symbol:nth-child(7) {
+  left: 72%;
+  animation-delay: 39s;
+  animation-duration: 30s;
+}
+
+.pricing-symbol:nth-child(8) {
+  left: 82%;
+  animation-delay: 45s;
+  animation-duration: 44s;
+}
+
+/* Floating Coins */
+.pricing-coins-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.pricing-coin {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.4), rgba(255, 193, 7, 0.3), rgba(255, 152, 0, 0.2));
+  box-shadow: 
+    0 0 15px rgba(255, 215, 0, 0.3),
+    inset 0 0 8px rgba(255, 255, 255, 0.4),
+    0 0 25px rgba(255, 215, 0, 0.2);
+  animation: floatPricingCoin 30s infinite linear;
+  filter: blur(0.3px);
+}
+
+.pricing-coin:nth-child(1) {
+  left: 15%;
+  animation-delay: 1s;
+  animation-duration: 33s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.4), rgba(255, 193, 7, 0.3));
+}
+
+.pricing-coin:nth-child(2) {
+  left: 25%;
+  animation-delay: 7s;
+  animation-duration: 37s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 193, 7, 0.4), rgba(255, 152, 0, 0.3));
+}
+
+.pricing-coin:nth-child(3) {
+  left: 35%;
+  animation-delay: 13s;
+  animation-duration: 31s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 152, 0, 0.4), rgba(255, 215, 0, 0.3));
+}
+
+.pricing-coin:nth-child(4) {
+  left: 45%;
+  animation-delay: 19s;
+  animation-duration: 39s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.4), rgba(255, 193, 7, 0.3));
+}
+
+.pricing-coin:nth-child(5) {
+  left: 55%;
+  animation-delay: 25s;
+  animation-duration: 35s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 193, 7, 0.4), rgba(255, 152, 0, 0.3));
+}
+
+.pricing-coin:nth-child(6) {
+  left: 65%;
+  animation-delay: 31s;
+  animation-duration: 41s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 152, 0, 0.4), rgba(255, 215, 0, 0.3));
+}
+
+.pricing-coin:nth-child(7) {
+  left: 75%;
+  animation-delay: 37s;
+  animation-duration: 29s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 215, 0, 0.4), rgba(255, 193, 7, 0.3));
+}
+
+.pricing-coin:nth-child(8) {
+  left: 85%;
+  animation-delay: 43s;
+  animation-duration: 43s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 193, 7, 0.4), rgba(255, 152, 0, 0.3));
+}
+
+/* Keyframe Animations */
+@keyframes pricingBgFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-12px) rotate(0.5deg) scale(1.01);
+  }
+  50% {
+    transform: translateY(-25px) rotate(1deg) scale(1.02);
+  }
+  75% {
+    transform: translateY(-12px) rotate(0.5deg) scale(1.01);
+  }
+}
+
+@keyframes pricingBgShift {
+  0%, 100% {
+    transform: translateX(0px) scale(1) rotate(0deg);
+  }
+  25% {
+    transform: translateX(6px) scale(1.005) rotate(0.5deg);
+  }
+  50% {
+    transform: translateX(12px) scale(1.01) rotate(1deg);
+  }
+  75% {
+    transform: translateX(6px) scale(1.005) rotate(0.5deg);
+  }
+}
+
+@keyframes floatPricingNumber {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.4);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(90vh) rotate(36deg) scale(0.7);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.3);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(10vh) rotate(324deg) scale(0.7);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes floatPricingSymbol {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(90vh) rotate(36deg) scale(0.6);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.4);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(10vh) rotate(324deg) scale(0.6);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes floatPricingCoin {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.2);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(90vh) rotate(36deg) scale(0.5);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.2);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(10vh) rotate(324deg) scale(0.5);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.2);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes iconFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(0deg);
+  }
+  75% {
+    transform: translateY(-3px) rotate(-1deg);
+  }
+}
+
+/* Why Choose Obyyo? Extraordinary Background Effect */
+.why-choose-extraordinary {
+  position: relative;
+  overflow: hidden;
+  background: 
+    linear-gradient(135deg, #1e293b 0%, #334155 25%, #475569 50%, #1e293b 75%, #334155 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 15s ease infinite;
+}
+
+.why-choose-extraordinary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(220, 38, 38, 0.25) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(30, 41, 59, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 60% 40%, rgba(51, 65, 85, 0.15) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+  animation: orbFloat 20s ease-in-out infinite;
+}
+
+.why-choose-extraordinary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: 
+    linear-gradient(45deg, transparent 30%, rgba(59, 130, 246, 0.1) 50%, transparent 70%),
+    linear-gradient(-45deg, transparent 30%, rgba(220, 38, 38, 0.08) 50%, transparent 70%),
+    linear-gradient(90deg, transparent 40%, rgba(30, 41, 59, 0.06) 50%, transparent 60%);
+  pointer-events: none;
+  z-index: 1;
+  animation: lightShift 25s ease-in-out infinite;
+}
+
+/* Stunning Particle System */
+.particle-system {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(59, 130, 246, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  animation: particleFloat 30s infinite linear;
+}
+
+.particle-1 {
+  width: 4px;
+  height: 4px;
+  left: 10%;
+  animation-delay: 0s;
+  animation-duration: 35s;
+}
+
+.particle-2 {
+  width: 6px;
+  height: 6px;
+  left: 20%;
+  animation-delay: 5s;
+  animation-duration: 32s;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(220, 38, 38, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+}
+
+.particle-3 {
+  width: 3px;
+  height: 3px;
+  left: 30%;
+  animation-delay: 10s;
+  animation-duration: 38s;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(30, 41, 59, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(30, 41, 59, 0.5);
+}
+
+.particle-4 {
+  width: 5px;
+  height: 5px;
+  left: 40%;
+  animation-delay: 15s;
+  animation-duration: 28s;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(51, 65, 85, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(51, 65, 85, 0.5);
+}
+
+.particle-5 {
+  width: 4px;
+  height: 4px;
+  left: 50%;
+  animation-delay: 20s;
+  animation-duration: 33s;
+}
+
+.particle-6 {
+  width: 7px;
+  height: 7px;
+  left: 60%;
+  animation-delay: 25s;
+  animation-duration: 29s;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(220, 38, 38, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(220, 38, 38, 0.5);
+}
+
+.particle-7 {
+  width: 3px;
+  height: 3px;
+  left: 70%;
+  animation-delay: 30s;
+  animation-duration: 36s;
+}
+
+.particle-8 {
+  width: 5px;
+  height: 5px;
+  left: 80%;
+  animation-delay: 35s;
+  animation-duration: 31s;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(59, 130, 246, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.particle-9 {
+  width: 4px;
+  height: 4px;
+  left: 90%;
+  animation-delay: 40s;
+  animation-duration: 34s;
+}
+
+.particle-10 {
+  width: 6px;
+  height: 6px;
+  left: 95%;
+  animation-delay: 45s;
+  animation-duration: 27s;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(30, 41, 59, 0.6) 50%, transparent 100%);
+  box-shadow: 0 0 20px rgba(30, 41, 59, 0.5);
+}
+
+/* Floating Magic Orbs */
+.magic-orbs {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.orb {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(59, 130, 246, 0.2), transparent);
+  box-shadow: 
+    0 0 30px rgba(59, 130, 246, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+  animation: orbFloat 25s infinite ease-in-out;
+}
+
+.orb-1 {
+  width: 60px;
+  height: 60px;
+  left: 15%;
+  top: 20%;
+  animation-delay: 0s;
+  animation-duration: 30s;
+}
+
+.orb-2 {
+  width: 80px;
+  height: 80px;
+  left: 70%;
+  top: 30%;
+  animation-delay: 8s;
+  animation-duration: 35s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(220, 38, 38, 0.2), transparent);
+  box-shadow: 
+    0 0 30px rgba(220, 38, 38, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.orb-3 {
+  width: 50px;
+  height: 50px;
+  left: 40%;
+  top: 60%;
+  animation-delay: 16s;
+  animation-duration: 28s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(30, 41, 59, 0.2), transparent);
+  box-shadow: 
+    0 0 30px rgba(30, 41, 59, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.orb-4 {
+  width: 70px;
+  height: 70px;
+  left: 80%;
+  top: 70%;
+  animation-delay: 24s;
+  animation-duration: 32s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(51, 65, 85, 0.2), transparent);
+  box-shadow: 
+    0 0 30px rgba(51, 65, 85, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+.orb-5 {
+  width: 45px;
+  height: 45px;
+  left: 25%;
+  top: 80%;
+  animation-delay: 32s;
+  animation-duration: 26s;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3), rgba(220, 38, 38, 0.2), transparent);
+  box-shadow: 
+    0 0 30px rgba(220, 38, 38, 0.4),
+    inset 0 0 20px rgba(255, 255, 255, 0.2);
+}
+
+/* Animated Grid Pattern */
+.animated-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: 
+    linear-gradient(rgba(59, 130, 246, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.1) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 1;
+  animation: gridMove 40s linear infinite;
+}
+
+/* Floating Feature Symbols */
+.feature-symbols {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.symbol {
+  position: absolute;
+  font-size: 2.5rem;
+  opacity: 0.15;
+  animation: symbolFloat 35s infinite linear;
+  user-select: none;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.3));
+}
+
+.symbol-1 {
+  left: 8%;
+  animation-delay: 0s;
+  animation-duration: 40s;
+}
+
+.symbol-2 {
+  left: 22%;
+  animation-delay: 7s;
+  animation-duration: 36s;
+}
+
+.symbol-3 {
+  left: 36%;
+  animation-delay: 14s;
+  animation-duration: 42s;
+}
+
+.symbol-4 {
+  left: 50%;
+  animation-delay: 21s;
+  animation-duration: 38s;
+}
+
+.symbol-5 {
+  left: 64%;
+  animation-delay: 28s;
+  animation-duration: 34s;
+}
+
+.symbol-6 {
+  left: 78%;
+  animation-delay: 35s;
+  animation-duration: 40s;
+}
+
+.symbol-7 {
+  left: 92%;
+  animation-delay: 42s;
+  animation-duration: 36s;
+}
+
+.symbol-8 {
+  left: 15%;
+  animation-delay: 49s;
+  animation-duration: 44s;
+}
+
+/* Why Choose Obyyo? Content Styling for Dark Background */
+.why-choose-extraordinary .gradient-text {
+  background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 50%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.5);
+}
+
+.why-choose-extraordinary .text-muted {
+  color: rgba(255, 255, 255, 0.8) !important;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.why-choose-extraordinary .card {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.why-choose-extraordinary .card:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    0 15px 40px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.why-choose-extraordinary .card-title {
+  color: #1e293b !important;
+  font-weight: 700;
+}
+
+.why-choose-extraordinary .card-text {
+  color: #475569 !important;
+}
+
+.why-choose-extraordinary .feature-icon {
+  background: linear-gradient(135deg, #3b82f6 0%, #dc2626 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 10px rgba(59, 130, 246, 0.5));
+}
+
+/* Simple Glass Effect Feature Cards */
+.glass-feature-card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 15px;
+  padding: 2rem;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 
+    0 4px 15px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.glass-feature-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.glass-card-header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.feature-icon-glass {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.feature-icon-glass i {
+  font-size: 1.8rem;
+  color: #3b82f6;
+  z-index: 2;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.glass-feature-card:hover .feature-icon-glass {
+  transform: scale(1.1);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.2);
+}
+
+.glass-feature-card:hover .feature-icon-glass i {
+  transform: scale(1.1);
+  color: #dc2626;
+}
+
+.glass-card-body {
+  text-align: center;
+}
+
+.glass-card-title {
+  color: #1e293b;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+}
+
+.glass-feature-card:hover .glass-card-title {
+  color: #3b82f6;
+}
+
+.glass-card-text {
+  color: #64748b;
+  line-height: 1.6;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+.glass-feature-card:hover .glass-card-text {
+  color: #475569;
+}
+
+/* Enhanced Pricing Section Particles and Lottery Balls */
+.pricing-particles-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.pricing-particle {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.8) 0%, rgba(220, 38, 38, 0.6) 50%, transparent 100%);
+  border-radius: 50%;
+  animation: pricingParticleFloat 15s infinite linear;
+}
+
+.pricing-particle:nth-child(1) {
+  left: 10%;
+  animation-delay: 0s;
+  animation-duration: 18s;
+}
+
+.pricing-particle:nth-child(2) {
+  left: 20%;
+  animation-delay: 2s;
+  animation-duration: 22s;
+}
+
+.pricing-particle:nth-child(3) {
+  left: 35%;
+  animation-delay: 4s;
+  animation-duration: 16s;
+}
+
+.pricing-particle:nth-child(4) {
+  left: 50%;
+  animation-delay: 6s;
+  animation-duration: 20s;
+}
+
+.pricing-particle:nth-child(5) {
+  left: 65%;
+  animation-delay: 8s;
+  animation-duration: 24s;
+}
+
+.pricing-particle:nth-child(6) {
+  left: 80%;
+  animation-delay: 10s;
+  animation-duration: 19s;
+}
+
+.pricing-particle:nth-child(7) {
+  left: 90%;
+  animation-delay: 12s;
+  animation-duration: 21s;
+}
+
+.pricing-particle:nth-child(8) {
+  left: 15%;
+  animation-delay: 14s;
+  animation-duration: 17s;
+}
+
+.pricing-lottery-balls {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.lottery-ball-pricing {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.4rem;
+  color: white;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4);
+  box-shadow: 
+    0 12px 30px rgba(0, 0, 0, 0.3),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 20px rgba(255, 255, 255, 0.1);
+  animation: pricingLotteryBallFloat 12s infinite ease-in-out;
+  position: relative;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(5px);
+}
+
+.lottery-ball-pricing::before {
+  content: '';
+  position: absolute;
+  top: 15%;
+  left: 20%;
+  width: 30%;
+  height: 30%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  border-radius: 50%;
+  animation: ballShimmer 3s ease-in-out infinite;
+}
+
+.lottery-ball-pricing::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.3) 0%, transparent 60%);
+  border-radius: 50%;
+  animation: ballGlow 4s ease-in-out infinite;
+}
+
+.ball-1 {
+  background: linear-gradient(135deg, #ff0000 0%, #cc0000 50%, #990000 100%);
+  left: 5%;
+  animation-delay: 0s;
+  animation-duration: 14s;
+  box-shadow: 
+    0 12px 30px rgba(255, 0, 0, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(255, 0, 0, 0.3);
+}
+
+.ball-2 {
+  background: linear-gradient(135deg, #0066ff 0%, #0044cc 50%, #002299 100%);
+  left: 25%;
+  animation-delay: 2s;
+  animation-duration: 16s;
+  box-shadow: 
+    0 12px 30px rgba(0, 102, 255, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(0, 102, 255, 0.3);
+}
+
+.ball-3 {
+  background: linear-gradient(135deg, #00cc66 0%, #009944 50%, #006622 100%);
+  left: 45%;
+  animation-delay: 4s;
+  animation-duration: 13s;
+  box-shadow: 
+    0 12px 30px rgba(0, 204, 102, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(0, 204, 102, 0.3);
+}
+
+.ball-4 {
+  background: linear-gradient(135deg, #9900ff 0%, #7700cc 50%, #550099 100%);
+  left: 65%;
+  animation-delay: 6s;
+  animation-duration: 15s;
+  box-shadow: 
+    0 12px 30px rgba(153, 0, 255, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(153, 0, 255, 0.3);
+}
+
+.ball-5 {
+  background: linear-gradient(135deg, #ff6600 0%, #cc4400 50%, #992200 100%);
+  left: 85%;
+  animation-delay: 8s;
+  animation-duration: 17s;
+  box-shadow: 
+    0 12px 30px rgba(255, 102, 0, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(255, 102, 0, 0.3);
+}
+
+.ball-6 {
+  background: linear-gradient(135deg, #00ccff 0%, #0099cc 50%, #006699 100%);
+  left: 15%;
+  animation-delay: 10s;
+  animation-duration: 12s;
+  box-shadow: 
+    0 12px 30px rgba(0, 204, 255, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(0, 204, 255, 0.3);
+}
+
+.ball-7 {
+  background: linear-gradient(135deg, #ff0099 0%, #cc0077 50%, #990055 100%);
+  left: 35%;
+  animation-delay: 12s;
+  animation-duration: 18s;
+  box-shadow: 
+    0 12px 30px rgba(255, 0, 153, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(255, 0, 153, 0.3);
+}
+
+.ball-8 {
+  background: linear-gradient(135deg, #99ff00 0%, #77cc00 50%, #559900 100%);
+  left: 75%;
+  animation-delay: 14s;
+  animation-duration: 14s;
+  box-shadow: 
+    0 12px 30px rgba(153, 255, 0, 0.4),
+    0 6px 15px rgba(0, 0, 0, 0.2),
+    inset 0 3px 6px rgba(255, 255, 255, 0.4),
+    inset 0 -3px 6px rgba(0, 0, 0, 0.3),
+    0 0 25px rgba(153, 255, 0, 0.3);
+}
+
+@keyframes pricingParticleFloat {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+    transform: translateY(90vh) rotate(36deg) scale(0.6);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1);
+  }
+  90% {
+    opacity: 0.8;
+    transform: translateY(10vh) rotate(324deg) scale(0.6);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes pricingLotteryBallFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-25px) rotate(90deg) scale(1.05);
+  }
+  50% {
+    transform: translateY(-15px) rotate(180deg) scale(1.1);
+  }
+  75% {
+    transform: translateY(-35px) rotate(270deg) scale(1.05);
+  }
+}
+
+@keyframes ballShimmer {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+@keyframes ballGlow {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+/* Transparent Pricing Beautiful Background Effect */
+.pricing-bg-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Pricing Animation Classes */
+.fade-in-left {
+  opacity: 0;
+  transform: translateX(-50px);
+  transition: all 1s ease-out;
+}
+
+.fade-in-right {
+  opacity: 0;
+  transform: translateX(50px);
+  transition: all 1s ease-out;
+}
+
+.fade-in-left.animate {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.fade-in-right.animate {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Equal Height Pricing Containers */
+.pricing-visual-container {
+  height: 600px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+}
+
+.pricing-card-enhanced {
+  height: 600px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Ensure the card body takes full height */
+.pricing-card-enhanced .card-body {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+@keyframes fadeInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+
+/* Floating Pricing Elements */
+.pricing-elements-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.pricing-element {
+  position: absolute;
+  font-size: 2.5rem;
+  opacity: 0.08;
+  animation: floatPricingElement 30s infinite linear;
+  user-select: none;
+}
+
+.pricing-element:nth-child(1) {
+  left: 8%;
+  animation-delay: 0s;
+  animation-duration: 35s;
+}
+
+.pricing-element:nth-child(2) {
+  left: 22%;
+  animation-delay: 6s;
+  animation-duration: 32s;
+}
+
+.pricing-element:nth-child(3) {
+  left: 36%;
+  animation-delay: 12s;
+  animation-duration: 38s;
+}
+
+.pricing-element:nth-child(4) {
+  left: 50%;
+  animation-delay: 18s;
+  animation-duration: 28s;
+}
+
+.pricing-element:nth-child(5) {
+  left: 64%;
+  animation-delay: 24s;
+  animation-duration: 34s;
+}
+
+.pricing-element:nth-child(6) {
+  left: 78%;
+  animation-delay: 30s;
+  animation-duration: 31s;
+}
+
+/* Floating Pricing Numbers */
+.pricing-numbers-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.pricing-number {
+  position: absolute;
+  font-size: 3rem;
+  font-weight: 900;
+  color: rgba(16, 185, 129, 0.1);
+  animation: floatPricingNumber 40s infinite linear;
+  user-select: none;
+}
+
+.pricing-number:nth-child(1) {
+  left: 12%;
+  animation-delay: 3s;
+  animation-duration: 42s;
+}
+
+.pricing-number:nth-child(2) {
+  left: 28%;
+  animation-delay: 9s;
+  animation-duration: 36s;
+}
+
+.pricing-number:nth-child(3) {
+  left: 44%;
+  animation-delay: 15s;
+  animation-duration: 44s;
+}
+
+.pricing-number:nth-child(4) {
+  left: 60%;
+  animation-delay: 21s;
+  animation-duration: 38s;
+}
+
+.pricing-number:nth-child(5) {
+  left: 76%;
+  animation-delay: 27s;
+  animation-duration: 40s;
+}
+
+/* Extraordinary Keyframe Animations */
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes orbFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  25% {
+    transform: translateY(-15px) rotate(90deg) scale(1.1);
+  }
+  50% {
+    transform: translateY(-25px) rotate(180deg) scale(1.2);
+  }
+  75% {
+    transform: translateY(-15px) rotate(270deg) scale(1.1);
+  }
+}
+
+@keyframes lightShift {
+  0%, 100% {
+    transform: translateX(0px) rotate(0deg) scale(1);
+  }
+  50% {
+    transform: translateX(10px) rotate(1deg) scale(1.02);
+  }
+}
+
+@keyframes particleFloat {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+    transform: translateY(90vh) rotate(36deg) scale(0.6);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.2);
+  }
+  90% {
+    opacity: 0.8;
+    transform: translateY(10vh) rotate(324deg) scale(0.6);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes gridMove {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(50px, 50px);
+  }
+}
+
+@keyframes symbolFloat {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.4);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.15;
+    transform: translateY(90vh) rotate(36deg) scale(0.7);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.3);
+  }
+  90% {
+    opacity: 0.15;
+    transform: translateY(10vh) rotate(324deg) scale(0.7);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes pricingBgFloat {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+}
+
+@keyframes pricingBgShift {
+  0%, 100% {
+    transform: translateX(0px) scale(1);
+  }
+  50% {
+    transform: translateX(6px) scale(1.01);
+  }
+}
+
+@keyframes floatPricingElement {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.4);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.08;
+    transform: translateY(90vh) rotate(36deg) scale(0.7);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.3);
+  }
+  90% {
+    opacity: 0.08;
+    transform: translateY(10vh) rotate(324deg) scale(0.7);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.4);
+    opacity: 0;
+  }
+}
+
+@keyframes floatPricingNumber {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(0.3);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.1;
+    transform: translateY(90vh) rotate(36deg) scale(0.6);
+  }
+  50% {
+    transform: translateY(50vh) rotate(180deg) scale(1.4);
+  }
+  90% {
+    opacity: 0.1;
+    transform: translateY(10vh) rotate(324deg) scale(0.6);
+  }
+  100% {
+    transform: translateY(-100px) rotate(360deg) scale(0.3);
+    opacity: 0;
+  }
+}
+
 /* Enhanced Lottery Cards */
 .enhanced-lottery-card {
   background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-  border-radius: 24px;
+  border-radius: 12px;
   padding: 0;
   text-align: center;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
-  box-shadow: none;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(99, 102, 241, 0.04);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   display: flex;
@@ -1719,11 +3704,17 @@ body {
 }
 
 .card-header-gradient {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  padding: 2rem 2rem 1rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  padding: 3rem 0.75rem 2rem;
   position: relative;
   overflow: hidden;
+  border-radius: 12px 12px 0 0;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 4px 16px rgba(102, 126, 234, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
+
 
 .card-header-gradient::before {
   content: '';
@@ -1733,27 +3724,35 @@ body {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.05) 0%, transparent 50%);
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.2) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 40% 60%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+    linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.05) 50%, transparent 70%);
   pointer-events: none;
+  transition: all 0.4s ease;
+  animation: shimmer 3s ease-in-out infinite;
 }
+
 
 .lottery-icon-enhanced {
   position: relative;
-  width: 100px;
-  height: 100px;
-  margin: 0 auto 1rem;
+  width: 45px;
+  height: 45px;
+  margin: 0 auto 0.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: iconFloat 4s ease-in-out infinite;
 }
 
+
 .lottery-emoji {
-  font-size: 3rem;
+  font-size: 2.5rem;
   z-index: 3;
   position: relative;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
 .icon-glow {
@@ -1804,34 +3803,34 @@ body {
 }
 
 .card-content {
-  padding: 2rem;
+  padding: 0.75rem;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .lottery-name-enhanced {
-  font-size: 1.75rem;
+  font-size: 1rem;
   font-weight: 800;
   background: linear-gradient(135deg, #1e293b 0%, #475569 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.25rem;
   transition: all 0.3s ease;
 }
 
 .lottery-state-enhanced {
   color: #6366f1;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .lottery-description-enhanced {
@@ -1845,31 +3844,34 @@ body {
 
 .lottery-features {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .lottery-features .feature-item {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 0.875rem;
+  gap: 0.5rem;
+  font-size: 0.75rem;
   color: #475569;
   font-weight: 500;
 }
 
 .lottery-features .feature-item i {
-  font-size: 1rem;
+  font-size: 0.875rem;
   flex-shrink: 0;
 }
 
 .card-footer-enhanced {
-  padding: 1.5rem 2rem 2rem;
+  padding: 0.5rem 0.75rem 0.75rem;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.25rem;
 }
 
 .price-section {
@@ -1886,7 +3888,7 @@ body {
 }
 
 .lottery-price-enhanced {
-  font-size: 2rem;
+  font-size: 1.5rem;
   font-weight: 800;
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   -webkit-background-clip: text;
@@ -1905,12 +3907,12 @@ body {
   background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
   border: none;
   color: white;
-  padding: 0.875rem 1.5rem;
-  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
   font-weight: 600;
-  font-size: 0.9rem;
+  font-size: 0.75rem;
   transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 3px 10px rgba(99, 102, 241, 0.3);
   position: relative;
   overflow: hidden;
 }
@@ -1931,8 +3933,8 @@ body {
 }
 
 .btn-primary-enhanced:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 5px 15px rgba(99, 102, 241, 0.4);
   background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
 }
 
@@ -1988,6 +3990,18 @@ body {
 }
 
 /* Enhanced Pagination */
+.swiper-pagination-custom.enhanced-pagination {
+  position: absolute !important;
+  bottom: 20px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  gap: 8px !important;
+  z-index: 10 !important;
+  justify-content: center !important;
+  width: auto !important;
+}
+
 .enhanced-pagination .swiper-pagination-bullet {
   background: rgba(99, 102, 241, 0.3);
   border: 2px solid transparent;
@@ -2156,7 +4170,7 @@ body {
   }
   
   .lottery-price-enhanced {
-    font-size: 1.75rem;
+    font-size: 1.25rem;
   }
   
   .lottery-info-card {
@@ -2174,7 +4188,7 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
-  box-shadow: none;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
 }
@@ -5510,6 +7524,50 @@ html {
   
   .hero-stat-new {
     padding: 0.5rem;
+  }
+}
+
+/* Smart Pricing White Container Animations */
+@keyframes floatIcon {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
+@keyframes iconPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  }
+  50% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.15));
+  }
+}
+
+@keyframes featureSlideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
   }
 }
 
