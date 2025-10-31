@@ -8,6 +8,7 @@ const NumberGenerator: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [numberOfCombinations, setNumberOfCombinations] = useState(5);
 
+
   const lotteryCategories = [
     {
       id: 'national',
@@ -194,6 +195,61 @@ const NumberGenerator: React.FC = () => {
             <p className="lead text-muted">
               Generate optimal lottery combinations using only viable numbers identified by our AI
             </p>
+            
+            {/* Pro Tip Banner */}
+            <div className="alert alert-info border-0 shadow-sm mb-4" style={{
+              background: 'linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%)',
+              color: 'white',
+              borderRadius: '15px',
+              border: 'none',
+              boxShadow: '0 8px 32px rgba(255, 107, 107, 0.3)'
+            }}>
+              <div className="d-flex align-items-center justify-content-center">
+                <i className="bi bi-lightbulb-fill fs-3 me-3" style={{ color: '#fff3cd' }}></i>
+                <div className="text-start">
+                  <h5 className="mb-1 fw-bold" style={{ color: '#fff' }}>Pro Tip!</h5>
+                  <p className="mb-0" style={{ color: '#fff' }}>Use our Number Generator to create optimal combinations using only viable numbers!</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Access - Popular Lotteries */}
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-body p-4">
+              <h5 className="fw-bold mb-4">
+                <i className="bi bi-lightning me-2"></i>
+                Quick Access - Popular Lotteries
+              </h5>
+              <div className="row g-3">
+                {['powerball', 'megamillion', 'gopher5', 'lottoamerica'].map((lotteryId) => {
+                  const lottery = lotteryTypes.find(l => l.id === lotteryId);
+                  if (!lottery) return null;
+                  return (
+                    <div key={lotteryId} className="col-md-3 col-sm-6">
+                      <button
+                        className={`btn w-100 ${selectedLottery === lotteryId ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setSelectedLottery(lotteryId)}
+                        style={{
+                          borderRadius: '10px',
+                          padding: '0.75rem',
+                          fontWeight: '600',
+                          transition: 'all 0.3s ease'
+                        }}
+                      >
+                        <div className="d-flex align-items-center justify-content-center">
+                          <span className="me-2" style={{ fontSize: '1.2rem' }}>{lottery.icon}</span>
+                          <div className="text-start">
+                            <div className="fw-bold">{lottery.name}</div>
+                            <small className="opacity-75">{lottery.description}</small>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           {/* Lottery Selection by Category */}
@@ -201,7 +257,7 @@ const NumberGenerator: React.FC = () => {
             <div className="card-body p-4">
               <h5 className="fw-bold mb-4">
                 <i className="bi bi-trophy me-2"></i>
-                Select Lottery Game by Category
+                All Lottery Games by Category
               </h5>
               
               {lotteryCategories.map((category) => {
@@ -383,6 +439,50 @@ const NumberGenerator: React.FC = () => {
                   <div className="alert alert-success">
                     <i className="bi bi-lightbulb me-2"></i>
                     <strong>Success!</strong> These combinations use only viable numbers identified by our AI prediction system, giving you the best possible odds.
+                  </div>
+                  
+                  {/* Statistics */}
+                  <div className="row g-3 mt-3">
+                    <div className="col-md-3">
+                      <div className="card bg-primary text-white text-center">
+                        <div className="card-body">
+                          <i className="bi bi-graph-up fs-4 mb-2"></i>
+                          <h6 className="fw-bold">Viable Numbers</h6>
+                          <h4 className="mb-0">{generatedNumbers.viableCount.main}</h4>
+                          <small>Main Pool</small>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="card bg-success text-white text-center">
+                        <div className="card-body">
+                          <i className="bi bi-shield-check fs-4 mb-2"></i>
+                          <h6 className="fw-bold">AI Filtered</h6>
+                          <h4 className="mb-0">100%</h4>
+                          <small>Quality Assured</small>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="card bg-info text-white text-center">
+                        <div className="card-body">
+                          <i className="bi bi-cpu fs-4 mb-2"></i>
+                          <h6 className="fw-bold">Algorithm</h6>
+                          <h4 className="mb-0">AI</h4>
+                          <small>Optimized</small>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-md-3">
+                      <div className="card bg-warning text-dark text-center">
+                        <div className="card-body">
+                          <i className="bi bi-trophy fs-4 mb-2"></i>
+                          <h6 className="fw-bold">Combinations</h6>
+                          <h4 className="mb-0">{generatedNumbers.combinations.length}</h4>
+                          <small>Generated</small>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

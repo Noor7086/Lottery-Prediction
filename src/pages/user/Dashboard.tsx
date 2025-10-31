@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Alert, Spinner } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -9,7 +9,6 @@ import {
   FaTrophy, 
   FaUser,
   FaBell,
-  FaCog,
   FaCreditCard
 } from 'react-icons/fa';
 import TrialCountdown from '../../components/TrialCountdown';
@@ -111,10 +110,6 @@ const Dashboard: React.FC = () => {
               <Button variant="outline-primary" size="sm" onClick={() => navigate('/profile')}>
                 <FaUser className="me-1" />
                 Profile
-              </Button>
-              <Button variant="outline-secondary" size="sm" onClick={() => navigate('/profile')}>
-                <FaCog className="me-1" />
-                Settings
               </Button>
             </div>
           </div>

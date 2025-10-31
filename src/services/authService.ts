@@ -85,7 +85,7 @@ class AuthService {
     return localStorage.getItem('token');
   }
 
-  async updateUserWalletBalance(userId: string, newBalance: number): Promise<User> {
+  async updateUserWalletBalance(_userId: string, newBalance: number): Promise<User> {
     // Use the existing profile update endpoint to update wallet balance
     const response = await apiService.put<ApiResponse<{ user: User }>>('/auth/profile', {
       walletBalance: newBalance

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Swiper, SwiperSlide } from 'swiper/react';
@@ -197,6 +197,92 @@ const Home: React.FC = () => {
 
   return (
     <div className="home-page">
+      <style>{`
+        /* Swiper pagination styling */
+        .swiper-pagination-custom .swiper-pagination-bullet {
+          background-color: #d1d5db !important;
+          opacity: 1 !important;
+          width: 12px !important;
+          height: 12px !important;
+          margin: 0 6px !important;
+          transition: all 0.3s ease !important;
+        }
+        
+        .swiper-pagination-custom .swiper-pagination-bullet-active {
+          background-color: #3b82f6 !important;
+          transform: scale(1.2) !important;
+        }
+        
+        /* Enhanced lottery card styling */
+        .enhanced-lottery-card {
+          cursor: pointer;
+        }
+        
+        .enhanced-lottery-card:hover {
+          transform: translateY(-8px) !important;
+          box-shadow: 0 25px 60px rgba(0, 0, 0, 0.15), 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .enhanced-lottery-card::before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          pointer-events: none;
+        }
+        
+        .enhanced-lottery-card:hover::before {
+          opacity: 1;
+        }
+        
+        .lottery-emoji {
+          font-size: 2.5rem;
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+          transition: transform 0.3s ease;
+        }
+        
+        .enhanced-lottery-card:hover .lottery-emoji {
+          transform: scale(1.1) rotate(5deg);
+        }
+        
+        .lottery-name-enhanced {
+          font-size: 1.4rem;
+          font-weight: 700;
+          background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          margin-bottom: 0.5rem;
+        }
+        
+        .lottery-state-enhanced {
+          color: #64748b;
+          font-size: 0.9rem;
+          font-weight: 500;
+          margin-bottom: 0.75rem;
+        }
+        
+        .lottery-description-enhanced {
+          color: #475569;
+          font-size: 0.95rem;
+          line-height: 1.5;
+          margin-bottom: 1rem;
+        }
+        
+        .lottery-price-enhanced {
+          font-size: 1.8rem;
+          font-weight: 800;
+          background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+        }
+      `}</style>
       {/* Snooker Balls Light Effect Background */}
       {/* <div className="snooker-balls-bg">
         <div className="snooker-ball"></div>
@@ -267,7 +353,7 @@ const Home: React.FC = () => {
       <section className="py-5 enhanced-lottery-section">
         <div className="container">
           <div className="text-center mb-5">
-            <h2 className="display-5 fw-bold mb-3 gradient-text">Supported Lotteries</h2>
+            <h2 className="display-5 fw-bold mb-3 text-dark">Supported Lotteries</h2>
             <p className="lead text-muted mb-4">
               Choose from our comprehensive list of lottery predictions with advanced AI analysis
             </p>
@@ -310,7 +396,16 @@ const Home: React.FC = () => {
             >
               {lotteryTypes.map((lottery, index) => (
                 <SwiperSlide key={lottery.type}>
-                  <div className="enhanced-lottery-card h-100 fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                  <div className="enhanced-lottery-card h-100 fade-in" style={{ 
+                    animationDelay: `${index * 0.1}s`,
+                    boxShadow: '0 15px 40px rgba(0, 0, 0, 0.12), 0 5px 20px rgba(0, 0, 0, 0.08)',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
                     {/* Card Header with Gradient */}
                     <div className="card-header-gradient">
                       <div className="lottery-icon-enhanced">
@@ -425,7 +520,7 @@ const Home: React.FC = () => {
       <section id="how-it-works" className="py-5">
         <div className="container">
           <div className="text-center mb-5">
-            <h2 className="display-5 fw-bold mb-3 gradient-text">How It Works</h2>
+            <h2 className="display-5 fw-bold mb-3 text-dark">How It Works</h2>
             <p className="lead text-muted">
               Simple steps to start improving your lottery odds
             </p>
@@ -434,15 +529,15 @@ const Home: React.FC = () => {
             {/* How It Works Steps - Right Side */}
             <div className="col-lg-8">
               <div className="detailed-steps fade-in-right">
-          <div className="row g-4">
+          <div className="row g-4 justify-content-center">
                   {/* Step 1: Free Trial */}
-                  <div className="col-md-6">
+                  <div className="col-lg-5 col-md-6">
                     <div className="enhanced-step-item h-100" style={{
                       background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
                       borderRadius: '16px',
                       padding: '1.5rem',
                       border: '1px solid rgba(59, 130, 246, 0.1)',
-                      boxShadow: '0 8px 25px rgba(59, 130, 246, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      boxShadow: '0 12px 35px rgba(59, 130, 246, 0.15), 0 5px 15px rgba(0, 0, 0, 0.08)',
                       position: 'relative',
                       overflow: 'hidden',
                       transition: 'all 0.3s ease'
@@ -556,13 +651,13 @@ const Home: React.FC = () => {
                   </div>
 
                   {/* Step 2: Pay-Per-Use */}
-                  <div className="col-md-6">
+                  <div className="col-lg-5 col-md-6">
                     <div className="enhanced-step-item h-100" style={{
                       background: 'linear-gradient(135deg, #ffffff 0%, #fef2f2 100%)',
                       borderRadius: '16px',
                       padding: '1.5rem',
                       border: '1px solid rgba(220, 38, 38, 0.1)',
-                      boxShadow: '0 8px 25px rgba(220, 38, 38, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      boxShadow: '0 12px 35px rgba(220, 38, 38, 0.15), 0 5px 15px rgba(0, 0, 0, 0.08)',
                       position: 'relative',
                       overflow: 'hidden',
                       transition: 'all 0.3s ease'
@@ -676,13 +771,13 @@ const Home: React.FC = () => {
                   </div>
 
                   {/* Step 3: Customer Workflow */}
-                  <div className="col-md-6">
+                  <div className="col-lg-5 col-md-6">
                     <div className="enhanced-step-item h-100" style={{
                       background: 'linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%)',
                       borderRadius: '16px',
                       padding: '1.5rem',
                       border: '1px solid rgba(5, 150, 105, 0.1)',
-                      boxShadow: '0 8px 25px rgba(5, 150, 105, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      boxShadow: '0 12px 35px rgba(5, 150, 105, 0.15), 0 5px 15px rgba(0, 0, 0, 0.08)',
                       position: 'relative',
                       overflow: 'hidden',
                       transition: 'all 0.3s ease'
@@ -813,13 +908,13 @@ const Home: React.FC = () => {
                   </div>
 
                   {/* Step 4: Value Proposition */}
-                  <div className="col-md-6">
+                  <div className="col-lg-5 col-md-6">
                     <div className="enhanced-step-item h-100" style={{
                       background: 'linear-gradient(135deg, #ffffff 0%, #faf5ff 100%)',
                       borderRadius: '16px',
                       padding: '1.5rem',
                       border: '1px solid rgba(124, 58, 237, 0.1)',
-                      boxShadow: '0 8px 25px rgba(124, 58, 237, 0.1), 0 3px 12px rgba(0, 0, 0, 0.05)',
+                      boxShadow: '0 12px 35px rgba(124, 58, 237, 0.15), 0 5px 15px rgba(0, 0, 0, 0.08)',
                       position: 'relative',
                       overflow: 'hidden',
                       transition: 'all 0.3s ease'
@@ -1001,7 +1096,7 @@ const Home: React.FC = () => {
               <div className="card border-0 h-100 fade-in-right pricing-card-enhanced" style={{ 
                 background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 100%)',
                 borderRadius: '24px',
-                boxShadow: '0 20px 50px rgba(0, 0, 0, 0.08), 0 8px 25px rgba(99, 102, 241, 0.1)',
+                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.12), 0 12px 35px rgba(99, 102, 241, 0.15)',
                 transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
                 border: '2px solid rgba(255, 255, 255, 0.3)',
                 backdropFilter: 'blur(20px)',
@@ -1051,13 +1146,13 @@ const Home: React.FC = () => {
                       </span>
                     </div>
                     <div className="d-flex align-items-baseline justify-content-center">
-                      <span className="display-4 fw-bold pricing-price" style={{
+                      <span className="display-6 fw-bold pricing-price" style={{
                         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                         WebkitBackgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',
                         backgroundClip: 'text',
                         textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                      }}>$1</span>
+                      }}>$1 - $5</span>
                       <span className="text-muted ms-1 small fw-semibold">/prediction</span>
                     </div>
                   </div>
@@ -1133,178 +1228,6 @@ const Home: React.FC = () => {
               </div>
             </div>
             
-            {/* Smart Pricing - Right Side */}
-            <div className="col-lg-4 col-md-6 mb-4">
-              <div className="smart-pricing-white-container fade-in-left h-100" style={{
-                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 50%, #ffffff 100%)',
-                borderRadius: '32px',
-                padding: '2.5rem 2rem',
-                position: 'relative',
-                overflow: 'hidden',
-                boxShadow: '0 25px 60px rgba(0, 0, 0, 0.08), 0 10px 30px rgba(99, 102, 241, 0.1)',
-                border: '1px solid rgba(99, 102, 241, 0.1)'
-              }}>
-                {/* Background Effects */}
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: `
-                    radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.05) 0%, transparent 50%),
-                    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
-                    radial-gradient(circle at 40% 60%, rgba(59, 130, 246, 0.03) 0%, transparent 50%)
-                  `,
-                  pointerEvents: 'none'
-                }}></div>
-
-                {/* Floating Icons */}
-                <div style={{
-                  position: 'absolute',
-                  top: '8%',
-                  right: '10%',
-                  fontSize: '2.5rem',
-                  opacity: 0.1,
-                  animation: 'floatIcon 8s ease-in-out infinite',
-                  zIndex: 1
-                }}>💎</div>
-                <div style={{
-                  position: 'absolute',
-                  bottom: '15%',
-                  left: '8%',
-                        fontSize: '1.5rem',
-                  opacity: 0.08,
-                  animation: 'floatIcon 10s ease-in-out infinite reverse',
-                  zIndex: 1
-                }}>⚡</div>
-
-                {/* Main Content */}
-                <div style={{ position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  {/* Badge */}
-                  <div style={{
-                    display: 'inline-block',
-                    background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                    color: 'white',
-                    padding: '0.3rem 1rem',
-                    borderRadius: '50px',
-                    fontSize: '0.7rem',
-                    fontWeight: '600',
-                    marginBottom: '1.2rem',
-                    boxShadow: '0 4px 15px rgba(59, 130, 246, 0.3)',
-                    alignSelf: 'flex-start'
-                  }}>
-                    🎯 Smart Pricing Model
-                  </div>
-
-                  {/* Main Icon */}
-                  <div style={{
-                    fontSize: '2.5rem',
-                    marginBottom: '0.8rem',
-                    filter: 'drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1))',
-                    animation: 'iconPulse 3s ease-in-out infinite'
-                  }}>
-                    💰
-                  </div>
-
-                  {/* Title */}
-                  <h3 style={{
-                    background: 'linear-gradient(135deg, #1e293b, #3b82f6, #1d4ed8)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold',
-                    marginBottom: '0.6rem',
-                    lineHeight: '1.2'
-                  }}>
-                    Smart Pricing
-                  </h3>
-
-                  {/* Subtitle */}
-                  <p style={{
-                    color: '#64748b',
-                    fontSize: '0.85rem',
-                    marginBottom: '1.2rem',
-                    lineHeight: '1.4'
-                  }}>
-                    Revolutionary pricing that adapts to your success. Pay only when you win!
-                  </p>
-
-                  {/* Features Grid */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    gap: '0.6rem',
-                    marginBottom: '1.2rem'
-                  }}>
-                    {[
-                      { icon: '🎯', title: 'Pay Per Win', desc: 'Only pay when you win' },
-                      { icon: '🔒', title: 'No Hidden Fees', desc: 'Complete transparency' },
-                      { icon: '⚡', title: 'Instant Access', desc: 'Get predictions immediately' },
-                      { icon: '📊', title: 'Real Analytics', desc: 'Data-driven insights' }
-                    ].map((feature, index) => (
-                      <div key={index} style={{
-                        background: 'rgba(255, 255, 255, 0.8)',
-                        backdropFilter: 'blur(10px)',
-                        borderRadius: '10px',
-                        padding: '0.8rem',
-                        border: '1px solid rgba(99, 102, 241, 0.1)',
-                        transition: 'all 0.3s ease',
-                        cursor: 'pointer',
-                        animation: `featureSlideIn ${0.5 + index * 0.1}s ease-out`
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-5px)';
-                        e.currentTarget.style.boxShadow = '0 10px 30px rgba(99, 102, 241, 0.2)';
-                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = 'none';
-                        e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.1)';
-                      }}>
-                        <div style={{
-                          fontSize: '1.2rem',
-                          marginBottom: '0.3rem',
-                          filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))'
-                        }}>
-                          {feature.icon}
-                        </div>
-                        <h4 style={{
-                          fontSize: '0.8rem',
-                          fontWeight: 'bold',
-                          color: '#1e293b',
-                          marginBottom: '0.15rem'
-                        }}>
-                          {feature.title}
-                        </h4>
-                        <p style={{
-                          fontSize: '0.7rem',
-                          color: '#64748b',
-                          margin: 0
-                        }}>
-                          {feature.desc}
-                        </p>
-        </div>
-                    ))}
-                  </div>
-
-                </div>
-
-                {/* Bottom Accent */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  height: '4px',
-                  background: 'linear-gradient(90deg, #3b82f6, #1d4ed8, #3b82f6)',
-                  backgroundSize: '200% 100%',
-                  animation: 'gradientShift 3s ease-in-out infinite'
-          }}></div>
-              </div>
-            </div>
           </div>
         </div>
       </section>

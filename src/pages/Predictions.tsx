@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../contexts/WalletContext';
 import { Modal, Button } from 'react-bootstrap';
@@ -8,11 +9,22 @@ import toast from 'react-hot-toast';
 const Predictions: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const { makePayment } = useWallet();
+  const [searchParams] = useSearchParams();
   const [selectedLottery, setSelectedLottery] = useState('powerball');
   const [predictions, setPredictions] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+
+  // Read URL parameter and set selected lottery
+  useEffect(() => {
+    const lotteryType = searchParams.get('lottery');
+    console.log('URL lottery parameter:', lotteryType); // Debug log
+    if (lotteryType) {
+      setSelectedLottery(lotteryType);
+      console.log('Selected lottery updated to:', lotteryType); // Debug log
+    }
+  }, [searchParams]);
 
   const lotteryCategories = [
     {

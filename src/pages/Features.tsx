@@ -1,6 +1,6 @@
 import React from 'react';
 import { Container, Row, Col, Card, Badge } from 'react-bootstrap';
-import { FaChartLine, FaBrain, FaShieldAlt, FaMobile, FaClock, FaUsers, FaDownload, FaHistory, FaWallet, FaBell, FaCog } from 'react-icons/fa';
+import { FaChartLine, FaShieldAlt, FaMobile, FaClock, FaUsers, FaDownload, FaHistory, FaWallet, FaBell, FaCog } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 import TrialStatus from '../components/TrialStatus';
 

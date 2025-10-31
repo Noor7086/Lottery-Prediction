@@ -96,12 +96,187 @@ const Navbar: React.FC = () => {
   ];
 
   return (
-    <nav className={`navbar navbar-expand-lg fixed-top ${isScrolled ? 'navbar-light bg-white shadow-sm' : (isHomePage ? 'navbar-dark' : 'navbar-light bg-white shadow-sm')}`} 
+    <nav className={`navbar navbar-expand-xl fixed-top ${isScrolled ? 'navbar-light bg-white shadow-sm' : (isHomePage ? 'navbar-dark' : 'navbar-light bg-white shadow-sm')}`} 
          style={!isScrolled && isHomePage ? { 
            backgroundColor: 'transparent',
            background: 'transparent',
            borderBottom: 'none'
          } : {}}>
+      <style>{`
+        /* Desktop Navbar - Only for screens 1200px and above */
+        @media (min-width: 1200px) {
+          .navbar-nav .dropdown:hover .dropdown-menu {
+            display: block;
+            animation: fadeInDown 0.3s ease-in-out;
+          }
+          
+          .navbar-nav .dropdown .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            z-index: 1000;
+            display: none;
+            float: left;
+            min-width: 10rem;
+            padding: 0.5rem 0;
+            margin: 0.125rem 0 0;
+            font-size: 1rem;
+            color: #212529;
+            text-align: left;
+            list-style: none;
+            background-color: #fff;
+            background-clip: padding-box;
+            border: 1px solid rgba(0,0,0,.15);
+            border-radius: 0.375rem;
+          }
+          
+          .navbar-nav .dropdown-menu-end {
+            right: 0;
+            left: auto;
+          }
+          
+          .navbar-nav .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+          }
+          
+          .navbar-nav .nav-link:hover {
+            transform: translateY(-1px);
+          }
+          
+          .navbar-nav .dropdown-toggle::after {
+            transition: transform 0.3s ease;
+          }
+          
+          .navbar-nav .dropdown:hover .dropdown-toggle::after {
+            transform: rotate(180deg);
+          }
+        }
+        
+        /* Mobile Navbar - For ALL screens below 1200px (including 991px, 1199px, etc.) */
+        @media (max-width: 1199px) {
+          .navbar-collapse {
+            background-color: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            margin-top: 1rem;
+            padding: 1rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+          }
+          
+          .navbar-nav .nav-link {
+            padding: 0.75rem 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+          }
+          
+          .navbar-nav .nav-link:last-child {
+            border-bottom: none;
+          }
+          
+          .navbar-nav .dropdown .dropdown-menu {
+            position: static !important;
+            float: none !important;
+            width: 100% !important;
+            margin-top: 0 !important;
+            background-color: rgba(248, 250, 252, 0.8) !important;
+            border: 0 !important;
+            box-shadow: none !important;
+            padding: 0 !important;
+            margin-bottom: 0.5rem !important;
+            min-width: auto !important;
+            border-radius: 8px !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            opacity: 0 !important;
+            transform: translateY(-15px) !important;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            visibility: hidden !important;
+          }
+          
+          .navbar-nav .dropdown .dropdown-menu.show {
+            max-height: 500px !important;
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            visibility: visible !important;
+            padding: 0.5rem !important;
+            animation: slideDownFadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+          }
+          
+          .navbar-nav .dropdown .dropdown-item {
+            padding: 0.5rem 1rem !important;
+            font-size: 0.9rem !important;
+            border-radius: 6px !important;
+            margin-bottom: 0.25rem !important;
+            background-color: rgba(0, 0, 0, 0.05) !important;
+            transition: all 0.3s ease !important;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+          }
+          
+          .navbar-nav .dropdown .dropdown-item:hover {
+            background-color: rgba(0, 0, 0, 0.1) !important;
+            transform: translateX(5px) !important;
+          }
+          
+          .navbar-nav .dropdown .dropdown-item i {
+            margin-right: 0.5rem !important;
+          }
+          
+          .navbar-nav .dropdown-menu-end {
+            right: auto !important;
+            left: auto !important;
+          }
+        }
+        
+        @keyframes fadeInDown {
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        @keyframes slideDownFadeIn {
+          0% {
+            max-height: 0;
+            opacity: 0;
+            transform: translateY(-15px);
+            padding: 0;
+          }
+          50% {
+            max-height: 250px;
+            opacity: 0.5;
+            transform: translateY(-7px);
+            padding: 0.25rem;
+          }
+          100% {
+            max-height: 500px;
+            opacity: 1;
+            transform: translateY(0);
+            padding: 0.5rem;
+          }
+        }
+        
+        /* Navbar toggler styling - black lines on non-home pages */
+        .navbar-toggler {
+          border: 1px solid rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .navbar-toggler:focus {
+          box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .navbar-toggler-icon {
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+        }
+        
+        /* Home page specific - white lines */
+        .navbar-dark .navbar-toggler-icon {
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%28255, 255, 255, 0.8%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+        }
+      `}</style>
       <div className="container">
         {/* Logo */}
         <Link className={`navbar-brand fw-bold ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`} to="/">
@@ -125,7 +300,7 @@ const Navbar: React.FC = () => {
         <div className={`collapse navbar-collapse ${isMenuOpen ? 'show' : ''}`} id="navbarNav">
           {/* Mobile Close Button */}
           <button 
-            className="mobile-close-btn d-lg-none"
+            className="mobile-close-btn d-xl-none"
             onClick={closeMobileMenu}
             aria-label="Close menu"
           >
@@ -170,7 +345,7 @@ const Navbar: React.FC = () => {
                 <i className="bi bi-graph-up me-1"></i>
                 Predictions
               </a>
-              <ul className={`dropdown-menu shadow-custom-lg ${isPredictionsOpen ? 'show' : ''}`}>
+              <ul className={`dropdown-menu ${isPredictionsOpen ? 'show' : ''}`}>
                 {lotteryTypes.map((lottery) => (
                   <li key={lottery.type}>
                     <Link 
@@ -178,7 +353,7 @@ const Navbar: React.FC = () => {
                       to={`/predictions?lottery=${lottery.type}`}
                       onClick={closeMobileMenu}
                     >
-                      <i className="bi bi-dice-6 me-2"></i>
+                      <i className="bi bi-dice-6 me-2 text-primary"></i>
                       {lottery.name}
                     </Link>
                   </li>
@@ -191,7 +366,7 @@ const Navbar: React.FC = () => {
                 to="/how-it-works"
                 onClick={closeMobileMenu}
               >
-                How It Works
+                Guide
               </Link>
             </li>
             <li className="nav-item">
@@ -214,10 +389,12 @@ const Navbar: React.FC = () => {
             </li>
           </ul>
 
+
+
           {/* Right Section - User Menu / Login */}
-          <ul className="navbar-nav">
+          <ul className={`navbar-nav`}>
             {user && (
-              <li className="nav-item">
+              <li className={`nav-item ${isMenuOpen ? 'mt-3' : ''} `}>
                 <Link 
                   className={`nav-link d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                   to="/wallet"
@@ -232,7 +409,7 @@ const Navbar: React.FC = () => {
               </li>
             )}
             {user ? (
-              <li className="nav-item dropdown">
+              <li className={`nav-item dropdown ${isMenuOpen ? 'mt-2' : ''}`}>
                 <a 
                   className={`nav-link dropdown-toggle d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                   href="#" 
@@ -243,6 +420,7 @@ const Navbar: React.FC = () => {
                   }}
                   aria-expanded={isUserMenuOpen}
                 >
+                  
                   <div className="bg-primary text-white rounded-circle me-2 d-flex align-items-center justify-content-center" 
                        style={{ width: '30px', height: '30px', fontSize: '0.8rem' }}>
                     <span className="fw-bold">{user.firstName.charAt(0)}</span>
@@ -252,44 +430,108 @@ const Navbar: React.FC = () => {
                     <span className="badge bg-success ms-2 small">Trial</span>
                   )}
                 </a>
-                <ul className={`dropdown-menu dropdown-menu-end ${isUserMenuOpen ? 'show' : ''}`}>
+                <ul className={`dropdown-menu dropdown-menu-end ${isUserMenuOpen ? 'show' : ''}`}
+                    style={{
+                      minWidth: '220px',
+                      border: 'none',
+                      borderRadius: '12px',
+                      boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 20px rgba(0, 0, 0, 0.1)',
+                      borderTop: '3px solid #10b981',
+                      marginTop: '8px'
+                    }}>
                   <li>
                     <Link 
-                      className="dropdown-item" 
+                      className="dropdown-item py-3 px-3" 
                       to="/dashboard"
                       onClick={closeMobileMenu}
+                      style={{
+                        fontSize: '0.95rem',
+                        fontWeight: '500',
+                        transition: 'all 0.3s ease',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0fdf4';
+                        e.currentTarget.style.paddingLeft = '1.5rem';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.paddingLeft = '0.75rem';
+                      }}
                     >
-                      <i className="bi bi-speedometer2 me-2"></i>
+                      <i className="bi bi-speedometer2 me-2 text-success"></i>
                       Dashboard
                     </Link>
                   </li>
                   <li>
                     <Link 
-                      className="dropdown-item" 
+                      className="dropdown-item py-3 px-3" 
                       to="/my-predictions"
                       onClick={closeMobileMenu}
+                      style={{
+                        fontSize: '0.95rem',
+                        fontWeight: '500',
+                        transition: 'all 0.3s ease',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0fdf4';
+                        e.currentTarget.style.paddingLeft = '1.5rem';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.paddingLeft = '0.75rem';
+                      }}
                     >
-                      <i className="bi bi-download me-2"></i>
+                      <i className="bi bi-download me-2 text-info"></i>
                       My Predictions
                     </Link>
                   </li>
                   <li>
                     <Link 
-                      className="dropdown-item" 
+                      className="dropdown-item py-3 px-3" 
                       to="/profile"
                       onClick={closeMobileMenu}
+                      style={{
+                        fontSize: '0.95rem',
+                        fontWeight: '500',
+                        transition: 'all 0.3s ease',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0fdf4';
+                        e.currentTarget.style.paddingLeft = '1.5rem';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.paddingLeft = '0.75rem';
+                      }}
                     >
-                      <i className="bi bi-person me-2"></i>
+                      <i className="bi bi-person me-2 text-warning"></i>
                       Profile
                     </Link>
                   </li>
                   <li>
                     <Link 
-                      className="dropdown-item" 
+                      className="dropdown-item py-3 px-3" 
                       to="/wallet"
                       onClick={closeMobileMenu}
+                      style={{
+                        fontSize: '0.95rem',
+                        fontWeight: '500',
+                        transition: 'all 0.3s ease',
+                        borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f0fdf4';
+                        e.currentTarget.style.paddingLeft = '1.5rem';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.paddingLeft = '0.75rem';
+                      }}
                     >
-                      <i className="bi bi-wallet2 me-2"></i>
+                      <i className="bi bi-wallet2 me-2 text-primary"></i>
                       My Wallet
                       <span className="badge bg-success ms-2">
                         ${user?.walletBalance?.toFixed(2) || '0.00'}
@@ -297,30 +539,61 @@ const Navbar: React.FC = () => {
                     </Link>
                   </li>
                   {user.role === 'admin' && (
-                    <li><hr className="dropdown-divider" /></li>
+                    <li><hr className="dropdown-divider" style={{ margin: '0.5rem 0' }} /></li>
                   )}
                   {user.role === 'admin' && (
                     <li>
                       <Link 
-                        className="dropdown-item" 
+                        className="dropdown-item py-3 px-3" 
                         to="/admin"
                         onClick={() => {
                           setIsMenuOpen(false);
                           setIsUserMenuOpen(false);
                         }}
+                        style={{
+                          fontSize: '0.95rem',
+                          fontWeight: '500',
+                          transition: 'all 0.3s ease',
+                          borderBottom: '1px solid rgba(0, 0, 0, 0.05)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#fef3c7';
+                          e.currentTarget.style.paddingLeft = '1.5rem';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                          e.currentTarget.style.paddingLeft = '0.75rem';
+                        }}
                       >
-                        <i className="bi bi-gear me-2"></i>
+                        <i className="bi bi-gear me-2 text-warning"></i>
                         Admin Panel
                       </Link>
                     </li>
                   )}
-                  <li><hr className="dropdown-divider" /></li>
+                  <li><hr className="dropdown-divider" style={{ margin: '0.5rem 0' }} /></li>
                   <li>
                     <button 
-                      className="dropdown-item text-danger" 
+                      className="dropdown-item py-3 px-3 text-danger" 
                       onClick={() => {
                         handleLogout();
                         setIsUserMenuOpen(false);
+                      }}
+                      style={{
+                        fontSize: '0.95rem',
+                        fontWeight: '500',
+                        transition: 'all 0.3s ease',
+                        border: 'none',
+                        background: 'none',
+                        width: '100%',
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#fef2f2';
+                        e.currentTarget.style.paddingLeft = '1.5rem';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.paddingLeft = '0.75rem';
                       }}
                     >
                       <i className="bi bi-box-arrow-right me-2"></i>
@@ -331,7 +604,7 @@ const Navbar: React.FC = () => {
               </li>
             ) : (
               <>
-                <li className="nav-item">
+                <li className={`nav-item  ${isMenuOpen ? 'mt-3' : ''}`}>
                   <Link 
                     className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                     to="/login"

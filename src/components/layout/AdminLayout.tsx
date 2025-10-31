@@ -17,13 +17,31 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, stats }) => {
   useEffect(() => {
     // Listen for sidebar toggle events from navbar
     const handleToggleSidebar = () => {
-      setSidebarOpen(!sidebarOpen);
+      setSidebarOpen(prev => !prev);
     };
     
     window.addEventListener('toggleSidebar', handleToggleSidebar);
     
     return () => {
       window.removeEventListener('toggleSidebar', handleToggleSidebar);
+    };
+  }, []);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (sidebarOpen && !target.closest('.dashboard-sidebar') && !target.closest('.sidebar-toggle-btn')) {
+        setSidebarOpen(false);
+      }
+    };
+
+    if (sidebarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [sidebarOpen]);
 

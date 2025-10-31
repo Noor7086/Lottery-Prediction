@@ -91,7 +91,7 @@ function App() {
               <Route path="/features" element={<Features />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/results" element={<Results />} />
-              <Route path="/number-generator" element={<NumberGenerator />} />
+              <Route path="/tools/number-generator" element={<NumberGenerator />} />
               
               {/* Legal Pages */}
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
