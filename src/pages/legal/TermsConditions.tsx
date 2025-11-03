@@ -14,7 +14,7 @@ const TermsConditions: React.FC = () => {
               <p>By accessing and using Obyyo's lottery prediction services, you accept and agree to be bound by the terms and provision of this agreement.</p>
               
               <h2 className="fw-bold mb-3 mt-4">2. Service Description</h2>
-              <p>Obyyo provides AI-powered lottery prediction services that analyze historical data to identify non-viable numbers. Our service is designed to help users make more informed decisions when playing lottery games.</p>
+              <p>Obyyo provides lottery prediction services that analyze historical data to identify non-viable numbers. Our service is designed to help users make more informed decisions when playing lottery games.</p>
               
               <h2 className="fw-bold mb-3 mt-4">3. No Guarantee of Winnings</h2>
               <p>Obyyo does not guarantee that using our prediction services will result in winning any lottery game. Lottery games are games of chance, and no prediction system can guarantee wins.</p>

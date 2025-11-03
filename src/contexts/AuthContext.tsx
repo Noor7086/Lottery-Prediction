@@ -125,7 +125,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const canStartTrial = (): boolean => {
-    return !user || !user.hasUsedTrial;
+    // User can only start trial if they haven't used it and are not currently in trial
+    if (!user) return true; // Not logged in, can register for trial
+    // Safety check: if hasUsedTrial is undefined, treat as false (newer users have this field)
+    const hasUsedTrialValue = user.hasUsedTrial ?? false;
+    return !hasUsedTrialValue && !user.isInTrial;
   };
 
   const value: AuthContextType = {

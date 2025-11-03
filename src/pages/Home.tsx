@@ -123,7 +123,7 @@ const Home: React.FC = () => {
     {
       icon: 'bi-target',
       title: '95%+ Accuracy Rate',
-      description: 'Our advanced AI-powered prediction system analyzes historical data and patterns to identify non-viable numbers with exceptional precision.',
+      description: 'Our advanced prediction system analyzes historical data and patterns to identify non-viable numbers with exceptional precision.',
       color: 'primary'
     },
     {
@@ -147,7 +147,7 @@ const Home: React.FC = () => {
     {
       icon: 'bi-cpu',
       title: 'Smart Number Generator',
-      description: 'Our advanced algorithm generates optimal number combinations from viable numbers using machine learning.',
+      description: 'Our advanced algorithm generates optimal number combinations from viable numbers.',
       color: 'secondary'
     },
     {
@@ -313,7 +313,7 @@ const Home: React.FC = () => {
                   Advanced Lottery Prediction Technology
                     </h1>
                 <p className="hero-subtitle-new fade-in animate-delay-1">
-                  Leverage AI-powered analytics and machine learning algorithms to identify non-viable numbers with 95%+ accuracy. 
+                  Leverage advanced analytics and algorithms to identify non-viable numbers with 95%+ accuracy. 
                   Join over 50,000 professionals who trust Obyyo for data-driven lottery strategies.
                     </p>
                 <div className="d-flex flex-wrap gap-3 justify-content-center mb-5 fade-in animate-delay-2">
@@ -355,7 +355,7 @@ const Home: React.FC = () => {
           <div className="text-center mb-5">
             <h2 className="display-5 fw-bold mb-3 text-dark">Supported Lotteries</h2>
             <p className="lead text-muted mb-4">
-              Choose from our comprehensive list of lottery predictions with advanced AI analysis
+              Choose from our comprehensive list of lottery predictions with advanced analysis
             </p>
             
           </div>

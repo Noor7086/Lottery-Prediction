@@ -1,83 +1,188 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Row, Col, Card, Button, Spinner } from 'react-bootstrap';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { predictionService } from '../../services/predictionService';
+import { walletService } from '../../services/walletService';
+import { lotteryService } from '../../services/lotteryService';
 import { 
-  FaChartLine, 
-  FaWallet, 
-  FaTicketAlt, 
-  FaTrophy, 
-  FaUser,
-  FaBell,
-  FaCreditCard
+  FaUser
 } from 'react-icons/fa';
 import TrialCountdown from '../../components/TrialCountdown';
+
+interface UserStats {
+  totalPredictions: number;
+  activeLotteries: number;
+  trialDaysLeft: number;
+  recentActivity: Array<{
+    type: string;
+    description: string;
+    timestamp: string;
+    lottery?: string;
+  }>;
+  walletBalance: number;
+}
 
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<UserStats>({
     totalPredictions: 0,
-    successfulPredictions: 0,
-    trialDaysLeft: 0
+    activeLotteries: 0,
+    trialDaysLeft: 0,
+    recentActivity: [],
+    walletBalance: 0
   });
 
+  // Calculate trial days left from user model fields (hasUsedTrial, trialEndDate)
+  const trialDaysLeft = useMemo(() => {
+    if (!user) return 0;
+    
+    // If user has used trial, return 0
+    if (user.hasUsedTrial) {
+      return 0;
+    }
+    
+    // If no trial end date, return 0
+    if (!user.trialEndDate) {
+      return 0;
+    }
+    
+    // Check if trial is still active
+    const now = new Date();
+    const endDate = new Date(user.trialEndDate);
+    const diffTime = endDate.getTime() - now.getTime();
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // Return days if positive, otherwise 0 (trial expired)
+    return Math.max(0, days);
+  }, [user]);
+
   useEffect(() => {
-    // Simulate loading user stats
     const loadUserStats = async () => {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+      
       try {
-        // In a real app, this would fetch from your API
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        console.log('Loading user stats from multiple APIs for user:', user.email);
         
+        // Fetch data from multiple endpoints in parallel
+        const [purchasesResponse, walletStatsResponse, lotteriesResponse] = await Promise.allSettled([
+          predictionService.getMyPurchases(1, 100), // Get purchases for total predictions
+          walletService.getWalletStats(), // Get wallet balance
+          lotteryService.getLotteries() // Get active lotteries
+        ]);
+
+        // Calculate total predictions from purchases
+        let totalPredictions = 0;
+        let recentActivity: Array<{
+          type: string;
+          description: string;
+          timestamp: string;
+          lottery?: string;
+        }> = [];
+
+        if (purchasesResponse.status === 'fulfilled') {
+          const purchases = purchasesResponse.value;
+          totalPredictions = purchases.filter(p => p.paymentStatus === 'completed' || p.paymentStatus === 'pending').length;
+          
+          // Get recent activity from purchases (last 5)
+          recentActivity = purchases
+            .slice(0, 5)
+            .map(purchase => ({
+              type: 'purchase',
+              description: `Purchased ${purchase.prediction?.lotteryType || 'prediction'} prediction`,
+              timestamp: purchase.createdAt || new Date().toISOString(),
+              lottery: purchase.prediction?.lotteryType || ''
+            }));
+        } else {
+          console.error('Error fetching purchases:', purchasesResponse.reason);
+        }
+
+        // Get wallet balance
+        let walletBalance = user?.walletBalance || 0;
+        if (walletStatsResponse.status === 'fulfilled') {
+          walletBalance = walletStatsResponse.value.currentBalance || user?.walletBalance || 0;
+        } else {
+          console.error('Error fetching wallet stats:', walletStatsResponse.reason);
+        }
+
+        // Get active lotteries count
+        let activeLotteries = 0;
+        if (lotteriesResponse.status === 'fulfilled') {
+          activeLotteries = lotteriesResponse.value.filter(l => l.isActive).length;
+        } else {
+          console.error('Error fetching lotteries:', lotteriesResponse.reason);
+        }
+
         setStats({
-          totalPredictions: 12,
-          successfulPredictions: 8,
-          trialDaysLeft: 7
+          totalPredictions,
+          activeLotteries,
+          trialDaysLeft: 0, // Will be calculated from user object
+          recentActivity,
+          walletBalance
         });
-      } catch (error) {
+
+        console.log('✅ User stats loaded:', {
+          totalPredictions,
+          activeLotteries,
+          walletBalance,
+          recentActivityCount: recentActivity.length
+        });
+      } catch (error: any) {
         console.error('Error loading user stats:', error);
+        // Set default values on error
+        setStats({
+          totalPredictions: 0,
+          activeLotteries: 0,
+          trialDaysLeft: 0,
+          recentActivity: [],
+          walletBalance: user?.walletBalance || 0
+        });
       } finally {
         setLoading(false);
       }
     };
 
     loadUserStats();
-  }, []);
+  }, [user]);
 
   const quickActions = [
     {
       title: 'View Predictions',
       description: 'Browse available lottery predictions',
-      icon: <FaChartLine className="text-primary" />,
+      icon: <i className="bi bi-graph-up text-primary fs-4"></i>,
       action: () => navigate('/predictions'),
       variant: 'primary'
     },
     {
       title: 'My Predictions',
       description: 'View your purchased predictions',
-      icon: <FaTicketAlt className="text-success" />,
+      icon: <i className="bi bi-download text-success fs-4"></i>,
       action: () => navigate('/my-predictions'),
       variant: 'success'
     },
     {
       title: 'Number Generator',
       description: 'Generate random lottery numbers',
-      icon: <FaTrophy className="text-warning" />,
-      action: () => navigate('/number-generator'),
+      icon: <i className="bi bi-shuffle text-warning fs-4"></i>,
+      action: () => navigate('/tools/number-generator'),
       variant: 'warning'
     },
     {
       title: 'View Results',
       description: 'Check latest lottery results',
-      icon: <FaBell className="text-info" />,
+      icon: <i className="bi bi-bell text-info fs-4"></i>,
       action: () => navigate('/results'),
       variant: 'info'
     },
     {
       title: 'My Wallet',
       description: 'Manage your funds and add money',
-      icon: <FaCreditCard className="text-secondary" />,
+      icon: <i className="bi bi-wallet2 text-secondary fs-4"></i>,
       action: () => navigate('/wallet'),
       variant: 'secondary'
     }
@@ -124,46 +229,35 @@ const Dashboard: React.FC = () => {
       </Row>
 
       {/* Stats Cards */}
-      <Row className="mb-4">
-        <Col md={3} className="mb-3">
-          <Card className="h-100 border-0 shadow-sm">
-            <Card.Body className="text-center">
-              <FaChartLine className="text-primary mb-2" style={{ fontSize: '2rem' }} />
-              <h5 className="mb-1">{stats.totalPredictions}</h5>
-              <p className="text-muted mb-0 small">Total Predictions</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3} className="mb-3">
-          <Card className="h-100 border-0 shadow-sm">
-            <Card.Body className="text-center">
-              <FaTrophy className="text-success mb-2" style={{ fontSize: '2rem' }} />
-              <h5 className="mb-1">{stats.successfulPredictions}</h5>
-              <p className="text-muted mb-0 small">Successful</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3} className="mb-3">
-          <Card className="h-100 border-0 shadow-sm">
-            <Card.Body className="text-center">
-              <FaWallet className="text-warning mb-2" style={{ fontSize: '2rem' }} />
-              <h5 className="mb-1">
-                ${user?.walletBalance?.toFixed(2) || '0.00'}
-              </h5>
-              <p className="text-muted mb-0 small">Wallet Balance</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3} className="mb-3">
-          <Card className="h-100 border-0 shadow-sm">
-            <Card.Body className="text-center">
-              <FaUser className="text-info mb-2" style={{ fontSize: '2rem' }} />
-              <h5 className="mb-1">{stats.trialDaysLeft}</h5>
-              <p className="text-muted mb-0 small">Trial Days Left</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      <div className="row g-4 mb-4">
+        <div className="col-md-4">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center">
+              <i className="bi bi-graph-up text-primary fs-3 mb-2"></i>
+              <h5 className="fw-bold">Total Predictions</h5>
+              <h3 className="fw-bold text-primary">{stats.totalPredictions}</h3>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center">
+              <i className="bi bi-wallet2 text-warning fs-3 mb-2"></i>
+              <h5 className="fw-bold">Wallet Balance</h5>
+              <h3 className="fw-bold text-warning">${stats.walletBalance.toFixed(2)}</h3>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4">
+          <div className="card border-0 shadow-sm">
+            <div className="card-body text-center">
+              <i className="bi bi-clock-history text-info fs-3 mb-2"></i>
+              <h5 className="fw-bold">Trial Days Left</h5>
+              <h3 className="fw-bold text-info">{trialDaysLeft}</h3>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Quick Actions */}
       <Row>
@@ -199,13 +293,44 @@ const Dashboard: React.FC = () => {
               <h5 className="mb-0">Recent Activity</h5>
             </Card.Header>
             <Card.Body>
-              <div className="text-center py-4">
-                <FaBell className="text-muted mb-3" style={{ fontSize: '3rem' }} />
-                <p className="text-muted">No recent activity to display</p>
-                <Button variant="outline-primary" size="sm" onClick={() => navigate('/my-predictions')}>
-                  View All Activity
-                </Button>
-              </div>
+              {stats.recentActivity && stats.recentActivity.length > 0 ? (
+                <div>
+                  {stats.recentActivity.map((activity, index) => (
+                    <div key={index} className="d-flex align-items-start mb-3 pb-3 border-bottom">
+                      <div className="me-3">
+                        <i className="bi bi-bell text-primary fs-5"></i>
+                      </div>
+                      <div className="flex-grow-1">
+                        <p className="mb-1 fw-medium">{activity.description}</p>
+                        <small className="text-muted">
+                          {new Date(activity.timestamp).toLocaleString()}
+                          {activity.lottery && (
+                            <span className="badge bg-secondary ms-2">
+                              {activity.lottery}
+                            </span>
+                          )}
+                        </small>
+                      </div>
+                    </div>
+                  ))}
+                  <Button 
+                    variant="outline-primary" 
+                    size="sm" 
+                    className="w-100 mt-2"
+                    onClick={() => navigate('/my-predictions')}
+                  >
+                    View All Activity
+                  </Button>
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <i className="bi bi-bell text-muted mb-3" style={{ fontSize: '3rem' }}></i>
+                  <p className="text-muted">No recent activity to display</p>
+                  <Button variant="outline-primary" size="sm" onClick={() => navigate('/my-predictions')}>
+                    View All Activity
+                  </Button>
+                </div>
+              )}
             </Card.Body>
           </Card>
         </Col>

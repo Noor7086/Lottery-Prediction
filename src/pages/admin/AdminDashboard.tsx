@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AdminStats } from '../../types';
 import { apiService } from '../../services/api';
 import AdminLayout from '../../components/layout/AdminLayout';
 import SimpleChart from '../../components/charts/SimpleChart';
+import toast from 'react-hot-toast';
+
+interface AnalyticsData {
+  userGrowth: Array<{ date: string; count: number }>;
+  revenueData: Array<{ date: string; amount: number }>;
+  predictionStats: Array<{ lotteryType: string; count: number; revenue: number }>;
+  topPredictions: Array<any>;
+  userActivity: Array<{ date: string; activeUsers: number; newUsers: number }>;
+}
 
 const AdminDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchStats();
+    fetchAnalytics();
   }, []);
 
   const fetchStats = async () => {
     try {
-      setLoading(true);
       const response = await apiService.get('/admin/stats');
       if ((response as any).success) {
         setStats((response as any).data);
@@ -24,8 +36,142 @@ const AdminDashboard: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch statistics');
+    }
+  };
+
+  const fetchAnalytics = async () => {
+    try {
+      const response = await apiService.get('/admin/analytics?range=30d');
+      if ((response as any).success) {
+        setAnalytics((response as any).data);
+      }
+    } catch (err: any) {
+      console.error('Failed to fetch analytics:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Calculate trend percentage for revenue
+  const calculateRevenueTrend = () => {
+    if (!analytics?.revenueData || analytics.revenueData.length < 2) return 0;
+    const current = analytics.revenueData[analytics.revenueData.length - 1]?.amount || 0;
+    const previous = analytics.revenueData[analytics.revenueData.length - 2]?.amount || 0;
+    if (previous === 0) return 0;
+    return ((current - previous) / previous * 100).toFixed(1);
+  };
+
+  // Calculate trend percentage for purchases
+  const calculatePurchaseTrend = () => {
+    if (!stats?.totalPurchases) return 0;
+    // This would ideally come from analytics, but for now we'll use a placeholder
+    // In a real scenario, you'd compare current period vs previous period
+    return 0; // Will be 0% if no historical data available
+  };
+
+  // Get monthly revenue chart data
+  const getMonthlyRevenueData = () => {
+    if (!analytics?.revenueData) return { data: [], labels: [] };
+    
+    // Group by month
+    const monthlyData: { [key: string]: number } = {};
+    analytics.revenueData.forEach(item => {
+      const date = new Date(item.date);
+      const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+      monthlyData[monthKey] = (monthlyData[monthKey] || 0) + item.amount;
+    });
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const data = months.map(month => monthlyData[month] || 0);
+    
+    return { data, labels: months };
+  };
+
+  // Get weekly user activity data
+  const getWeeklyActivityData = () => {
+    if (!analytics?.userActivity) return { data: [], labels: [] };
+    
+    // Get last 7 days
+    const last7Days = analytics.userActivity.slice(-7);
+    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    
+    // Map dates to day names and get active users
+    const data = last7Days.map(item => {
+      const date = new Date(item.date);
+      return item.activeUsers || 0;
+    });
+    
+    const labels = last7Days.map((item, index) => {
+      const date = new Date(item.date);
+      return days[date.getDay()] || `Day ${index + 1}`;
+    });
+    
+    return { data, labels };
+  };
+
+  // Calculate user growth trend
+  const calculateUserGrowthTrend = () => {
+    if (!analytics?.userGrowth || analytics.userGrowth.length < 2) return 0;
+    const current = analytics.userGrowth[analytics.userGrowth.length - 1]?.count || 0;
+    const previous = analytics.userGrowth[analytics.userGrowth.length - 2]?.count || 0;
+    if (previous === 0) return 0;
+    return ((current - previous) / previous * 100).toFixed(1);
+  };
+
+  // Get notification count (new users or activities)
+  const getNotificationCount = () => {
+    if (!analytics?.userGrowth) return 0;
+    // Count new users in last 24 hours
+    const now = new Date();
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    return analytics.userGrowth.filter(item => {
+      const date = new Date(item.date);
+      return date >= yesterday;
+    }).reduce((sum, item) => sum + item.count, 0);
+  };
+
+  // Export data functionality
+  const exportData = async (type: 'revenue' | 'analytics' = 'analytics') => {
+    try {
+      if (!analytics) {
+        toast.error('No data to export');
+        return;
+      }
+
+      let csvContent = '';
+      let filename = '';
+
+      if (type === 'revenue') {
+        // Export revenue data
+        csvContent = 'Date,Revenue\n';
+        analytics.revenueData.forEach(item => {
+          csvContent += `${item.date},${item.amount}\n`;
+        });
+        filename = `revenue-export-${new Date().toISOString().split('T')[0]}.csv`;
+      } else {
+        // Export analytics data
+        csvContent = 'Date,New Users,Active Users\n';
+        analytics.userActivity.forEach(item => {
+          csvContent += `${item.date},${item.newUsers},${item.activeUsers}\n`;
+        });
+        filename = `analytics-export-${new Date().toISOString().split('T')[0]}.csv`;
+      }
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Data exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export data');
     }
   };
 
@@ -49,7 +195,13 @@ const AdminDashboard: React.FC = () => {
           <div className="alert alert-danger" role="alert">
             <h4 className="alert-heading">Error!</h4>
             <p>{error}</p>
-            <button className="btn btn-outline-danger" onClick={fetchStats}>
+            <button 
+              className="btn btn-outline-danger" 
+              onClick={() => {
+                fetchStats();
+                fetchAnalytics();
+              }}
+            >
               <i className="bi bi-arrow-clockwise me-2"></i>
               Try Again
             </button>
@@ -71,18 +223,40 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="header-actions">
               <div className="notification-badge me-3">
-                <button className="btn btn-outline-light position-relative">
+                <button 
+                  className="btn btn-outline-light position-relative"
+                  onClick={() => {
+                    if (getNotificationCount() > 0) {
+                      navigate('/admin/users');
+                    } else {
+                      toast.info('No new notifications');
+                    }
+                  }}
+                  title="View new users"
+                >
                   <i className="bi bi-bell"></i>
-                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                    3
-                  </span>
+                  {getNotificationCount() > 0 && (
+                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                      {getNotificationCount()}
+                    </span>
+                  )}
                 </button>
               </div>
-              <button className="btn btn-outline-primary me-2">
+              <button 
+                className="btn btn-outline-primary me-2"
+                onClick={() => exportData('analytics')}
+              >
                 <i className="bi bi-download me-2"></i>
                 Export Data
               </button>
-              <button className="btn btn-primary" onClick={fetchStats}>
+              <button 
+                className="btn btn-primary" 
+                onClick={() => {
+                  fetchStats();
+                  fetchAnalytics();
+                  toast.success('Dashboard refreshed');
+                }}
+              >
                 <i className="bi bi-arrow-clockwise me-2"></i>
                 Refresh
               </button>
@@ -99,9 +273,18 @@ const AdminDashboard: React.FC = () => {
                 <h3>{stats?.totalUsers || 0}</h3>
                 <p>Total Users</p>
                 <div className="stat-trend">
-                  <i className="bi bi-arrow-up text-success"></i>
-                  <span className="text-success">+12%</span>
-                  <span className="text-muted">from last month</span>
+                  {parseFloat(calculateUserGrowthTrend()) >= 0 ? (
+                    <>
+                      <i className="bi bi-arrow-up text-success"></i>
+                      <span className="text-success">+{calculateUserGrowthTrend()}%</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-arrow-down text-danger"></i>
+                      <span className="text-danger">{calculateUserGrowthTrend()}%</span>
+                    </>
+                  )}
+                  <span className="text-muted">from last period</span>
                 </div>
               </div>
             </div>
@@ -114,9 +297,7 @@ const AdminDashboard: React.FC = () => {
                 <h3>{stats?.activeUsers || 0}</h3>
                 <p>Active Users</p>
                 <div className="stat-trend">
-                  <i className="bi bi-arrow-up text-success"></i>
-                  <span className="text-success">+8%</span>
-                  <span className="text-muted">from last week</span>
+                  <span className="text-muted">Currently active</span>
                 </div>
               </div>
             </div>
@@ -129,9 +310,7 @@ const AdminDashboard: React.FC = () => {
                 <h3>{stats?.trialUsers || 0}</h3>
                 <p>Trial Users</p>
                 <div className="stat-trend">
-                  <i className="bi bi-arrow-down text-warning"></i>
-                  <span className="text-warning">-3%</span>
-                  <span className="text-muted">from last week</span>
+                  <span className="text-muted">On trial period</span>
                 </div>
               </div>
             </div>
@@ -144,9 +323,7 @@ const AdminDashboard: React.FC = () => {
                 <h3>{stats?.totalPredictions || 0}</h3>
                 <p>Total Predictions</p>
                 <div className="stat-trend">
-                  <i className="bi bi-arrow-up text-success"></i>
-                  <span className="text-success">+25%</span>
-                  <span className="text-muted">from last month</span>
+                  <span className="text-muted">Total uploaded</span>
                 </div>
               </div>
             </div>
@@ -158,7 +335,12 @@ const AdminDashboard: React.FC = () => {
               <div className="card-header">
                 <h4>Revenue Overview</h4>
                 <div className="card-actions">
-                  <button className="btn btn-sm btn-outline-primary">View Details</button>
+                  <button 
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => navigate('/admin/payments')}
+                  >
+                    View Details
+                  </button>
                 </div>
               </div>
               <div className="card-body">
@@ -167,27 +349,40 @@ const AdminDashboard: React.FC = () => {
                     <h2>${stats?.totalRevenue?.toFixed(2) || '0.00'}</h2>
                     <p>Total Revenue</p>
                     <div className="trend positive">
-                      <i className="bi bi-arrow-up"></i>
-                      <span>+15.3%</span>
+                      {parseFloat(calculateRevenueTrend()) >= 0 ? (
+                        <>
+                          <i className="bi bi-arrow-up"></i>
+                          <span>+{calculateRevenueTrend()}%</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="bi bi-arrow-down"></i>
+                          <span>{calculateRevenueTrend()}%</span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="revenue-item">
                     <h2>{stats?.totalPurchases || 0}</h2>
                     <p>Total Purchases</p>
                     <div className="trend positive">
-                      <i className="bi bi-arrow-up"></i>
-                      <span>+8.7%</span>
+                      <span>Active purchases</span>
                     </div>
                   </div>
                 </div>
                 <div className="revenue-chart">
-                  <SimpleChart
-                    type="line"
-                    data={[1200, 1900, 3000, 5000, 2000, 3000, 4500, 3200, 2800, 4000, 3500, 4200]}
-                    labels={['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']}
-                    title="Monthly Revenue"
-                    color="#6366f1"
-                  />
+                  {(() => {
+                    const chartData = getMonthlyRevenueData();
+                    return (
+                      <SimpleChart
+                        type="line"
+                        data={chartData.data.length > 0 ? chartData.data : [0]}
+                        labels={chartData.labels.length > 0 ? chartData.labels : ['No Data']}
+                        title="Monthly Revenue"
+                        color="#6366f1"
+                      />
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -198,17 +393,30 @@ const AdminDashboard: React.FC = () => {
               </div>
               <div className="card-body">
                 <div className="quick-actions">
-                  <button className="action-btn">
+                  <button 
+                    className="action-btn"
+                    onClick={() => navigate('/admin/users')}
+                  >
                     <i className="bi bi-person-plus"></i>
-                    <span>Add User</span>
+                    <span>Manage Users</span>
                   </button>
-                  <button className="action-btn">
+                  <button 
+                    className="action-btn"
+                    onClick={() => {
+                      fetchAnalytics();
+                      fetchStats();
+                      toast.success('Analytics refreshed');
+                    }}
+                  >
                     <i className="bi bi-graph-up"></i>
-                    <span>View Analytics</span>
+                    <span>Refresh Analytics</span>
                   </button>
-                  <button className="action-btn">
-                    <i className="bi bi-gear"></i>
-                    <span>Settings</span>
+                  <button 
+                    className="action-btn"
+                    onClick={() => navigate('/admin/predictions')}
+                  >
+                    <i className="bi bi-list-ul"></i>
+                    <span>Manage Predictions</span>
                   </button>
                 </div>
               </div>
@@ -221,17 +429,27 @@ const AdminDashboard: React.FC = () => {
               <div className="card-header">
                 <h4>User Activity Analytics</h4>
                 <div className="card-actions">
-                  <button className="btn btn-sm btn-outline-primary">Export Data</button>
+                  <button 
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => exportData('analytics')}
+                  >
+                    Export Data
+                  </button>
                 </div>
               </div>
               <div className="card-body">
-                <SimpleChart
-                  type="bar"
-                  data={[65, 59, 80, 81, 56, 55, 40]}
-                  labels={['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']}
-                  title="Weekly User Activity"
-                  color="#10b981"
-                />
+                {(() => {
+                  const activityData = getWeeklyActivityData();
+                  return (
+                    <SimpleChart
+                      type="bar"
+                      data={activityData.data.length > 0 ? activityData.data : [0]}
+                      labels={activityData.labels.length > 0 ? activityData.labels : ['No Data']}
+                      title="Weekly User Activity"
+                      color="#10b981"
+                    />
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -242,7 +460,12 @@ const AdminDashboard: React.FC = () => {
               <div className="card-header">
                 <h4>Recent Activity</h4>
                 <div className="card-actions">
-                  <button className="btn btn-sm btn-outline-primary">View All</button>
+                  <button 
+                    className="btn btn-sm btn-outline-primary"
+                    onClick={() => navigate('/admin/users')}
+                  >
+                    View All
+                  </button>
                 </div>
               </div>
               <div className="card-body">

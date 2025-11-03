@@ -6,7 +6,7 @@ A comprehensive lottery prediction platform built with modern web technologies, 
 
 Obyyo is a lottery prediction platform that helps players avoid "low vibration" numbers and improve their winning odds. The platform provides:
 
-- **80-100% Accurate Predictions**: Advanced algorithms identify non-viable numbers
+- **80-100% Accurate Predictions**: Advanced analysis identifies non-viable numbers
 - **Pay-Per-Use Model**: No subscriptions, pay only when you need predictions
 - **7-Day Free Trial**: Test the service with your selected lottery
 - **SMS Notifications**: Instant alerts for new predictions

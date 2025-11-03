@@ -24,6 +24,8 @@ const Predictions: React.FC = () => {
   const [showPredictionModal, setShowPredictionModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [loadingPredictionDetails, setLoadingPredictionDetails] = useState(false);
+  const [trialMessage, setTrialMessage] = useState<string | null>(null);
+  const [acknowledgeDisclaimer, setAcknowledgeDisclaimer] = useState(false);
 
   // Fetch lotteries on component mount
   useEffect(() => {
@@ -82,14 +84,18 @@ const Predictions: React.FC = () => {
   const fetchPredictions = async () => {
     try {
       setLoading(true);
+      setTrialMessage(null);
       
       // Check if user is in trial period
       if (user?.isInTrial && user?.selectedLottery === selectedLottery) {
-        // Fetch trial predictions (free)
-        const trialPredictions = await predictionService.getTrialPredictions(selectedLottery);
-        setPredictions(trialPredictions);
+        // Fetch trial predictions (free) - 1 per day
+        const trialData = await predictionService.getTrialPredictions(selectedLottery);
+        setPredictions(trialData.predictions);
+        if (trialData.message) {
+          setTrialMessage(trialData.message);
+        }
       } else {
-        // Fetch regular predictions
+        // Fetch regular predictions (trial expired or different lottery)
         const fetchedPredictions = await predictionService.getPredictions(selectedLottery, 1, 10);
         setPredictions(fetchedPredictions);
       }
@@ -187,12 +193,19 @@ const Predictions: React.FC = () => {
 
   const handlePurchaseClick = (prediction: Prediction) => {
     setSelectedPrediction(prediction);
+    setAcknowledgeDisclaimer(false); // Reset checkbox when opening modal
     setShowPaymentModal(true);
   };
 
   const handleWalletPayment = async () => {
     if (!user || !selectedPrediction) {
       toast.error('User or prediction data not available');
+      return;
+    }
+
+    // Check if user acknowledged the disclaimer
+    if (!acknowledgeDisclaimer) {
+      toast.error('Please acknowledge the disclaimer before purchasing.');
       return;
     }
 
@@ -235,6 +248,8 @@ const Predictions: React.FC = () => {
         setSelectedPrediction(null);
         
         toast.success(`Prediction purchased successfully!`);
+        // Trigger wallet balance update event
+        window.dispatchEvent(new Event('walletBalanceUpdated'));
       } catch (detailsError: any) {
         console.error('Error fetching prediction details:', detailsError);
         // If we can't fetch details, show a message but still close payment modal
@@ -257,6 +272,13 @@ const Predictions: React.FC = () => {
 
   const handlePayPalPayment = async () => {
     if (!selectedPrediction) return;
+    
+    // Check if user acknowledged the disclaimer
+    if (!acknowledgeDisclaimer) {
+      toast.error('Please acknowledge the disclaimer before purchasing.');
+      setPaymentLoading(false);
+      return;
+    }
     
     setPaymentLoading(true);
     try {
@@ -288,6 +310,8 @@ const Predictions: React.FC = () => {
         setSelectedPrediction(null);
         
         toast.success('Prediction purchased successfully!');
+        // Trigger wallet balance update event
+        window.dispatchEvent(new Event('walletBalanceUpdated'));
       } catch (detailsError: any) {
         console.error('Error fetching prediction details:', detailsError);
         // If we can't fetch details, show a message but still close payment modal
@@ -441,9 +465,9 @@ const Predictions: React.FC = () => {
       <div className="row">
         <div className="col-lg-8 mx-auto">
           <div className="text-center mb-5">
-            <h1 className="display-4 fw-bold mb-3 gradient-text">AI Lottery Predictions</h1>
+            <h1 className="display-4 fw-bold mb-3 gradient-text">Lottery Predictions</h1>
             <p className="lead text-muted">
-              Get AI-powered predictions to identify non-viable numbers and improve your odds
+              Get predictions to identify non-viable numbers and improve your odds
             </p>
           </div>
 
@@ -551,11 +575,18 @@ const Predictions: React.FC = () => {
                   <p className="mt-3 text-muted">Loading predictions...</p>
                 </div>
               ) : predictions.length === 0 ? (
-                <div className="alert alert-warning text-center">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  No predictions available for this lottery at the moment. Please check back later.
+                <div className="alert alert-info text-center">
+                  <i className="bi bi-info-circle me-2"></i>
+                  {trialMessage || 'No predictions available for this lottery at the moment. Please check back later.'}
                 </div>
               ) : (
+                <>
+                  {trialMessage && (
+                    <div className="alert alert-info mb-3">
+                      <i className="bi bi-info-circle me-2"></i>
+                      {trialMessage}
+                    </div>
+                  )}
                 <div className="row g-3">
                   {predictions.map((prediction) => {
                     const viableData = formatViableNumbers(prediction);
@@ -615,6 +646,7 @@ const Predictions: React.FC = () => {
                     );
                   })}
                 </div>
+                </>
               )}
             </div>
           </div>
@@ -656,6 +688,45 @@ const Predictions: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Disclaimer Warning */}
+          <div className="alert alert-warning border-warning mb-4">
+            <div className="d-flex align-items-start">
+              <i className="bi bi-exclamation-triangle-fill text-warning me-2 fs-5"></i>
+              <div className="flex-grow-1">
+                <h6 className="alert-heading mb-2">
+                  <strong>Important Disclaimer</strong>
+                </h6>
+                <ul className="mb-2 ps-3">
+                  <li>Predictions are based on statistical analysis and are <strong>NOT 100% accurate</strong></li>
+                  <li>Lottery outcomes are random and cannot be guaranteed</li>
+                  <li>Past performance does not guarantee future results</li>
+                  <li>Use predictions at your own discretion and risk</li>
+                  <li>We are not responsible for any losses incurred from using our predictions</li>
+                </ul>
+                <p className="mb-0 small">
+                  <strong>By purchasing, you acknowledge that you understand these limitations and agree to use the predictions responsibly.</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Acknowledgment Checkbox */}
+          <div className="mb-4">
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="acknowledgeDisclaimer"
+                checked={acknowledgeDisclaimer}
+                onChange={(e) => setAcknowledgeDisclaimer(e.target.checked)}
+                disabled={paymentLoading}
+              />
+              <label className="form-check-label" htmlFor="acknowledgeDisclaimer">
+                <strong>I acknowledge and understand that predictions are not 100% accurate and outcomes cannot be guaranteed. I accept full responsibility for my purchase decision.</strong>
+              </label>
+            </div>
+          </div>
           
           <div className="d-grid gap-3">
             {/* Wallet Payment Option */}
@@ -663,7 +734,7 @@ const Predictions: React.FC = () => {
               variant="outline-primary" 
               size="lg"
               onClick={handleWalletPayment}
-              disabled={paymentLoading || loadingPredictionDetails || (user && selectedPrediction ? user.walletBalance < selectedPrediction.price : false)}
+              disabled={paymentLoading || loadingPredictionDetails || !acknowledgeDisclaimer || (user && selectedPrediction ? user.walletBalance < selectedPrediction.price : false)}
               className="d-flex align-items-center justify-content-center"
             >
               {paymentLoading || loadingPredictionDetails ? (
@@ -680,7 +751,7 @@ const Predictions: React.FC = () => {
             </Button>
 
             {/* PayPal Payment Option */}
-            {!user || user.walletBalance >= (selectedPrediction?.price || 0) ? (
+            {(!user || user.walletBalance >= (selectedPrediction?.price || 0)) && acknowledgeDisclaimer ? (
               <div className="paypal-container">
                 <PayPalScriptProvider 
                   options={{ 
@@ -690,6 +761,9 @@ const Predictions: React.FC = () => {
                 >
                   <PayPalButtons
                     createOrder={(_data, actions) => {
+                      if (!acknowledgeDisclaimer) {
+                        return Promise.reject('Please acknowledge the disclaimer first');
+                      }
                       return actions.order.create({
                         intent: "CAPTURE",
                         purchase_units: [
@@ -722,11 +796,23 @@ const Predictions: React.FC = () => {
                   />
                 </PayPalScriptProvider>
               </div>
+            ) : !acknowledgeDisclaimer ? (
+              <div className="alert alert-info text-center mb-0">
+                <i className="bi bi-info-circle me-2"></i>
+                Please acknowledge the disclaimer above to enable PayPal payment
+              </div>
             ) : null}
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowPaymentModal(false)} disabled={paymentLoading}>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowPaymentModal(false);
+              setAcknowledgeDisclaimer(false); // Reset checkbox when closing
+            }} 
+            disabled={paymentLoading}
+          >
             Cancel
           </Button>
         </Modal.Footer>

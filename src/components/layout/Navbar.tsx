@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LotteryType } from '../../types';
+import { walletService } from '../../services/walletService';
 
 const Navbar: React.FC = () => {
   const { user, logout, canStartTrial } = useAuth();
@@ -11,6 +12,7 @@ const Navbar: React.FC = () => {
   const [isPredictionsOpen, setIsPredictionsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
   
   // Check if we're on the homepage
   const isHomePage = location.pathname === '/';
@@ -37,6 +39,39 @@ const Navbar: React.FC = () => {
     setIsPredictionsOpen(false);
     setIsUserMenuOpen(false);
   };
+
+  // Fetch wallet balance
+  useEffect(() => {
+    const fetchWalletBalance = async () => {
+      if (user) {
+        try {
+          const stats = await walletService.getWalletStats();
+          setWalletBalance(stats.currentBalance);
+        } catch (error) {
+          console.error('Error fetching wallet balance:', error);
+          // Fallback to user wallet balance if API fails
+          setWalletBalance(user.walletBalance);
+        }
+      }
+    };
+
+    fetchWalletBalance();
+    
+    // Listen for wallet balance updates from wallet page
+    const handleWalletUpdate = () => {
+      fetchWalletBalance();
+    };
+    
+    window.addEventListener('walletBalanceUpdated', handleWalletUpdate);
+    
+    // Refresh wallet balance periodically (every 30 seconds)
+    const interval = setInterval(fetchWalletBalance, 30000);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('walletBalanceUpdated', handleWalletUpdate);
+    };
+  }, [user]);
 
   // Handle scroll effect
   useEffect(() => {
@@ -105,11 +140,6 @@ const Navbar: React.FC = () => {
       <style>{`
         /* Desktop Navbar - Only for screens 1200px and above */
         @media (min-width: 1200px) {
-          .navbar-nav .dropdown:hover .dropdown-menu {
-            display: block;
-            animation: fadeInDown 0.3s ease-in-out;
-          }
-          
           .navbar-nav .dropdown .dropdown-menu {
             position: absolute;
             top: 100%;
@@ -130,6 +160,11 @@ const Navbar: React.FC = () => {
             border-radius: 0.375rem;
           }
           
+          .navbar-nav .dropdown .dropdown-menu.show {
+            display: block;
+            animation: fadeInDown 0.3s ease-in-out;
+          }
+          
           .navbar-nav .dropdown-menu-end {
             right: 0;
             left: auto;
@@ -148,7 +183,7 @@ const Navbar: React.FC = () => {
             transition: transform 0.3s ease;
           }
           
-          .navbar-nav .dropdown:hover .dropdown-toggle::after {
+          .navbar-nav .dropdown.show .dropdown-toggle::after {
             transform: rotate(180deg);
           }
         }
@@ -331,7 +366,7 @@ const Navbar: React.FC = () => {
                 Features
               </Link>
             </li>
-            <li className="nav-item dropdown">
+            <li className={`nav-item dropdown ${isPredictionsOpen ? 'show' : ''}`}>
               <a 
                 className={`nav-link dropdown-toggle ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'} ${isActive('/predictions') ? 'active' : ''}`} 
                 href="#" 
@@ -403,13 +438,13 @@ const Navbar: React.FC = () => {
                   <i className="bi bi-wallet2 me-1"></i>
                   <span className="d-none d-md-inline">Wallet:</span>
                   <span className="badge bg-success ms-1">
-                    ${user?.walletBalance?.toFixed(2) || '0.00'}
+                    ${(user?.walletBalance ?? walletBalance ?? 0).toFixed(2)}
                   </span>
                 </Link>
               </li>
             )}
             {user ? (
-              <li className={`nav-item dropdown ${isMenuOpen ? 'mt-2' : ''}`}>
+              <li className={`nav-item dropdown ${isMenuOpen ? 'mt-2' : ''} ${isUserMenuOpen ? 'show' : ''}`}>
                 <a 
                   className={`nav-link dropdown-toggle d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
                   href="#" 
@@ -534,7 +569,7 @@ const Navbar: React.FC = () => {
                       <i className="bi bi-wallet2 me-2 text-primary"></i>
                       My Wallet
                       <span className="badge bg-success ms-2">
-                        ${user?.walletBalance?.toFixed(2) || '0.00'}
+                        ${(user?.walletBalance ?? walletBalance ?? 0).toFixed(2)}
                       </span>
                     </Link>
                   </li>

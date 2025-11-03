@@ -14,15 +14,15 @@ const FAQ: React.FC = () => {
   const faqData = [
     {
       question: "How accurate are Obyyo's lottery predictions?",
-      answer: "Our AI-powered prediction system achieves 95%+ accuracy in identifying non-viable numbers. This means we can help you avoid numbers that are statistically unlikely to be drawn, improving your overall odds of winning."
+      answer: "Our prediction system achieves 95%+ accuracy in identifying non-viable numbers. This means we can help you avoid numbers that are statistically unlikely to be drawn, improving your overall odds of winning."
     },
     {
       question: "What lottery games does Obyyo support?",
       answer: "We support all major lottery games including Powerball, Mega Millions, Lotto America, Gopher 5, and Pick 3. Our system continuously analyzes patterns for each specific lottery to provide the most accurate predictions."
     },
     {
-      question: "How does the AI prediction system work?",
-      answer: "Our advanced machine learning algorithms analyze historical lottery data, number frequency patterns, hot and cold numbers, and statistical trends. The system identifies numbers that are statistically unlikely to be drawn in upcoming games."
+      question: "How does the prediction system work?",
+      answer: "Our advanced algorithms analyze historical lottery data, number frequency patterns, hot and cold numbers, and statistical trends. The system identifies numbers that are statistically unlikely to be drawn in upcoming games."
     },
     {
       question: "Is there a guarantee that I will win?",
@@ -34,11 +34,11 @@ const FAQ: React.FC = () => {
     },
     {
       question: "How do I receive my predictions?",
-      answer: "You can access predictions through our web dashboard, and we also send real-time SMS notifications when new predictions are available for your selected lottery games. All predictions are delivered instantly after our AI analysis is complete."
+      answer: "You can access predictions through our web dashboard, and we also send real-time SMS notifications when new predictions are available for your selected lottery games. All predictions are delivered instantly after analysis is complete."
     },
     {
       question: "Can I use the number generator with the predictions?",
-      answer: "Yes! Our smart number generator works in conjunction with our predictions. It generates optimal number combinations using only the viable numbers identified by our AI system, maximizing your chances of success."
+      answer: "Yes! Our smart number generator works in conjunction with our predictions. It generates optimal number combinations using only the viable numbers identified by our system, maximizing your chances of success."
     },
     {
       question: "Is my personal information secure?",
