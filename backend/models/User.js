@@ -50,6 +50,14 @@ const userSchema = new mongoose.Schema({
     enum: ['gopher5', 'pick3', 'lottoamerica', 'megamillion', 'powerball'],
     required: [true, 'Please select a lottery for your trial']
   },
+  hasUsedTrial: {
+    type: Boolean,
+    default: false
+  },
+  lastTrialPredictionDate: {
+    type: Date,
+    default: null
+  },
   walletBalance: {
     type: Number,
     default: 0,

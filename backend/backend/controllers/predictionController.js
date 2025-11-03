@@ -171,8 +171,15 @@ const purchasePrediction = async (req, res) => {
       });
     }
 
+    // Check if trial has expired and mark hasUsedTrial if needed
+    const isInTrial = user.isInTrial();
+    if (!isInTrial && !user.hasUsedTrial) {
+      user.hasUsedTrial = true;
+      await user.save();
+    }
+
     // Check if user is in trial period and has selected this lottery
-    if (user.isInTrial() && user.selectedLottery === lotteryType) {
+    if (isInTrial && user.selectedLottery === lotteryType) {
       return res.status(400).json({
         success: false,
         message: 'This prediction is free during your trial period'
@@ -188,11 +195,17 @@ const purchasePrediction = async (req, res) => {
         });
       }
 
-      // Deduct from wallet
-      user.walletBalance -= prediction.price;
-      await user.save();
+      // Get lottery display name for transaction description
+      const lotteryNames = {
+        'gopher5': 'Gopher 5',
+        'pick3': 'Pick 3',
+        'lottoamerica': 'Lotto America',
+        'megamillion': 'Mega Million',
+        'powerball': 'Powerball'
+      };
+      const lotteryDisplayName = lotteryNames[prediction.lotteryType] || prediction.lotteryType;
 
-      // Create purchase record
+      // Create purchase record first to get purchase ID
       const purchase = await Purchase.create({
         user: userId,
         prediction: id,
@@ -201,6 +214,45 @@ const purchasePrediction = async (req, res) => {
         paymentStatus: 'completed',
         transactionId: `WALLET_${Date.now()}_${userId}`
       });
+
+      // Update balance
+      user.walletBalance -= prediction.price;
+      
+      // Add transaction to user's wallet transactions
+      const transactionData = {
+        type: 'payment',
+        amount: prediction.price,
+        description: `Prediction purchase for ${lotteryDisplayName}`,
+        reference: `PRED_${id}`,
+        status: 'completed',
+        metadata: {
+          predictionId: id,
+          lotteryType: prediction.lotteryType,
+          purchaseId: purchase._id.toString()
+        },
+        createdAt: new Date()
+      };
+      
+      user.transactions.push(transactionData);
+      user.lastTransactionDate = new Date();
+      user.totalWithdrawn = (user.totalWithdrawn || 0) + prediction.price;
+
+      // Save user with all updates at once (balance, transaction, totals)
+      const savedUser = await user.save();
+      
+      // Verify transaction was saved by refetching
+      const verifyUser = await User.findById(userId);
+      console.log(`[Purchase] Transaction added. User now has ${verifyUser.transactions.length} transactions`);
+      if (verifyUser.transactions.length > 0) {
+        const latest = verifyUser.transactions[verifyUser.transactions.length - 1];
+        console.log(`[Purchase] Latest transaction:`, {
+          type: latest.type,
+          amount: latest.amount,
+          description: latest.description,
+          createdAt: latest.createdAt,
+          status: latest.status
+        });
+      }
 
       // Update prediction purchase count
       prediction.purchaseCount += 1;
@@ -285,7 +337,7 @@ const getMyPurchases = async (req, res) => {
   }
 };
 
-// @desc    Get trial predictions (free for trial users)
+// @desc    Get trial predictions (free for trial users) - 1 per day
 // @route   GET /api/predictions/trial/:lotteryType
 // @access  Private
 const getTrialPredictions = async (req, res) => {
@@ -301,27 +353,65 @@ const getTrialPredictions = async (req, res) => {
       });
     }
 
+    // Check if trial has expired and mark hasUsedTrial if needed
+    const isInTrial = user.isInTrial();
+    if (!isInTrial && !user.hasUsedTrial) {
+      user.hasUsedTrial = true;
+      await user.save();
+    }
+
     // Check if user is in trial and has selected this lottery
-    if (!user.isInTrial() || user.selectedLottery !== lotteryType) {
+    if (!isInTrial || user.selectedLottery !== lotteryType) {
       return res.status(403).json({
         success: false,
         message: 'Access denied. This is only available during your trial period for your selected lottery.'
       });
     }
 
-    const predictions = await Prediction.find({
+    // Check if user has already viewed a prediction today
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const lastViewDate = user.lastTrialPredictionDate ? new Date(user.lastTrialPredictionDate) : null;
+    const lastViewStart = lastViewDate ? new Date(lastViewDate.getFullYear(), lastViewDate.getMonth(), lastViewDate.getDate()) : null;
+
+    // If user already viewed a prediction today, return empty or message
+    if (lastViewStart && lastViewStart.getTime() === todayStart.getTime()) {
+      return res.json({
+        success: true,
+        data: {
+          predictions: [],
+          message: 'You have already viewed your free prediction for today. Come back tomorrow for a new prediction!'
+        }
+      });
+    }
+
+    // Get the next available prediction (1 prediction)
+    const prediction = await Prediction.findOne({
       lotteryType,
       isActive: true,
       drawDate: { $gte: new Date() }
     })
     .populate('uploadedBy', 'firstName lastName')
-    .sort({ drawDate: 1 })
-    .limit(5);
+    .sort({ drawDate: 1 });
+
+    if (!prediction) {
+      return res.json({
+        success: true,
+        data: {
+          predictions: [],
+          message: 'No predictions available at the moment. Please check back later.'
+        }
+      });
+    }
+
+    // Update user's last trial prediction view date
+    user.lastTrialPredictionDate = new Date();
+    await user.save();
 
     res.json({
       success: true,
       data: {
-        predictions: predictions.map(prediction => ({
+        predictions: [{
           id: prediction._id,
           lotteryType: prediction.lotteryType,
           lotteryDisplayName: prediction.lotteryDisplayName,
@@ -329,7 +419,7 @@ const getTrialPredictions = async (req, res) => {
           drawTime: prediction.drawTime,
           nonViableNumbers: prediction.getNonViableNumbers(),
           notes: prediction.notes
-        }))
+        }]
       }
     });
   } catch (error) {

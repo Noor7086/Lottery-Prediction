@@ -60,7 +60,7 @@ const Footer: React.FC = () => {
                 </Link>
               </li>
               <li className="mb-2">
-                <Link to="/number-generator" className="text-light text-decoration-none">
+                <Link to="/tools/number-generator" className="text-light text-decoration-none">
                   <i className="bi bi-shuffle me-2"></i>
                   Number Generator
                 </Link>

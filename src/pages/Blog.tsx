@@ -15,8 +15,8 @@ const Blog: React.FC = () => {
     {
       id: 1,
       title: "Understanding Lottery Number Patterns: A Data-Driven Approach",
-      excerpt: "Discover how AI analyzes historical lottery data to identify patterns and improve your winning chances.",
-      content: "Our advanced machine learning algorithms have analyzed over 10 years of lottery data to identify key patterns...",
+      excerpt: "Discover how we analyze historical lottery data to identify patterns and improve your winning chances.",
+      content: "Our advanced algorithms have analyzed over 10 years of lottery data to identify key patterns...",
       category: 'analysis',
       author: 'Dr. Sarah Johnson',
       date: '2024-01-15',
@@ -86,9 +86,9 @@ const Blog: React.FC = () => {
     },
     {
       id: 7,
-      title: "New AI Technology Revolutionizes Lottery Predictions",
-      excerpt: "Learn about the latest advances in AI technology that are changing how we approach lottery predictions.",
-      content: "The field of lottery prediction has been revolutionized by new artificial intelligence technologies...",
+      title: "New Technology Revolutionizes Lottery Predictions",
+      excerpt: "Learn about the latest advances in technology that are changing how we approach lottery predictions.",
+      content: "The field of lottery prediction has been revolutionized by new technologies...",
       category: 'news',
       author: 'Emily Rodriguez',
       date: '2024-01-01',

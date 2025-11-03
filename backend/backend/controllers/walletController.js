@@ -59,7 +59,11 @@ const getTransactions = async (req, res) => {
       });
     }
 
-    let transactions = user.transactions;
+    // Refresh user to get latest transactions (transactions are embedded, so we need fresh data)
+    const freshUser = await User.findById(req.user.userId);
+    let transactions = freshUser ? [...freshUser.transactions] : [...user.transactions]; // Create a copy to avoid mutating original
+
+    console.log(`[Wallet] Fetching transactions. User has ${transactions.length} total transactions`);
 
     // Filter by type if provided
     if (type) {
@@ -71,8 +75,12 @@ const getTransactions = async (req, res) => {
       transactions = transactions.filter(t => t.status === status);
     }
 
-    // Sort by date (newest first)
-    transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    // Sort by date (newest first) - handle both Date objects and strings/timestamps
+    transactions.sort((a, b) => {
+      const dateA = a.createdAt ? (a.createdAt instanceof Date ? a.createdAt : new Date(a.createdAt)) : new Date(0);
+      const dateB = b.createdAt ? (b.createdAt instanceof Date ? b.createdAt : new Date(b.createdAt)) : new Date(0);
+      return dateB.getTime() - dateA.getTime(); // Newest first
+    });
 
     // Paginate
     const paginatedTransactions = transactions.slice(skip, skip + parseInt(limit));
@@ -428,6 +436,67 @@ const getWalletStats = async (req, res) => {
       });
     }
 
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    // Get last 7 days
+    const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Helper to get date from transaction
+    const getTransactionDate = (t) => {
+      if (t.createdAt instanceof Date) return t.createdAt;
+      return new Date(t.createdAt);
+    };
+
+    // Calculate deposits (credit, refund, bonus)
+    const depositTypes = ['credit', 'refund', 'bonus'];
+    const spendingTypes = ['payment', 'debit', 'withdrawal'];
+
+    // Recent deposits (last 30 days)
+    const recentDeposits = user.transactions
+      .filter(t => depositTypes.includes(t.type) && getTransactionDate(t) >= last30Days)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Recent spending (last 30 days)
+    const recentSpending = user.transactions
+      .filter(t => spendingTypes.includes(t.type) && getTransactionDate(t) >= last30Days)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // This month deposits
+    const thisMonthDeposits = user.transactions
+      .filter(t => depositTypes.includes(t.type) && getTransactionDate(t) >= startOfMonth)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // This month spending
+    const thisMonthSpending = user.transactions
+      .filter(t => spendingTypes.includes(t.type) && getTransactionDate(t) >= startOfMonth)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Last 7 days deposits
+    const last7DaysDeposits = user.transactions
+      .filter(t => depositTypes.includes(t.type) && getTransactionDate(t) >= last7Days)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Last 7 days spending
+    const last7DaysSpending = user.transactions
+      .filter(t => spendingTypes.includes(t.type) && getTransactionDate(t) >= last7Days)
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    // Get recent deposit transactions (last 5)
+    const recentDepositTransactions = user.transactions
+      .filter(t => depositTypes.includes(t.type))
+      .sort((a, b) => getTransactionDate(b).getTime() - getTransactionDate(a).getTime())
+      .slice(0, 5);
+
+    // Get recent spending transactions (last 5)
+    const recentSpendingTransactions = user.transactions
+      .filter(t => spendingTypes.includes(t.type))
+      .sort((a, b) => getTransactionDate(b).getTime() - getTransactionDate(a).getTime())
+      .slice(0, 5);
+
     const stats = {
       currentBalance: user.walletBalance,
       totalDeposited: user.totalDeposited,
@@ -437,16 +506,24 @@ const getWalletStats = async (req, res) => {
       recentTransactions: user.getRecentTransactions(5),
       monthlyStats: {
         thisMonth: user.transactions.filter(t => {
-          const now = new Date();
-          const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-          return t.createdAt >= startOfMonth;
+          return getTransactionDate(t) >= startOfMonth;
         }).length,
         lastMonth: user.transactions.filter(t => {
-          const now = new Date();
-          const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-          const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-          return t.createdAt >= startOfLastMonth && t.createdAt <= endOfLastMonth;
+          return getTransactionDate(t) >= startOfLastMonth && getTransactionDate(t) <= endOfLastMonth;
         }).length
+      },
+      // New: Deposits and spending breakdowns
+      deposits: {
+        last7Days: last7DaysDeposits,
+        last30Days: recentDeposits,
+        thisMonth: thisMonthDeposits,
+        recentTransactions: recentDepositTransactions
+      },
+      spending: {
+        last7Days: last7DaysSpending,
+        last30Days: recentSpending,
+        thisMonth: thisMonthSpending,
+        recentTransactions: recentSpendingTransactions
       }
     };
 

@@ -37,6 +37,18 @@ export interface WalletStats {
     thisMonth: number;
     lastMonth: number;
   };
+  deposits: {
+    last7Days: number;
+    last30Days: number;
+    thisMonth: number;
+    recentTransactions: Transaction[];
+  };
+  spending: {
+    last7Days: number;
+    last30Days: number;
+    thisMonth: number;
+    recentTransactions: Transaction[];
+  };
 }
 
 export interface DepositRequest {
@@ -99,6 +111,7 @@ class WalletService {
     if (!response.success || !response.data) {
       throw new Error('Failed to fetch wallet statistics');
     }
+    console.log('Wallet stats API response:', response); // Debug log
     return response.data;
   }
 

@@ -191,9 +191,9 @@ const NumberGenerator: React.FC = () => {
       <div className="row">
         <div className="col-lg-10 mx-auto">
           <div className="text-center mb-5">
-            <h1 className="display-4 fw-bold mb-3 gradient-text">AI Number Generator</h1>
+            <h1 className="display-4 fw-bold mb-3 gradient-text">Number Generator</h1>
             <p className="lead text-muted">
-              Generate optimal lottery combinations using only viable numbers identified by our AI
+              Generate optimal lottery combinations using only viable numbers
             </p>
             
             {/* Pro Tip Banner */}
@@ -335,7 +335,7 @@ const NumberGenerator: React.FC = () => {
                 <div className="col-md-6">
                   <label className="form-label fw-bold">Generation Method</label>
                   <select className="form-select" disabled>
-                    <option>AI-Optimized (Recommended)</option>
+                    <option>Optimized (Recommended)</option>
                     <option>Random from Viable Numbers</option>
                     <option>Pattern-Based</option>
                   </select>
@@ -352,7 +352,7 @@ const NumberGenerator: React.FC = () => {
                 Generate Numbers
               </h5>
               <p className="text-muted mb-4">
-                Our AI will generate {numberOfCombinations} optimal combination{numberOfCombinations > 1 ? 's' : ''} for {selectedLotteryData?.name} using only viable numbers
+                We will generate {numberOfCombinations} optimal combination{numberOfCombinations > 1 ? 's' : ''} for {selectedLotteryData?.name} using only viable numbers
               </p>
               
               {!user ? (
@@ -392,7 +392,7 @@ const NumberGenerator: React.FC = () => {
                     Generated Combinations for {generatedNumbers.lottery.name}
                   </h5>
                   <div className="text-end">
-                    <div className="badge bg-success fs-6">AI-Optimized</div>
+                    <div className="badge bg-success fs-6">Optimized</div>
                     <div className="small text-muted">Using {generatedNumbers.viableCount.main} viable numbers</div>
                   </div>
                 </div>
@@ -438,7 +438,7 @@ const NumberGenerator: React.FC = () => {
                 <div className="mt-4">
                   <div className="alert alert-success">
                     <i className="bi bi-lightbulb me-2"></i>
-                    <strong>Success!</strong> These combinations use only viable numbers identified by our AI prediction system, giving you the best possible odds.
+                    <strong>Success!</strong> These combinations use only viable numbers identified by our prediction system, giving you the best possible odds.
                   </div>
                   
                   {/* Statistics */}
@@ -457,7 +457,7 @@ const NumberGenerator: React.FC = () => {
                       <div className="card bg-success text-white text-center">
                         <div className="card-body">
                           <i className="bi bi-shield-check fs-4 mb-2"></i>
-                          <h6 className="fw-bold">AI Filtered</h6>
+                          <h6 className="fw-bold">Filtered</h6>
                           <h4 className="mb-0">100%</h4>
                           <small>Quality Assured</small>
                         </div>
@@ -468,7 +468,7 @@ const NumberGenerator: React.FC = () => {
                         <div className="card-body">
                           <i className="bi bi-cpu fs-4 mb-2"></i>
                           <h6 className="fw-bold">Algorithm</h6>
-                          <h4 className="mb-0">AI</h4>
+                          <h4 className="mb-0">Advanced</h4>
                           <small>Optimized</small>
                         </div>
                       </div>
@@ -492,7 +492,7 @@ const NumberGenerator: React.FC = () => {
                       <div className="card bg-primary text-white">
                         <div className="card-body text-center">
                           <i className="bi bi-cpu fs-3 mb-2"></i>
-                          <h6 className="fw-bold">AI-Optimized</h6>
+                          <h6 className="fw-bold">Optimized</h6>
                           <small>Smart Algorithm</small>
                         </div>
                       </div>

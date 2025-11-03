@@ -63,6 +63,7 @@ import walletRoutes from './routes/wallet.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+console.log('✅ Users routes registered at /api/users');
 app.use('/api/predictions', predictionRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);

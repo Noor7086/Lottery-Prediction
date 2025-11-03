@@ -34,14 +34,15 @@ const register = async (req, res) => {
       });
     }
 
-    // Create user
+    // Create user with trial
     const user = await User.create({
       firstName,
       lastName,
       email,
       password,
       phone,
-      selectedLottery
+      selectedLottery,
+      hasUsedTrial: false // New user hasn't used trial yet (they're starting it now)
     });
 
     // Generate token
@@ -61,6 +62,7 @@ const register = async (req, res) => {
           trialStartDate: user.trialStartDate,
           trialEndDate: user.trialEndDate,
           isInTrial: user.isInTrial(),
+          hasUsedTrial: user.hasUsedTrial,
           walletBalance: user.walletBalance,
           totalDeposited: user.totalDeposited,
           totalWithdrawn: user.totalWithdrawn,
@@ -127,6 +129,13 @@ const login = async (req, res) => {
     // Generate token
     const token = generateToken(user._id);
 
+    // Check if trial has expired and mark hasUsedTrial
+    const isInTrial = user.isInTrial();
+    if (!isInTrial && !user.hasUsedTrial) {
+      user.hasUsedTrial = true;
+      await user.save();
+    }
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -140,7 +149,8 @@ const login = async (req, res) => {
           selectedLottery: user.selectedLottery,
           trialStartDate: user.trialStartDate,
           trialEndDate: user.trialEndDate,
-          isInTrial: user.isInTrial(),
+          isInTrial: isInTrial,
+          hasUsedTrial: user.hasUsedTrial,
           walletBalance: user.walletBalance,
           totalDeposited: user.totalDeposited,
           totalWithdrawn: user.totalWithdrawn,
@@ -172,6 +182,13 @@ const getMe = async (req, res) => {
       });
     }
 
+    // Check if trial has expired and mark hasUsedTrial
+    const isInTrial = user.isInTrial();
+    if (!isInTrial && !user.hasUsedTrial) {
+      user.hasUsedTrial = true;
+      await user.save();
+    }
+
     res.json({
       success: true,
       data: {
@@ -184,7 +201,8 @@ const getMe = async (req, res) => {
           selectedLottery: user.selectedLottery,
           trialStartDate: user.trialStartDate,
           trialEndDate: user.trialEndDate,
-          isInTrial: user.isInTrial(),
+          isInTrial: isInTrial,
+          hasUsedTrial: user.hasUsedTrial,
           walletBalance: user.walletBalance,
           totalDeposited: user.totalDeposited,
           totalWithdrawn: user.totalWithdrawn,
@@ -241,6 +259,7 @@ const updateProfile = async (req, res) => {
           trialStartDate: user.trialStartDate,
           trialEndDate: user.trialEndDate,
           isInTrial: user.isInTrial(),
+          hasUsedTrial: user.hasUsedTrial,
           walletBalance: user.walletBalance,
           totalDeposited: user.totalDeposited,
           totalWithdrawn: user.totalWithdrawn,

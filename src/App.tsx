@@ -1,4 +1,4 @@
-import { Routes, Route, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation, Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { PredictionProvider } from './contexts/PredictionContext'
@@ -154,6 +154,20 @@ function App() {
                 <AdminRoute>
                   <AdminPayments />
                 </AdminRoute>
+              } />
+              
+              {/* 404 - Catch all unmatched routes */}
+              <Route path="*" element={
+                <div className="d-flex justify-content-center align-items-center min-vh-100">
+                  <div className="text-center">
+                    <h1 className="display-1 fw-bold text-primary">404</h1>
+                    <h2 className="mb-4">Page Not Found</h2>
+                    <p className="text-muted mb-4">The page you're looking for doesn't exist.</p>
+                    <Link to="/" className="btn btn-primary btn-lg">
+                      Go Home
+                    </Link>
+                  </div>
+                </div>
               } />
             </Routes>
           </main>

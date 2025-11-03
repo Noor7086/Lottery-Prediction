@@ -42,14 +42,17 @@ class PredictionService {
     return response.data.purchases;
   }
 
-  async getTrialPredictions(lotteryType: LotteryType): Promise<Prediction[]> {
-    const response = await apiService.get<ApiResponse<{ predictions: Prediction[] }>>(
+  async getTrialPredictions(lotteryType: LotteryType): Promise<{ predictions: Prediction[]; message?: string }> {
+    const response = await apiService.get<ApiResponse<{ predictions: Prediction[]; message?: string }>>(
       `/predictions/trial/${lotteryType}`
     );
     if (!response.success || !response.data) {
       throw new Error(response.message || 'Failed to fetch trial predictions');
     }
-    return response.data.predictions;
+    return {
+      predictions: response.data.predictions || [],
+      message: response.data.message
+    };
   }
 
   // Download prediction (increment download count)
