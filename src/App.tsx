@@ -21,7 +21,7 @@ import NumberGenerator from './pages/tools/NumberGenerator'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminPredictions from './pages/admin/AdminPredictions'
 import AdminUsers from './pages/admin/AdminUsers'
-import AdminLotteries from './pages/admin/AdminLotteries'
+import AdminPayments from './pages/admin/AdminPayments'
 import Results from './pages/Results'
 import HowItWorks from './pages/HowItWorks'
 import Features from './pages/Features'
@@ -150,9 +150,9 @@ function App() {
                   <AdminUsers />
                 </AdminRoute>
               } />
-              <Route path="/admin/lotteries" element={
+              <Route path="/admin/payments" element={
                 <AdminRoute>
-                  <AdminLotteries />
+                  <AdminPayments />
                 </AdminRoute>
               } />
             </Routes>

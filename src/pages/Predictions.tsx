@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useWallet } from '../contexts/WalletContext';
+import { predictionService } from '../services/predictionService';
+import { lotteryService } from '../services/lotteryService';
+import { Prediction, LotteryType, Lottery } from '../types';
 import { Modal, Button } from 'react-bootstrap';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 import toast from 'react-hot-toast';
@@ -10,21 +13,155 @@ const Predictions: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const { makePayment } = useWallet();
   const [searchParams] = useSearchParams();
-  const [selectedLottery, setSelectedLottery] = useState('powerball');
-  const [predictions, setPredictions] = useState<any>(null);
+  const [selectedLottery, setSelectedLottery] = useState<LotteryType>('powerball');
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
+  const [lotteries, setLotteries] = useState<Lottery[]>([]);
+  const [lotteriesLoading, setLotteriesLoading] = useState(false);
+  const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
+  const [purchasedPrediction, setPurchasedPrediction] = useState<Prediction | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPredictionModal, setShowPredictionModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
+  const [loadingPredictionDetails, setLoadingPredictionDetails] = useState(false);
+
+  // Fetch lotteries on component mount
+  useEffect(() => {
+    fetchLotteries();
+  }, []);
 
   // Read URL parameter and set selected lottery
   useEffect(() => {
     const lotteryType = searchParams.get('lottery');
-    console.log('URL lottery parameter:', lotteryType); // Debug log
-    if (lotteryType) {
-      setSelectedLottery(lotteryType);
-      console.log('Selected lottery updated to:', lotteryType); // Debug log
+    if (lotteryType && lotteries.length > 0) {
+      const lottery = lotteries.find(l => 
+        l.id === lotteryType || 
+        l.code.toLowerCase() === lotteryType ||
+        l.id?.toLowerCase() === lotteryType
+      );
+      if (lottery) {
+        setSelectedLottery((lottery.id || lottery.code.toLowerCase()) as LotteryType);
+      }
+    } else if (lotteries.length > 0 && !searchParams.get('lottery')) {
+      // Set first lottery as default if no URL parameter
+      const firstLottery = lotteries.find(l => l.isActive) || lotteries[0];
+      if (firstLottery) {
+        setSelectedLottery((firstLottery.id || firstLottery.code.toLowerCase()) as LotteryType);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, lotteries]);
+
+  // Fetch predictions when lottery type changes
+  useEffect(() => {
+    if (selectedLottery) {
+      fetchPredictions();
+    }
+  }, [selectedLottery, user]);
+
+  const fetchLotteries = async () => {
+    try {
+      setLotteriesLoading(true);
+      const fetchedLotteries = await lotteryService.getLotteries();
+      setLotteries(fetchedLotteries);
+      
+      // Set default selected lottery if not set
+      if (fetchedLotteries.length > 0) {
+        const activeLottery = fetchedLotteries.find(l => l.isActive) || fetchedLotteries[0];
+        if (activeLottery && !searchParams.get('lottery')) {
+          setSelectedLottery((activeLottery.id || activeLottery.code.toLowerCase()) as LotteryType);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching lotteries:', error);
+      toast.error(error.message || 'Failed to fetch lotteries');
+    } finally {
+      setLotteriesLoading(false);
+    }
+  };
+
+  const fetchPredictions = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if user is in trial period
+      if (user?.isInTrial && user?.selectedLottery === selectedLottery) {
+        // Fetch trial predictions (free)
+        const trialPredictions = await predictionService.getTrialPredictions(selectedLottery);
+        setPredictions(trialPredictions);
+      } else {
+        // Fetch regular predictions
+        const fetchedPredictions = await predictionService.getPredictions(selectedLottery, 1, 10);
+        setPredictions(fetchedPredictions);
+      }
+    } catch (error: any) {
+      console.error('Error fetching predictions:', error);
+      toast.error(error.message || 'Failed to fetch predictions');
+      setPredictions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Map lottery icon based on lottery code/name
+  const getLotteryIcon = (lottery: Lottery): string => {
+    const iconMap: { [key: string]: string } = {
+      'powerball': '⚡',
+      'POWERBALL': '⚡',
+      'megamillion': '💰',
+      'MEGAMILLION': '💰',
+      'lottoamerica': '🇺🇸',
+      'LOTTOAMERICA': '🇺🇸',
+      'gopher5': '🎯',
+      'GOPHER5': '🎯',
+      'pick3': '🎲',
+      'PICK3': '🎲'
+    };
+    return iconMap[lottery.id] || iconMap[lottery.code] || '🎰';
+  };
+
+  // Categorize lottery based on state
+  const getLotteryCategory = (lottery: Lottery): string => {
+    if (lottery.state === 'Multi-State' || lottery.state === 'USA') {
+      return 'national';
+    } else if (lottery.drawSchedule && lottery.drawSchedule.length >= 7) {
+      return 'daily';
+    } else {
+      return 'state';
+    }
+  };
+
+  // Format next draw date from draw schedule
+  const getNextDraw = (lottery: Lottery): string => {
+    if (!lottery.drawSchedule || lottery.drawSchedule.length === 0) {
+      return 'Check schedule';
+    }
+    
+    const today = new Date();
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const currentDay = dayNames[today.getDay()];
+    
+    // Find next draw day
+    const sortedSchedule = [...lottery.drawSchedule].sort((a, b) => {
+      const dayA = dayNames.indexOf(a.day.toLowerCase());
+      const dayB = dayNames.indexOf(b.day.toLowerCase());
+      return dayA - dayB;
+    });
+    
+    let nextDraw = sortedSchedule[0];
+    for (const schedule of sortedSchedule) {
+      if (dayNames.indexOf(schedule.day.toLowerCase()) > dayNames.indexOf(currentDay)) {
+        nextDraw = schedule;
+        break;
+      }
+    }
+    
+    if (lottery.drawSchedule.length >= 7) {
+      return `Daily, ${nextDraw.time}`;
+    } else {
+      const dayName = nextDraw.day.charAt(0).toUpperCase() + nextDraw.day.slice(1);
+      return `${dayName}, ${nextDraw.time}`;
+    }
+  };
 
   const lotteryCategories = [
     {
@@ -47,115 +184,19 @@ const Predictions: React.FC = () => {
     }
   ];
 
-  const lotteryTypes = [
-    {
-      id: 'powerball',
-      name: 'Powerball',
-      state: 'USA',
-      description: 'Pick 5 from 69 + 1 from 26',
-      price: 2,
-      icon: '⚡',
-      nextDraw: 'Wednesday, 8:59 PM EST',
-      category: 'national'
-    },
-    {
-      id: 'megamillion',
-      name: 'Mega Millions',
-      state: 'USA',
-      description: 'Pick 5 from 70 + 1 from 25',
-      price: 5,
-      icon: '💰',
-      nextDraw: 'Tuesday, 11:00 PM EST',
-      category: 'national'
-    },
-    {
-      id: 'lottoamerica',
-      name: 'Lotto America',
-      state: 'USA',
-      description: 'Pick 5 from 52 + 1 from 10',
-      price: 1,
-      icon: '🇺🇸',
-      nextDraw: 'Wednesday, 10:00 PM EST',
-      category: 'national'
-    },
-    {
-      id: 'gopher5',
-      name: 'Gopher 5',
-      state: 'Minnesota',
-      description: 'Pick 5 numbers from 1-47',
-      price: 1,
-      icon: '🎯',
-      nextDraw: 'Monday, 6:00 PM CST',
-      category: 'state'
-    },
-    {
-      id: 'pick3',
-      name: 'Pick 3',
-      state: 'Minnesota',
-      description: 'Pick 3 numbers from 0-9',
-      price: 1,
-      icon: '🎲',
-      nextDraw: 'Daily, 6:00 PM CST',
-      category: 'daily'
-    }
-  ];
 
-  const mockPredictions = {
-    powerball: {
-      nonViableNumbers: [1, 3, 7, 12, 15, 18, 22, 25, 28, 31, 34, 37, 40, 43, 46, 49, 52, 55, 58, 61, 64, 67],
-      powerballNonViable: [1, 3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25],
-      confidence: 96,
-      lastUpdated: '2 hours ago',
-      nextDraw: 'Wednesday, 8:59 PM EST'
-    },
-    megamillion: {
-      nonViableNumbers: [2, 4, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35, 38, 41, 44, 47, 50, 53, 56, 59, 62, 65, 68],
-      megaBallNonViable: [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 25],
-      confidence: 94,
-      lastUpdated: '1 hour ago',
-      nextDraw: 'Tuesday, 11:00 PM EST'
-    },
-    lottoamerica: {
-      nonViableNumbers: [1, 3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48, 51],
-      starBallNonViable: [1, 3, 5, 7, 9],
-      confidence: 95,
-      lastUpdated: '3 hours ago',
-      nextDraw: 'Wednesday, 10:00 PM EST'
-    },
-    gopher5: {
-      nonViableNumbers: [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34, 37, 40, 43, 46],
-      confidence: 93,
-      lastUpdated: '4 hours ago',
-      nextDraw: 'Monday, 6:00 PM CST'
-    },
-    pick3: {
-      nonViableNumbers: [0, 2, 4, 6, 8],
-      confidence: 97,
-      lastUpdated: '30 minutes ago',
-      nextDraw: 'Daily, 6:00 PM CST'
-    }
-  };
-
-  const handlePurchaseClick = () => {
+  const handlePurchaseClick = (prediction: Prediction) => {
+    setSelectedPrediction(prediction);
     setShowPaymentModal(true);
   };
 
-  const generatePredictions = () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setPredictions(mockPredictions[selectedLottery as keyof typeof mockPredictions]);
-      setLoading(false);
-    }, 2000);
-  };
-
   const handleWalletPayment = async () => {
-    if (!user || !selectedLotteryData) {
-      toast.error('User or lottery data not available');
+    if (!user || !selectedPrediction) {
+      toast.error('User or prediction data not available');
       return;
     }
 
-    const amount = selectedLotteryData.price;
+    const amount = selectedPrediction.price;
     
     // Check if user has sufficient wallet balance
     if (user.walletBalance < amount) {
@@ -165,56 +206,235 @@ const Predictions: React.FC = () => {
 
     setPaymentLoading(true);
     try {
-      // Prepare payment data - simplified to avoid validation issues
-      const paymentData = {
-        amount: amount,
-        description: `Prediction purchase for ${selectedLotteryData.name}`
-      };
+      // Purchase prediction directly using prediction service
+      const purchaseResponse = await predictionService.purchasePrediction(
+        selectedPrediction.lotteryType,
+        selectedPrediction.id,
+        'wallet'
+      );
 
-      console.log('Payment data being sent:', paymentData);
-
-      // Make payment using wallet service - this will actually deduct from backend
-      const success = await makePayment(paymentData);
-
-      if (success) {
-        // Refresh user data to get updated wallet balance from backend
-        await refreshUser();
+      // Refresh user data to get updated wallet balance
+      await refreshUser();
+      
+      // Small delay to ensure purchase is committed to database
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Fetch full prediction details after purchase
+      setLoadingPredictionDetails(true);
+      try {
+        const fullPrediction = await predictionService.getPredictionDetails(
+          selectedPrediction.lotteryType,
+          selectedPrediction.id
+        );
         
+        setPurchasedPrediction(fullPrediction);
+        
+        // Close payment modal and open prediction view modal
         setShowPaymentModal(false);
-        generatePredictions();
-        toast.success(`Payment of $${amount} processed successfully!`);
-      } else {
-        toast.error('Payment failed. Please try again.');
+        setShowPredictionModal(true);
+        setSelectedPrediction(null);
+        
+        toast.success(`Prediction purchased successfully!`);
+      } catch (detailsError: any) {
+        console.error('Error fetching prediction details:', detailsError);
+        // If we can't fetch details, show a message but still close payment modal
+        setShowPaymentModal(false);
+        toast.error('Purchase successful, but failed to load prediction details. Please refresh and try viewing from "My Predictions".');
       }
+      
+      // Refresh predictions list
+      await fetchPredictions();
     } catch (error: any) {
       console.error('Wallet payment failed:', error);
-      console.error('Error details:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
-      // Show more specific error message
       const errorMessage = error.response?.data?.message || error.message || 'Payment failed. Please try again.';
       toast.error(errorMessage);
     } finally {
       setPaymentLoading(false);
+      setLoadingPredictionDetails(false);
     }
   };
 
 
   const handlePayPalPayment = async () => {
+    if (!selectedPrediction) return;
+    
     setPaymentLoading(true);
     try {
-      // PayPal payment will be handled by PayPal buttons
-      // This function will be called after successful PayPal payment
-      setShowPaymentModal(false);
-      generatePredictions();
-    } catch (error) {
+      await predictionService.purchasePrediction(
+        selectedPrediction.lotteryType,
+        selectedPrediction.id,
+        'paypal'
+      );
+      
+      // Refresh user data
+      await refreshUser();
+      
+      // Small delay to ensure purchase is committed to database
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Fetch full prediction details after purchase
+      setLoadingPredictionDetails(true);
+      try {
+        const fullPrediction = await predictionService.getPredictionDetails(
+          selectedPrediction.lotteryType,
+          selectedPrediction.id
+        );
+        
+        setPurchasedPrediction(fullPrediction);
+        
+        // Close payment modal and open prediction view modal
+        setShowPaymentModal(false);
+        setShowPredictionModal(true);
+        setSelectedPrediction(null);
+        
+        toast.success('Prediction purchased successfully!');
+      } catch (detailsError: any) {
+        console.error('Error fetching prediction details:', detailsError);
+        // If we can't fetch details, show a message but still close payment modal
+        setShowPaymentModal(false);
+        toast.error('Purchase successful, but failed to load prediction details. Please refresh and try viewing from "My Predictions".');
+      }
+      
+      // Refresh predictions list
+      await fetchPredictions();
+    } catch (error: any) {
       console.error('PayPal payment failed:', error);
+      toast.error(error.message || 'Payment failed. Please try again.');
     } finally {
       setPaymentLoading(false);
+      setLoadingPredictionDetails(false);
     }
   };
 
-  const selectedLotteryData = lotteryTypes.find(lottery => lottery.id === selectedLottery);
+  const formatViableNumbers = (prediction: Prediction) => {
+    // ONLY USE viableNumbers - these are the recommended numbers
+    if (prediction.viableNumbers) {
+      if (Array.isArray(prediction.viableNumbers)) {
+        // Single selection (Gopher 5, Pick 3)
+        return prediction.viableNumbers.filter(n => n != null);
+      } else if (typeof prediction.viableNumbers === 'object' && prediction.viableNumbers !== null) {
+        // Double selection (Powerball, Mega Millions, Lotto America)
+        const obj = prediction.viableNumbers as { whiteBalls?: number[]; redBalls?: number[] };
+        const whiteBalls = Array.isArray(obj.whiteBalls) ? obj.whiteBalls.filter(n => n != null) : [];
+        const redBalls = Array.isArray(obj.redBalls) ? obj.redBalls.filter(n => n != null) : [];
+        if (whiteBalls.length > 0 || redBalls.length > 0) {
+          return { whiteBalls, redBalls };
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  const renderFullPrediction = (prediction: Prediction) => {
+    const viableData = formatViableNumbers(prediction);
+    const isDouble = viableData && typeof viableData === 'object' && !Array.isArray(viableData);
+
+    return (
+      <div>
+        <div className="text-center mb-4">
+          <h4 className="fw-bold">{prediction.lotteryDisplayName}</h4>
+          <p className="text-muted mb-2">
+            <i className="bi bi-calendar me-2"></i>
+            Draw Date: <strong>{new Date(prediction.drawDate).toLocaleDateString()} at {prediction.drawTime}</strong>
+          </p>
+        </div>
+
+        <div className="alert alert-success mb-4">
+          <h5 className="alert-heading">
+            <i className="bi bi-check-circle me-2"></i>
+            Recommended Viable Numbers
+          </h5>
+          <p className="mb-0">
+            These numbers have been identified as most likely to appear in the upcoming draw. 
+            Consider using these numbers when making your selection.
+          </p>
+        </div>
+
+        {isDouble ? (
+          <div className="mb-4">
+            <div className="mb-3">
+              <h6 className="fw-bold text-success mb-3">
+                <i className="bi bi-circle-fill me-2"></i>
+                Recommended White Balls ({viableData.whiteBalls?.length || 0} numbers):
+              </h6>
+              <div className="d-flex flex-wrap gap-2">
+                {(viableData as any).whiteBalls?.map((num: number) => (
+                  <span 
+                    key={num} 
+                    className="badge bg-success p-3"
+                    style={{ fontSize: '1.1rem', minWidth: '50px' }}
+                  >
+                    {num}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h6 className="fw-bold text-success mb-3">
+                <i className="bi bi-circle-fill me-2"></i>
+                Recommended Red Ball ({viableData.redBalls?.length || 0} numbers):
+              </h6>
+              <div className="d-flex flex-wrap gap-2">
+                {(viableData as any).redBalls?.map((num: number) => (
+                  <span 
+                    key={num} 
+                    className="badge bg-success p-3"
+                    style={{ fontSize: '1.1rem', minWidth: '50px' }}
+                  >
+                    {num}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4">
+            <h6 className="fw-bold text-success mb-3">
+              <i className="bi bi-list-ul me-2"></i>
+              Recommended Numbers ({(viableData as number[])?.length || 0} numbers):
+            </h6>
+            <div className="d-flex flex-wrap gap-2">
+              {(viableData as number[])?.map((num: number) => (
+                <span 
+                  key={num} 
+                  className="badge bg-success p-3"
+                  style={{ fontSize: '1.1rem', minWidth: '50px' }}
+                >
+                  {num}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {prediction.notes && (
+          <div className="alert alert-info mt-4">
+            <h6 className="fw-bold mb-2">
+              <i className="bi bi-info-circle me-2"></i>
+              Additional Notes:
+            </h6>
+            <p className="mb-0">{prediction.notes}</p>
+          </div>
+        )}
+
+        <div className="mt-4 p-3 bg-light rounded">
+          <div className="row text-center">
+            <div className="col-6">
+              <small className="text-muted d-block">Downloads</small>
+              <strong>{prediction.downloadCount}</strong>
+            </div>
+            <div className="col-6">
+              <small className="text-muted d-block">Purchases</small>
+              <strong>{prediction.purchaseCount || 0}</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const selectedLotteryData = lotteries.find(lottery => lottery.id === selectedLottery || lottery.code.toLowerCase() === selectedLottery);
 
   return (
     <div className="container py-5 mt-5">
@@ -235,8 +455,23 @@ const Predictions: React.FC = () => {
                 Select Lottery Game by Category
               </h5>
               
-              {lotteryCategories.map((category) => {
-                const categoryLotteries = lotteryTypes.filter(lottery => lottery.category === category.id);
+              {lotteriesLoading ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading lotteries...</span>
+                  </div>
+                  <p className="mt-3 text-muted">Loading available lotteries...</p>
+                </div>
+              ) : lotteries.length === 0 ? (
+                <div className="alert alert-warning text-center">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  No lotteries available at the moment.
+                </div>
+              ) : (
+                lotteryCategories.map((category) => {
+                  const categoryLotteries = lotteries.filter(lottery => getLotteryCategory(lottery) === category.id && lottery.isActive);
+                  
+                  if (categoryLotteries.length === 0) return null;
                 
                 return (
                   <div key={category.id} className="mb-4">
@@ -252,24 +487,24 @@ const Predictions: React.FC = () => {
                       {categoryLotteries.map((lottery) => (
                         <div key={lottery.id} className="col-md-6 col-lg-4">
                           <div 
-                            className={`card h-100 cursor-pointer ${selectedLottery === lottery.id ? 'border-primary' : ''}`}
-                            onClick={() => setSelectedLottery(lottery.id)}
+                            className={`card h-100 cursor-pointer ${selectedLottery === (lottery.id || lottery.code.toLowerCase()) ? 'border-primary' : ''}`}
+                            onClick={() => setSelectedLottery((lottery.id || lottery.code.toLowerCase()) as LotteryType)}
                             style={{ 
                               cursor: 'pointer',
                               transition: 'all 0.3s ease',
-                              border: selectedLottery === lottery.id ? '2px solid var(--primary-color)' : '1px solid #e9ecef'
+                              border: selectedLottery === (lottery.id || lottery.code.toLowerCase()) ? '2px solid var(--primary-color)' : '1px solid #e9ecef'
                             }}
                           >
                             <div className="card-body text-center">
                               <div className="mb-3">
-                                <span style={{ fontSize: '2rem' }}>{lottery.icon}</span>
+                                <span style={{ fontSize: '2rem' }}>{getLotteryIcon(lottery)}</span>
                               </div>
                               <h6 className="fw-bold">{lottery.name}</h6>
                               <p className="small text-muted mb-2">{lottery.state}</p>
                               <p className="small mb-2">{lottery.description}</p>
                               <div className="d-flex justify-content-between align-items-center">
                                 <span className="badge bg-primary">${lottery.price}/prediction</span>
-                                <small className="text-muted">{lottery.nextDraw}</small>
+                                <small className="text-muted">{getNextDraw(lottery)}</small>
                               </div>
                             </div>
                           </div>
@@ -282,197 +517,145 @@ const Predictions: React.FC = () => {
                     )}
                   </div>
                 );
-              })}
-            </div>
-          </div>
-
-          {/* Generate Predictions */}
-          <div className="card border-0 shadow-sm mb-4">
-            <div className="card-body p-4 text-center">
-
-              
-              {!user ? (
-                <div className="alert alert-info">
-                  <i className="bi bi-info-circle me-2"></i>
-                  Please <a href="/register" className="alert-link">sign up</a> or <a href="/login" className="alert-link">login</a> to generate predictions
-                </div>
-              ) : (
-                <button 
-                  className="btn btn-primary btn-lg px-5"
-                  onClick={handlePurchaseClick}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-magic me-2"></i>
-                      Purchase Prediction - ${selectedLotteryData?.price}
-                    </>
-                  )}
-                </button>
+              })
               )}
             </div>
           </div>
 
-          {/* Predictions Results */}
-          {predictions && (
-            <div className="card border-0 shadow-sm">
-              <div className="card-body p-4">
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                  <h5 className="fw-bold mb-0">
-                    <i className="bi bi-graph-up me-2"></i>
-                    AI Predictions for {selectedLotteryData?.name}
-                  </h5>
-                  <div className="text-end">
-                    <div className="badge bg-success fs-6">{predictions.confidence}% Confidence</div>
-                    <div className="small text-muted">Updated {predictions.lastUpdated}</div>
-                  </div>
-                </div>
-
-                <div className="row g-4">
-                  <div className="col-md-6">
-                    <div className="card bg-light">
-                      <div className="card-body">
-                        <h6 className="fw-bold text-danger mb-3">
-                          <i className="bi bi-x-circle me-2"></i>
-                          Non-Viable Numbers (Avoid These)
-                        </h6>
-                        <div className="d-flex flex-wrap gap-2">
-                          {predictions.nonViableNumbers.map((num: number) => (
-                            <span key={num} className="badge bg-danger fs-6">{num}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {predictions.powerballNonViable && (
-                    <div className="col-md-6">
-                      <div className="card bg-light">
-                        <div className="card-body">
-                          <h6 className="fw-bold text-danger mb-3">
-                            <i className="bi bi-x-circle me-2"></i>
-                            Non-Viable Powerball Numbers
-                          </h6>
-                          <div className="d-flex flex-wrap gap-2">
-                            {predictions.powerballNonViable.map((num: number) => (
-                              <span key={num} className="badge bg-danger fs-6">{num}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {predictions.megaBallNonViable && (
-                    <div className="col-md-6">
-                      <div className="card bg-light">
-                        <div className="card-body">
-                          <h6 className="fw-bold text-danger mb-3">
-                            <i className="bi bi-x-circle me-2"></i>
-                            Non-Viable Mega Ball Numbers
-                          </h6>
-                          <div className="d-flex flex-wrap gap-2">
-                            {predictions.megaBallNonViable.map((num: number) => (
-                              <span key={num} className="badge bg-danger fs-6">{num}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {predictions.starBallNonViable && (
-                    <div className="col-md-6">
-                      <div className="card bg-light">
-                        <div className="card-body">
-                          <h6 className="fw-bold text-danger mb-3">
-                            <i className="bi bi-x-circle me-2"></i>
-                            Non-Viable Star Ball Numbers
-                          </h6>
-                          <div className="d-flex flex-wrap gap-2">
-                            {predictions.starBallNonViable.map((num: number) => (
-                              <span key={num} className="badge bg-danger fs-6">{num}</span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4">
-                  <div className="alert alert-info">
-                    <i className="bi bi-lightbulb me-2"></i>
-                    <strong>Pro Tip:</strong> Use our <a href="/tools/number-generator" className="alert-link">Number Generator</a> to create optimal combinations using only viable numbers!
-                  </div>
-                </div>
-
-                <div className="text-center mt-4">
-                  <div className="row g-3">
-                    <div className="col-md-4">
-                      <div className="card bg-primary text-white">
-                        <div className="card-body text-center">
-                          <i className="bi bi-clock fs-3 mb-2"></i>
-                          <h6 className="fw-bold">Next Draw</h6>
-                          <small>{predictions.nextDraw}</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="card bg-success text-white">
-                        <div className="card-body text-center">
-                          <i className="bi bi-shield-check fs-3 mb-2"></i>
-                          <h6 className="fw-bold">Confidence</h6>
-                          <small>{predictions.confidence}% Accurate</small>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="col-md-4">
-                      <div className="card bg-info text-white">
-                        <div className="card-body text-center">
-                          <i className="bi bi-arrow-clockwise fs-3 mb-2"></i>
-                          <h6 className="fw-bold">Updated</h6>
-                          <small>{predictions.lastUpdated}</small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+          {/* Available Predictions */}
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-body p-4">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="fw-bold mb-0">
+                  <i className="bi bi-calendar-event me-2"></i>
+                  Available Predictions for {selectedLotteryData?.name}
+                </h5>
+                {user?.isInTrial && user?.selectedLottery === selectedLottery && (
+                  <span className="badge bg-success">
+                    <i className="bi bi-star me-1"></i>
+                    Free Trial
+                  </span>
+                )}
               </div>
+
+              {!user ? (
+                <div className="alert alert-info text-center">
+                  <i className="bi bi-info-circle me-2"></i>
+                  Please <a href="/register" className="alert-link">sign up</a> or <a href="/login" className="alert-link">login</a> to view predictions
+                </div>
+              ) : loading ? (
+                <div className="text-center py-5">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading predictions...</span>
+                  </div>
+                  <p className="mt-3 text-muted">Loading predictions...</p>
+                </div>
+              ) : predictions.length === 0 ? (
+                <div className="alert alert-warning text-center">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  No predictions available for this lottery at the moment. Please check back later.
+                </div>
+              ) : (
+                <div className="row g-3">
+                  {predictions.map((prediction) => {
+                    const viableData = formatViableNumbers(prediction);
+                    const isDouble = viableData && !Array.isArray(viableData);
+                    
+                    return (
+                      <div key={prediction.id} className="col-md-6">
+                        <div className="card h-100 border">
+                          <div className="card-body">
+                            <div className="d-flex justify-content-between align-items-start mb-3">
+                              <div>
+                                <h6 className="fw-bold mb-1">{prediction.lotteryDisplayName}</h6>
+                                <small className="text-muted">
+                                  <i className="bi bi-calendar me-1"></i>
+                                  {new Date(prediction.drawDate).toLocaleDateString()} at {prediction.drawTime}
+                                </small>
+                              </div>
+                              <span className="badge bg-primary">${prediction.price.toFixed(2)}</span>
+                            </div>
+
+                            {/* Show limited preview - just count, not actual numbers */}
+                            {viableData && (
+                              <div className="mb-3 p-2 bg-light rounded">
+                                {isDouble ? (
+                                  <small className="text-muted">
+                                    <i className="bi bi-info-circle me-1"></i>
+                                    Includes {(viableData as any).whiteBalls?.length || 0} recommended white ball numbers and {(viableData as any).redBalls?.length || 0} recommended red ball number(s). 
+                                    <strong className="text-primary"> Purchase to view full details.</strong>
+                                  </small>
+                                ) : (
+                                  <small className="text-muted">
+                                    <i className="bi bi-info-circle me-1"></i>
+                                    Includes {(viableData as number[])?.length || 0} recommended numbers. 
+                                    <strong className="text-primary"> Purchase to view full details.</strong>
+                                  </small>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="d-flex justify-content-between align-items-center">
+                              <small className="text-muted">
+                                <i className="bi bi-download me-1"></i>
+                                {prediction.downloadCount} downloads
+                              </small>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handlePurchaseClick(prediction)}
+                                disabled={paymentLoading}
+                              >
+                                <i className="bi bi-cart me-1"></i>
+                                Purchase
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          )}
+          </div>
+
         </div>
       </div>
 
       {/* Payment Modal */}
-      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered>
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} centered size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             <i className="bi bi-credit-card me-2"></i>
-            Choose Payment Method
+            Purchase Prediction
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="text-center mb-4">
-            <h5>Purchase Prediction for {selectedLotteryData?.name}</h5>
-            <p className="text-muted">Amount: <strong>${selectedLotteryData?.price}</strong></p>
-            {user && (
-              <p className="text-muted small">
-                Wallet Balance: <strong>${user.walletBalance.toFixed(2)}</strong>
-                {user.walletBalance < (selectedLotteryData?.price || 0) && (
-                  <span className="text-danger ms-2">
-                    <i className="bi bi-exclamation-triangle me-1"></i>
-                    Insufficient balance - <a href="/wallet" className="alert-link">Add funds</a>
-                  </span>
-                )}
-              </p>
-            )}
-          </div>
+          {selectedPrediction && (
+            <div className="mb-4">
+              <div className="text-center mb-3">
+                <h5>{selectedPrediction.lotteryDisplayName}</h5>
+                <p className="text-muted mb-1">
+                  Draw Date: <strong>{new Date(selectedPrediction.drawDate).toLocaleDateString()} at {selectedPrediction.drawTime}</strong>
+                </p>
+                <p className="text-muted">Amount: <strong className="fs-5">${selectedPrediction.price.toFixed(2)}</strong></p>
+              </div>
+              
+              {user && (
+                <div className="alert alert-info mb-3">
+                  <p className="mb-1">
+                    <strong>Wallet Balance:</strong> ${user.walletBalance.toFixed(2)}
+                  </p>
+                  {user.walletBalance < selectedPrediction.price && (
+                    <p className="mb-0 text-danger">
+                      <i className="bi bi-exclamation-triangle me-1"></i>
+                      Insufficient balance - <a href="/wallet" className="alert-link">Add funds</a>
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           
           <div className="d-grid gap-3">
             {/* Wallet Payment Option */}
@@ -480,10 +663,10 @@ const Predictions: React.FC = () => {
               variant="outline-primary" 
               size="lg"
               onClick={handleWalletPayment}
-              disabled={paymentLoading || (user ? user.walletBalance < (selectedLotteryData?.price || 0) : false)}
+              disabled={paymentLoading || loadingPredictionDetails || (user && selectedPrediction ? user.walletBalance < selectedPrediction.price : false)}
               className="d-flex align-items-center justify-content-center"
             >
-              {paymentLoading ? (
+              {paymentLoading || loadingPredictionDetails ? (
                 <>
                   <span className="spinner-border spinner-border-sm me-2" role="status"></span>
                   Processing...
@@ -497,52 +680,101 @@ const Predictions: React.FC = () => {
             </Button>
 
             {/* PayPal Payment Option */}
-            <div className="paypal-container">
-              <PayPalScriptProvider 
-                options={{ 
-                  clientId: "test", // Replace with your actual PayPal client ID
-                  currency: "USD"
-                }}
-              >
-                <PayPalButtons
-                  createOrder={(_data, actions) => {
-                    return actions.order.create({
-                      intent: "CAPTURE",
-                      purchase_units: [
-                        {
-                          amount: {
-                            value: selectedLotteryData?.price?.toString() || "0",
-                            currency_code: "USD"
-                          },
-                          description: `Prediction for ${selectedLotteryData?.name}`
-                        }
-                      ]
-                    });
+            {!user || user.walletBalance >= (selectedPrediction?.price || 0) ? (
+              <div className="paypal-container">
+                <PayPalScriptProvider 
+                  options={{ 
+                    clientId: "test", // Replace with your actual PayPal client ID
+                    currency: "USD"
                   }}
-                  onApprove={(_data, actions) => {
-                    return actions.order!.capture().then((details) => {
-                      console.log('PayPal payment completed:', details);
-                      handlePayPalPayment();
-                    });
-                  }}
-                  onError={(err) => {
-                    console.error('PayPal error:', err);
-                    setPaymentLoading(false);
-                  }}
-                  style={{
-                    layout: 'vertical',
-                    color: 'blue',
-                    shape: 'rect',
-                    label: 'paypal'
-                  }}
-                />
-              </PayPalScriptProvider>
-            </div>
+                >
+                  <PayPalButtons
+                    createOrder={(_data, actions) => {
+                      return actions.order.create({
+                        intent: "CAPTURE",
+                        purchase_units: [
+                          {
+                            amount: {
+                              value: selectedPrediction?.price?.toString() || "0",
+                              currency_code: "USD"
+                            },
+                            description: `Prediction for ${selectedPrediction?.lotteryDisplayName}`
+                          }
+                        ]
+                      });
+                    }}
+                    onApprove={(_data, actions) => {
+                      return actions.order!.capture().then((details) => {
+                        console.log('PayPal payment completed:', details);
+                        handlePayPalPayment();
+                      });
+                    }}
+                    onError={(err) => {
+                      console.error('PayPal error:', err);
+                      setPaymentLoading(false);
+                    }}
+                    style={{
+                      layout: 'vertical',
+                      color: 'blue',
+                      shape: 'rect',
+                      label: 'paypal'
+                    }}
+                  />
+                </PayPalScriptProvider>
+              </div>
+            ) : null}
           </div>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
+          <Button variant="secondary" onClick={() => setShowPaymentModal(false)} disabled={paymentLoading}>
             Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Prediction Details Modal - Shows after purchase */}
+      <Modal 
+        show={showPredictionModal} 
+        onHide={() => {
+          setShowPredictionModal(false);
+          setPurchasedPrediction(null);
+        }} 
+        centered 
+        size="lg"
+      >
+        <Modal.Header closeButton className="bg-success text-white">
+          <Modal.Title>
+            <i className="bi bi-check-circle me-2"></i>
+            Prediction Details
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {loadingPredictionDetails ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-success" role="status">
+                <span className="visually-hidden">Loading prediction details...</span>
+              </div>
+              <p className="mt-3 text-muted">Loading your prediction...</p>
+            </div>
+          ) : purchasedPrediction ? (
+            renderFullPrediction(purchasedPrediction)
+          ) : (
+            <div className="alert alert-warning">
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              No prediction data available.
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="success" 
+            onClick={() => {
+              setShowPredictionModal(false);
+              setPurchasedPrediction(null);
+            }}
+          >
+            <i className="bi bi-check me-2"></i>
+            Got it, thanks!
           </Button>
         </Modal.Footer>
       </Modal>

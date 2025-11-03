@@ -203,10 +203,6 @@ const AdminDashboard: React.FC = () => {
                     <span>Add User</span>
                   </button>
                   <button className="action-btn">
-                    <i className="bi bi-trophy"></i>
-                    <span>Create Lottery</span>
-                  </button>
-                  <button className="action-btn">
                     <i className="bi bi-graph-up"></i>
                     <span>View Analytics</span>
                   </button>

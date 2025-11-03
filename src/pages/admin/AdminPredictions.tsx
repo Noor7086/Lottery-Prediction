@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Prediction, LotteryType } from '../../types';
 import { apiService } from '../../services/api';
 import AdminLayout from '../../components/layout/AdminLayout';
+import toast from 'react-hot-toast';
 
 const AdminPredictions: React.FC = () => {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -15,12 +16,44 @@ const AdminPredictions: React.FC = () => {
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPrediction, setEditingPrediction] = useState<Prediction | null>(null);
+  // Lottery configurations with pick limits
+  const lotteryConfigs = {
+    powerball: {
+      whiteBalls: { min: 1, max: 69, pickCount: 5, label: 'White Balls (1-69) - Select exactly 5' },
+      redBalls: { min: 1, max: 26, pickCount: 1, label: 'Red Ball / Powerball (1-26) - Select exactly 1' },
+      type: 'double' as const
+    },
+    megamillion: {
+      whiteBalls: { min: 1, max: 70, pickCount: 5, label: 'White Balls (1-70) - Select exactly 5' },
+      redBalls: { min: 1, max: 25, pickCount: 1, label: 'Mega Ball (1-25) - Select exactly 1' },
+      type: 'double' as const
+    },
+    lottoamerica: {
+      whiteBalls: { min: 1, max: 52, pickCount: 5, label: 'White Balls (1-52) - Select exactly 5' },
+      redBalls: { min: 1, max: 10, pickCount: 1, label: 'Star Ball (1-10) - Select exactly 1' },
+      type: 'double' as const
+    },
+    gopher5: {
+      numbers: { min: 1, max: 47, pickCount: 5, label: 'Numbers (1-47) - Select exactly 5' },
+      type: 'single' as const
+    },
+    pick3: {
+      numbers: { min: 0, max: 9, pickCount: 3, label: 'Numbers (0-9) - Select exactly 3' },
+      type: 'pick3' as const
+    }
+  };
+
   const [newPrediction, setNewPrediction] = useState({
     lotteryType: 'powerball' as LotteryType,
     lotteryDisplayName: '',
     drawDate: '',
     drawTime: '',
-    nonViableNumbers: '',
+    whiteBalls: [] as number[],
+    redBalls: [] as number[],
+    singleNumbers: [] as number[],
+    pick3Numbers: [] as number[],
     price: 0,
     notes: ''
   });
@@ -77,30 +110,119 @@ const AdminPredictions: React.FC = () => {
 
   const handleCreatePrediction = async (e: React.FormEvent) => {
     e.preventDefault();
+    await submitPrediction(false);
+  };
+
+  const handleUpdatePrediction = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPrediction) return;
+    await submitPrediction(true);
+  };
+
+  const submitPrediction = async (isEdit: boolean) => {
+    // Validate number selections
+    const config = lotteryConfigs[newPrediction.lotteryType];
+    let validationError = '';
+    
+    if (config.type === 'double') {
+      if (newPrediction.whiteBalls.length !== config.whiteBalls.pickCount) {
+        validationError = `Please select exactly ${config.whiteBalls.pickCount} white balls`;
+      } else if (newPrediction.redBalls.length !== config.redBalls.pickCount) {
+        validationError = `Please select exactly ${config.redBalls.pickCount} ${config.redBalls.pickCount === 1 ? 'red ball' : 'red balls'}`;
+      }
+    } else if (config.type === 'single') {
+      if (newPrediction.singleNumbers.length !== config.numbers.pickCount) {
+        validationError = `Please select exactly ${config.numbers.pickCount} numbers`;
+      }
+    } else if (config.type === 'pick3') {
+      if (newPrediction.pick3Numbers.length !== config.numbers.pickCount) {
+        validationError = `Please select exactly ${config.numbers.pickCount} numbers`;
+      }
+    }
+    
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+    
     try {
-      const predictionData = {
-        ...newPrediction,
-        nonViableNumbers: JSON.parse(newPrediction.nonViableNumbers || '[]'),
-        price: parseFloat(newPrediction.price.toString())
+      // Combine date and time into ISO8601 datetime string
+      const drawDateTime = new Date(`${newPrediction.drawDate}T${newPrediction.drawTime}`).toISOString();
+      
+      const predictionData: any = {
+        lotteryType: newPrediction.lotteryType,
+        lotteryDisplayName: newPrediction.lotteryDisplayName,
+        drawDate: drawDateTime,
+        drawTime: newPrediction.drawTime,
+        price: parseFloat(newPrediction.price.toString()),
+        notes: newPrediction.notes || undefined
       };
 
-      const response = await apiService.post('/admin/predictions', predictionData);
-      if ((response as any).success) {
-        setShowCreateModal(false);
-        setNewPrediction({
-          lotteryType: 'powerball',
-          lotteryDisplayName: '',
-          drawDate: '',
-          drawTime: '',
-          nonViableNumbers: '',
-          price: 0,
-          notes: ''
-        });
-        fetchPredictions();
+      // Format viable numbers based on lottery type (these are the recommended numbers)
+      if (config.type === 'double') {
+        const whiteBalls = newPrediction.whiteBalls.filter(n => n != null && !isNaN(n));
+        const redBalls = newPrediction.redBalls.filter(n => n != null && !isNaN(n));
+        predictionData.viableNumbers = {
+          whiteBalls: whiteBalls,
+          redBalls: redBalls
+        };
+        console.log('📤 FRONTEND - Sending viableNumbers:', JSON.stringify(predictionData.viableNumbers, null, 2));
+        console.log('📤 FRONTEND - White balls array:', whiteBalls);
+        console.log('📤 FRONTEND - Red balls array:', redBalls);
+      } else if (config.type === 'single') {
+        const numbers = newPrediction.singleNumbers.filter(n => n != null && !isNaN(n));
+        predictionData.viableNumbersSingle = numbers;
+        console.log('📤 FRONTEND - Sending viableNumbersSingle:', numbers);
+      } else if (config.type === 'pick3') {
+        const numbers = newPrediction.pick3Numbers.filter(n => n != null && !isNaN(n));
+        predictionData.viableNumbersPick3 = numbers;
+        console.log('📤 FRONTEND - Sending viableNumbersPick3:', numbers);
+      }
+
+      console.log('📤 FRONTEND - Full predictionData being sent:', JSON.stringify(predictionData, null, 2));
+
+      if (isEdit && editingPrediction) {
+        // Update existing prediction
+        const response = await apiService.put(`/admin/predictions/${editingPrediction.id}`, predictionData);
+        if ((response as any).success) {
+          setShowEditModal(false);
+          setEditingPrediction(null);
+          resetPredictionForm();
+          fetchPredictions();
+          setError(null);
+          toast.success('Prediction updated successfully!');
+        }
+      } else {
+        // Create new prediction
+        const response = await apiService.post('/admin/predictions', predictionData);
+        if ((response as any).success) {
+          setShowCreateModal(false);
+          resetPredictionForm();
+          fetchPredictions();
+          setError(null);
+          toast.success('Prediction created successfully!');
+        }
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create prediction');
+      const errorMsg = err.response?.data?.message || err.message || `Failed to ${isEdit ? 'update' : 'create'} prediction`;
+      setError(errorMsg);
+      toast.error(errorMsg);
     }
+  };
+
+  const resetPredictionForm = () => {
+    setNewPrediction({
+      lotteryType: 'powerball',
+      lotteryDisplayName: '',
+      drawDate: '',
+      drawTime: '',
+      whiteBalls: [],
+      redBalls: [],
+      singleNumbers: [],
+      pick3Numbers: [],
+      price: 0,
+      notes: ''
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -114,6 +236,75 @@ const AdminPredictions: React.FC = () => {
     setShowModal(true);
   };
 
+  const openEditModal = (prediction: Prediction) => {
+    setEditingPrediction(prediction);
+    
+    // Extract non-viable numbers based on lottery type
+    // The admin endpoint returns raw MongoDB documents with separate fields
+    const config = lotteryConfigs[prediction.lotteryType];
+    const predAny = prediction as any; // Access raw fields
+    let whiteBalls: number[] = [];
+    let redBalls: number[] = [];
+    let singleNumbers: number[] = [];
+    let pick3Numbers: number[] = [];
+
+    // Handle the viableNumbers data structure from raw model (preferred), fall back to nonViableNumbers (legacy)
+    if (config.type === 'double') {
+      // Check viableNumbers first (new format), then fall back to nonViableNumbers (legacy)
+      if (predAny.viableNumbers && typeof predAny.viableNumbers === 'object') {
+        whiteBalls = Array.isArray(predAny.viableNumbers.whiteBalls) 
+          ? predAny.viableNumbers.whiteBalls 
+          : [];
+        redBalls = Array.isArray(predAny.viableNumbers.redBalls) 
+          ? predAny.viableNumbers.redBalls 
+          : [];
+      } else if (predAny.nonViableNumbers && typeof predAny.nonViableNumbers === 'object') {
+        // Legacy support
+        whiteBalls = Array.isArray(predAny.nonViableNumbers.whiteBalls) 
+          ? predAny.nonViableNumbers.whiteBalls 
+          : [];
+        redBalls = Array.isArray(predAny.nonViableNumbers.redBalls) 
+          ? predAny.nonViableNumbers.redBalls 
+          : [];
+      }
+    } else if (config.type === 'single') {
+      // Check viableNumbersSingle first, then fall back to nonViableNumbersSingle (legacy)
+      if (Array.isArray(predAny.viableNumbersSingle)) {
+        singleNumbers = predAny.viableNumbersSingle;
+      } else if (Array.isArray(predAny.nonViableNumbersSingle)) {
+        singleNumbers = predAny.nonViableNumbersSingle;
+      }
+    } else if (config.type === 'pick3') {
+      // Check viableNumbersPick3 first, then fall back to nonViableNumbersPick3 (legacy)
+      if (Array.isArray(predAny.viableNumbersPick3)) {
+        pick3Numbers = predAny.viableNumbersPick3;
+      } else if (Array.isArray(predAny.nonViableNumbersPick3)) {
+        pick3Numbers = predAny.nonViableNumbersPick3;
+      }
+    }
+
+    // Format date and time for input fields
+    const drawDate = new Date(prediction.drawDate);
+    const formattedDate = drawDate.toISOString().split('T')[0];
+    const formattedTime = prediction.drawTime || '';
+
+    setNewPrediction({
+      lotteryType: prediction.lotteryType,
+      lotteryDisplayName: prediction.lotteryDisplayName || '',
+      drawDate: formattedDate,
+      drawTime: formattedTime,
+      whiteBalls,
+      redBalls,
+      singleNumbers,
+      pick3Numbers,
+      price: prediction.price,
+      notes: prediction.notes || ''
+    });
+
+    setShowEditModal(true);
+    setShowModal(false);
+  };
+
   const closeModal = () => {
     setShowModal(false);
     setSelectedPrediction(null);
@@ -121,15 +312,121 @@ const AdminPredictions: React.FC = () => {
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
-    setNewPrediction({
-      lotteryType: 'powerball',
-      lotteryDisplayName: '',
-      drawDate: '',
-      drawTime: '',
-      nonViableNumbers: '',
-      price: 0,
-      notes: ''
+    resetPredictionForm();
+  };
+
+  const closeEditModal = () => {
+    setShowEditModal(false);
+    setEditingPrediction(null);
+    resetPredictionForm();
+  };
+
+  const toggleNumber = (number: number, type: 'whiteBalls' | 'redBalls' | 'singleNumbers' | 'pick3Numbers') => {
+    setNewPrediction(prev => {
+      const currentNumbers = prev[type];
+      const isSelected = currentNumbers.includes(number);
+      
+      return {
+        ...prev,
+        [type]: isSelected
+          ? currentNumbers.filter(n => n !== number)
+          : [...currentNumbers, number].sort((a, b) => a - b)
+      };
     });
+  };
+
+  const clearNumbers = (type: 'whiteBalls' | 'redBalls' | 'singleNumbers' | 'pick3Numbers') => {
+    setNewPrediction(prev => ({
+      ...prev,
+      [type]: []
+    }));
+  };
+
+  const NumberSelector: React.FC<{
+    min: number;
+    max: number;
+    selected: number[];
+    onToggle: (num: number) => void;
+    onClear: () => void;
+    label: string;
+    requiredCount: number;
+  }> = ({ min, max, selected, onToggle, onClear, label, requiredCount }) => {
+    const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
+    const isLimitReached = selected.length >= requiredCount;
+    const isValid = selected.length === requiredCount;
+    
+    return (
+      <div className="mb-4">
+        <div className="d-flex justify-content-between align-items-center mb-2">
+          <label className="form-label fw-bold">{label}</label>
+          <div>
+            <span className={`badge me-2 ${isValid ? 'bg-success' : isLimitReached ? 'bg-warning' : 'bg-info'}`}>
+              Selected: {selected.length} / {requiredCount} {isValid ? '✓' : ''}
+            </span>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={onClear}
+              disabled={selected.length === 0}
+            >
+              Clear All
+            </button>
+          </div>
+        </div>
+        {!isValid && (
+          <div className={`alert alert-${isLimitReached ? 'warning' : 'info'} py-2 mb-2`} role="alert">
+            <small>
+              {isLimitReached 
+                ? `You have selected ${selected.length} numbers. Maximum allowed is ${requiredCount}. Please deselect some numbers.`
+                : `Please select exactly ${requiredCount} ${requiredCount === 1 ? 'number' : 'numbers'}. Currently selected: ${selected.length}`
+              }
+            </small>
+          </div>
+        )}
+        <div
+          className="border rounded p-3"
+          style={{
+            maxHeight: '300px',
+            overflowY: 'auto',
+            backgroundColor: '#f8f9fa'
+          }}
+        >
+          <div className="d-flex flex-wrap gap-2">
+            {numbers.map(num => {
+              const isSelected = selected.includes(num);
+              const isDisabled = !isSelected && isLimitReached;
+              
+              return (
+                <button
+                  key={num}
+                  type="button"
+                  className={`btn ${isSelected ? 'btn-primary' : isDisabled ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                  style={{
+                    minWidth: '50px',
+                    fontSize: '0.9rem',
+                    opacity: isDisabled ? 0.5 : 1,
+                    cursor: isDisabled ? 'not-allowed' : 'pointer'
+                  }}
+                  onClick={() => !isDisabled && onToggle(num)}
+                  disabled={isDisabled}
+                  title={isDisabled ? `Maximum of ${requiredCount} selections allowed` : isSelected ? 'Click to deselect' : 'Click to select'}
+                >
+                  {num.toString().padStart(2, '0')}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        {selected.length > 0 && (
+          <div className="mt-2">
+            <small className={`${isValid ? 'text-success fw-bold' : 'text-muted'}`}>
+              Selected: {selected.join(', ')}
+              {!isValid && ` (Need ${requiredCount - selected.length} more)`}
+            </small>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (loading && predictions.length === 0) {
@@ -289,12 +586,21 @@ const AdminPredictions: React.FC = () => {
                           <button
                             className="btn btn-sm btn-outline-primary me-2"
                             onClick={() => openPredictionModal(prediction)}
+                            title="View Details"
                           >
                             <i className="bi bi-eye"></i>
                           </button>
                           <button
+                            className="btn btn-sm btn-outline-success me-2"
+                            onClick={() => openEditModal(prediction)}
+                            title="Edit Prediction"
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+                          <button
                             className="btn btn-sm btn-outline-warning"
                             onClick={() => handlePredictionAction(prediction.id, 'toggle-status')}
+                            title="Toggle Status"
                           >
                             <i className="bi bi-toggle-on"></i>
                           </button>
@@ -378,9 +684,9 @@ const AdminPredictions: React.FC = () => {
                 </div>
                 <div className="row mt-3">
                   <div className="col-12">
-                    <h6>Non-Viable Numbers</h6>
+                    <h6>Recommended Viable Numbers</h6>
                     <pre className="bg-light p-3 rounded">
-                      {JSON.stringify(selectedPrediction.nonViableNumbers, null, 2)}
+                      {JSON.stringify(selectedPrediction.viableNumbers || selectedPrediction.nonViableNumbers, null, 2)}
                     </pre>
                   </div>
                 </div>
@@ -399,7 +705,18 @@ const AdminPredictions: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-warning"
+                  className="btn btn-success me-2"
+                  onClick={() => {
+                    closeModal();
+                    openEditModal(selectedPrediction);
+                  }}
+                >
+                  <i className="bi bi-pencil me-2"></i>
+                  Edit
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-warning me-2"
                   onClick={() => handlePredictionAction(selectedPrediction.id, 'toggle-status')}
                 >
                   Toggle Status
@@ -420,7 +737,7 @@ const AdminPredictions: React.FC = () => {
       {/* Create Prediction Modal */}
       {showCreateModal && (
         <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
+          <div className="modal-dialog modal-xl">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Create New Prediction</h5>
@@ -435,7 +752,20 @@ const AdminPredictions: React.FC = () => {
                         <select
                           className="form-select"
                           value={newPrediction.lotteryType}
-                          onChange={(e) => setNewPrediction({...newPrediction, lotteryType: e.target.value as LotteryType})}
+                          onChange={(e) => {
+                            const newType = e.target.value as LotteryType;
+                            const lotteryName = lotteryTypes.find(lt => lt.value === newType)?.label || '';
+                            setNewPrediction({
+                              ...newPrediction,
+                              lotteryType: newType,
+                              lotteryDisplayName: lotteryName,
+                              // Clear numbers when type changes
+                              whiteBalls: [],
+                              redBalls: [],
+                              singleNumbers: [],
+                              pick3Numbers: []
+                            });
+                          }}
                           required
                         >
                           {lotteryTypes.map((lottery) => (
@@ -499,18 +829,68 @@ const AdminPredictions: React.FC = () => {
                         />
                       </div>
                     </div>
-                    <div className="col-md-6">
-                      <div className="mb-3">
-                        <label className="form-label">Non-Viable Numbers (JSON)</label>
-                        <textarea
-                          className="form-control"
-                          rows={3}
-                          value={newPrediction.nonViableNumbers}
-                          onChange={(e) => setNewPrediction({...newPrediction, nonViableNumbers: e.target.value})}
-                          placeholder='{"whiteBalls": [1, 2, 3], "redBalls": [1, 2]}'
-                        />
-                      </div>
-                    </div>
+                  </div>
+
+                  {/* Number Selection Interface */}
+                  <div className="mb-3">
+                    <h6 className="mb-3">Select Recommended Viable Numbers</h6>
+                    <p className="text-muted small mb-3">
+                      Select the recommended numbers for this prediction. These are the numbers that players should use.
+                    </p>
+                    
+                    {(() => {
+                      const config = lotteryConfigs[newPrediction.lotteryType];
+                      
+                      if (config.type === 'double') {
+                        return (
+                          <>
+                            <NumberSelector
+                              min={config.whiteBalls.min}
+                              max={config.whiteBalls.max}
+                              selected={newPrediction.whiteBalls}
+                              onToggle={(num) => toggleNumber(num, 'whiteBalls')}
+                              onClear={() => clearNumbers('whiteBalls')}
+                              label={config.whiteBalls.label}
+                              requiredCount={config.whiteBalls.pickCount}
+                            />
+                            <NumberSelector
+                              min={config.redBalls.min}
+                              max={config.redBalls.max}
+                              selected={newPrediction.redBalls}
+                              onToggle={(num) => toggleNumber(num, 'redBalls')}
+                              onClear={() => clearNumbers('redBalls')}
+                              label={config.redBalls.label}
+                              requiredCount={config.redBalls.pickCount}
+                            />
+                          </>
+                        );
+                      } else if (config.type === 'single') {
+                        return (
+                          <NumberSelector
+                            min={config.numbers.min}
+                            max={config.numbers.max}
+                            selected={newPrediction.singleNumbers}
+                            onToggle={(num) => toggleNumber(num, 'singleNumbers')}
+                            onClear={() => clearNumbers('singleNumbers')}
+                            label={config.numbers.label}
+                            requiredCount={config.numbers.pickCount}
+                          />
+                        );
+                      } else if (config.type === 'pick3') {
+                        return (
+                          <NumberSelector
+                            min={config.numbers.min}
+                            max={config.numbers.max}
+                            selected={newPrediction.pick3Numbers}
+                            onToggle={(num) => toggleNumber(num, 'pick3Numbers')}
+                            onClear={() => clearNumbers('pick3Numbers')}
+                            label={config.numbers.label}
+                            requiredCount={config.numbers.pickCount}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                   <div className="mb-3">
                     <label className="form-label">Notes</label>
@@ -528,6 +908,189 @@ const AdminPredictions: React.FC = () => {
                   </button>
                   <button type="submit" className="btn btn-success">
                     Create Prediction
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Prediction Modal */}
+      {showEditModal && editingPrediction && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-xl">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Edit Prediction</h5>
+                <button type="button" className="btn-close" onClick={closeEditModal}></button>
+              </div>
+              <form onSubmit={handleUpdatePrediction}>
+                <div className="modal-body">
+                  <div className="row">
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Lottery Type</label>
+                        <select
+                          className="form-select"
+                          value={newPrediction.lotteryType}
+                          onChange={(e) => {
+                            const newType = e.target.value as LotteryType;
+                            const lotteryName = lotteryTypes.find(lt => lt.value === newType)?.label || '';
+                            setNewPrediction({
+                              ...newPrediction,
+                              lotteryType: newType,
+                              lotteryDisplayName: lotteryName,
+                              // Clear numbers when type changes
+                              whiteBalls: [],
+                              redBalls: [],
+                              singleNumbers: [],
+                              pick3Numbers: []
+                            });
+                          }}
+                          required
+                        >
+                          {lotteryTypes.map((lottery) => (
+                            <option key={lottery.value} value={lottery.value}>
+                              {lottery.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Display Name</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={newPrediction.lotteryDisplayName}
+                          onChange={(e) => setNewPrediction({...newPrediction, lotteryDisplayName: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Draw Date</label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={newPrediction.drawDate}
+                          onChange={(e) => setNewPrediction({...newPrediction, drawDate: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Draw Time</label>
+                        <input
+                          type="time"
+                          className="form-control"
+                          value={newPrediction.drawTime}
+                          onChange={(e) => setNewPrediction({...newPrediction, drawTime: e.target.value})}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="row">
+                    <div className="col-md-6">
+                      <div className="mb-3">
+                        <label className="form-label">Price</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          className="form-control"
+                          value={newPrediction.price}
+                          onChange={(e) => setNewPrediction({...newPrediction, price: parseFloat(e.target.value)})}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Number Selection Interface */}
+                  <div className="mb-3">
+                    <h6 className="mb-3">Select Recommended Viable Numbers</h6>
+                    <p className="text-muted small mb-3">
+                      Select the recommended numbers for this prediction. These are the numbers that players should use.
+                    </p>
+                    
+                    {(() => {
+                      const config = lotteryConfigs[newPrediction.lotteryType];
+                      
+                      if (config.type === 'double') {
+                        return (
+                          <>
+                            <NumberSelector
+                              min={config.whiteBalls.min}
+                              max={config.whiteBalls.max}
+                              selected={newPrediction.whiteBalls}
+                              onToggle={(num) => toggleNumber(num, 'whiteBalls')}
+                              onClear={() => clearNumbers('whiteBalls')}
+                              label={config.whiteBalls.label}
+                              requiredCount={config.whiteBalls.pickCount}
+                            />
+                            <NumberSelector
+                              min={config.redBalls.min}
+                              max={config.redBalls.max}
+                              selected={newPrediction.redBalls}
+                              onToggle={(num) => toggleNumber(num, 'redBalls')}
+                              onClear={() => clearNumbers('redBalls')}
+                              label={config.redBalls.label}
+                              requiredCount={config.redBalls.pickCount}
+                            />
+                          </>
+                        );
+                      } else if (config.type === 'single') {
+                        return (
+                          <NumberSelector
+                            min={config.numbers.min}
+                            max={config.numbers.max}
+                            selected={newPrediction.singleNumbers}
+                            onToggle={(num) => toggleNumber(num, 'singleNumbers')}
+                            onClear={() => clearNumbers('singleNumbers')}
+                            label={config.numbers.label}
+                            requiredCount={config.numbers.pickCount}
+                          />
+                        );
+                      } else if (config.type === 'pick3') {
+                        return (
+                          <NumberSelector
+                            min={config.numbers.min}
+                            max={config.numbers.max}
+                            selected={newPrediction.pick3Numbers}
+                            onToggle={(num) => toggleNumber(num, 'pick3Numbers')}
+                            onClear={() => clearNumbers('pick3Numbers')}
+                            label={config.numbers.label}
+                            requiredCount={config.numbers.pickCount}
+                          />
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  <div className="mb-3">
+                    <label className="form-label">Notes</label>
+                    <textarea
+                      className="form-control"
+                      rows={3}
+                      value={newPrediction.notes}
+                      onChange={(e) => setNewPrediction({...newPrediction, notes: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-secondary" onClick={closeEditModal}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-success">
+                    <i className="bi bi-check-circle me-2"></i>
+                    Update Prediction
                   </button>
                 </div>
               </form>

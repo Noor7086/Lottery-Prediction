@@ -16,15 +16,22 @@ import {
 
 const router = express.Router();
 
-// @route   GET /api/predictions/:lotteryType
-// @desc    Get all predictions for a specific lottery
-// @access  Public
-router.get('/:lotteryType', validateLotteryType, validatePagination, getPredictions);
+// IMPORTANT: More specific routes must come before parameterized routes
+
+// @route   GET /api/predictions/my-purchases
+// @desc    Get user's purchased predictions
+// @access  Private
+router.get('/my-purchases', protect, validatePagination, getMyPurchases);
 
 // @route   GET /api/predictions/trial/:lotteryType
 // @desc    Get trial predictions for user's selected lottery
 // @access  Private
 router.get('/trial/:lotteryType', protect, validateLotteryType, getTrialPredictions);
+
+// @route   GET /api/predictions/:lotteryType
+// @desc    Get all predictions for a specific lottery
+// @access  Public
+router.get('/:lotteryType', validateLotteryType, validatePagination, getPredictions);
 
 // @route   GET /api/predictions/:lotteryType/:id
 // @desc    Get specific prediction details
@@ -35,11 +42,6 @@ router.get('/:lotteryType/:id', protect, validateLotteryType, validatePrediction
 // @desc    Purchase a prediction
 // @access  Private
 router.post('/:lotteryType/:id/purchase', protect, validateLotteryType, validatePredictionId, validatePurchase, purchasePrediction);
-
-// @route   GET /api/predictions/my-purchases
-// @desc    Get user's purchased predictions
-// @access  Private
-router.get('/my-purchases', protect, validatePagination, getMyPurchases);
 
 export default router;
 

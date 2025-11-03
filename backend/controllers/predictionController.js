@@ -38,7 +38,20 @@ const getPredictions = async (req, res) => {
     res.json({
       success: true,
       data: {
-        predictions,
+        predictions: predictions.map(prediction => ({
+          id: prediction._id,
+          lotteryType: prediction.lotteryType,
+          lotteryDisplayName: prediction.lotteryDisplayName,
+          drawDate: prediction.drawDate,
+          drawTime: prediction.drawTime,
+          viableNumbers: prediction.getViableNumbers(),
+          price: prediction.price,
+          notes: prediction.notes,
+          downloadCount: prediction.downloadCount,
+          purchaseCount: prediction.purchaseCount,
+          isActive: prediction.isActive,
+          createdAt: prediction.createdAt
+        })),
         pagination: {
           current: parseInt(page),
           pages: Math.ceil(total / limit),
@@ -100,6 +113,38 @@ const getPredictionDetails = async (req, res) => {
     prediction.downloadCount += 1;
     await prediction.save();
 
+    // ONLY GET viableNumbers - these are the recommended numbers
+    let viableNumbers = null;
+    
+    // Get the raw document as plain object
+    const pred = prediction.toObject ? prediction.toObject() : prediction;
+    
+    // Check lottery type and get ONLY viableNumbers (no fallback to nonViableNumbers)
+    if (prediction.lotteryType === 'powerball' || prediction.lotteryType === 'megamillion' || prediction.lotteryType === 'lottoamerica') {
+      // Double selection lotteries - ONLY use viableNumbers
+      if (pred.viableNumbers && pred.viableNumbers.whiteBalls && Array.isArray(pred.viableNumbers.whiteBalls) && pred.viableNumbers.whiteBalls.length > 0) {
+        viableNumbers = {
+          whiteBalls: pred.viableNumbers.whiteBalls.filter(n => n != null && n !== undefined),
+          redBalls: pred.viableNumbers.redBalls ? pred.viableNumbers.redBalls.filter(n => n != null && n !== undefined) : []
+        };
+      }
+    } else if (prediction.lotteryType === 'gopher5') {
+      // Single selection - ONLY use viableNumbersSingle
+      if (pred.viableNumbersSingle && Array.isArray(pred.viableNumbersSingle) && pred.viableNumbersSingle.length > 0) {
+        viableNumbers = pred.viableNumbersSingle.filter(n => n != null && n !== undefined);
+      }
+    } else if (prediction.lotteryType === 'pick3') {
+      // Pick 3 - ONLY use viableNumbersPick3
+      if (pred.viableNumbersPick3 && Array.isArray(pred.viableNumbersPick3) && pred.viableNumbersPick3.length > 0) {
+        viableNumbers = pred.viableNumbersPick3.filter(n => n != null && n !== undefined);
+      }
+    }
+    
+    console.log('=== SIMPLE PREDICTION DETAILS ===');
+    console.log('Lottery Type:', prediction.lotteryType);
+    console.log('Viable Numbers Found:', JSON.stringify(viableNumbers, null, 2));
+    console.log('===============================');
+
     res.json({
       success: true,
       data: {
@@ -109,10 +154,11 @@ const getPredictionDetails = async (req, res) => {
           lotteryDisplayName: prediction.lotteryDisplayName,
           drawDate: prediction.drawDate,
           drawTime: prediction.drawTime,
-          nonViableNumbers: prediction.getNonViableNumbers(),
+          viableNumbers: viableNumbers,
           price: prediction.price,
           notes: prediction.notes,
-          downloadCount: prediction.downloadCount
+          downloadCount: prediction.downloadCount,
+          accuracy: prediction.accuracy
         }
       }
     });
@@ -192,15 +238,28 @@ const purchasePrediction = async (req, res) => {
       user.walletBalance -= prediction.price;
       await user.save();
 
-      // Create purchase record
+      // Generate unique transaction ID
+      const transactionId = `WALLET_${Date.now()}_${userId}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // Create purchase record with all transaction details
       const purchase = await Purchase.create({
         user: userId,
         prediction: id,
         amount: prediction.price,
         paymentMethod: 'wallet',
         paymentStatus: 'completed',
-        transactionId: `WALLET_${Date.now()}_${userId}`
+        transactionId: transactionId,
+        ipAddress: req.ip || req.connection.remoteAddress,
+        userAgent: req.headers['user-agent'],
+        paymentGatewayResponse: {
+          method: 'wallet',
+          walletBalanceBefore: user.walletBalance + prediction.price,
+          walletBalanceAfter: user.walletBalance,
+          timestamp: new Date()
+        }
       });
+
+      console.log(`✅ Transaction saved: ${transactionId} - User: ${user.email} - Amount: $${prediction.price} - Lottery: ${prediction.lotteryType}`);
 
       // Update prediction purchase count
       prediction.purchaseCount += 1;
@@ -252,10 +311,7 @@ const getMyPurchases = async (req, res) => {
       user: userId,
       paymentStatus: 'completed'
     })
-    .populate({
-      path: 'prediction',
-      select: 'lotteryType drawDate drawTime price notes'
-    })
+    .populate('prediction')
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit);
@@ -265,10 +321,75 @@ const getMyPurchases = async (req, res) => {
       paymentStatus: 'completed'
     });
 
+    // Format purchases with full prediction data
+    const formattedPurchases = purchases
+      .filter(purchase => purchase.prediction) // Filter out purchases with deleted predictions
+      .map(purchase => {
+        const prediction = purchase.prediction;
+        
+        // Double check prediction exists
+        if (!prediction) {
+          return null;
+        }
+        
+        // ONLY GET viableNumbers - these are the recommended numbers
+        let viableNumbers = null;
+        const pred = prediction.toObject ? prediction.toObject() : prediction;
+        
+        // Check lottery type and get ONLY viableNumbers (no fallback to nonViableNumbers)
+        if (prediction.lotteryType === 'powerball' || prediction.lotteryType === 'megamillion' || prediction.lotteryType === 'lottoamerica') {
+          // Double selection lotteries - ONLY use viableNumbers
+          if (pred.viableNumbers && pred.viableNumbers.whiteBalls && Array.isArray(pred.viableNumbers.whiteBalls) && pred.viableNumbers.whiteBalls.length > 0) {
+            viableNumbers = {
+              whiteBalls: pred.viableNumbers.whiteBalls.filter(n => n != null && n !== undefined),
+              redBalls: pred.viableNumbers.redBalls ? pred.viableNumbers.redBalls.filter(n => n != null && n !== undefined) : []
+            };
+          }
+        } else if (prediction.lotteryType === 'gopher5') {
+          // ONLY use viableNumbersSingle
+          if (pred.viableNumbersSingle && Array.isArray(pred.viableNumbersSingle) && pred.viableNumbersSingle.length > 0) {
+            viableNumbers = pred.viableNumbersSingle.filter(n => n != null && n !== undefined);
+          }
+        } else if (prediction.lotteryType === 'pick3') {
+          // ONLY use viableNumbersPick3
+          if (pred.viableNumbersPick3 && Array.isArray(pred.viableNumbersPick3) && pred.viableNumbersPick3.length > 0) {
+            viableNumbers = pred.viableNumbersPick3.filter(n => n != null && n !== undefined);
+          }
+        }
+        
+        return {
+          id: purchase._id,
+          user: purchase.user,
+          prediction: {
+            id: prediction._id,
+            lotteryType: prediction.lotteryType,
+            lotteryDisplayName: prediction.lotteryDisplayName || prediction.lotteryType,
+            drawDate: prediction.drawDate,
+            drawTime: prediction.drawTime,
+            viableNumbers: viableNumbers,
+            price: prediction.price,
+            notes: prediction.notes,
+            downloadCount: prediction.downloadCount || 0,
+            accuracy: prediction.accuracy
+          },
+          amount: purchase.amount,
+          paymentMethod: purchase.paymentMethod,
+          paymentStatus: purchase.paymentStatus,
+          transactionId: purchase.transactionId,
+          downloadCount: purchase.downloadCount || 0,
+          lastDownloaded: purchase.lastDownloaded,
+          isRefunded: purchase.isRefunded,
+          refundReason: purchase.refundReason,
+          createdAt: purchase.createdAt,
+          updatedAt: purchase.updatedAt
+        };
+      })
+      .filter(p => p !== null); // Remove any null entries
+
     res.json({
       success: true,
       data: {
-        purchases,
+        purchases: formattedPurchases,
         pagination: {
           current: parseInt(page),
           pages: Math.ceil(total / limit),
@@ -327,7 +448,7 @@ const getTrialPredictions = async (req, res) => {
           lotteryDisplayName: prediction.lotteryDisplayName,
           drawDate: prediction.drawDate,
           drawTime: prediction.drawTime,
-          nonViableNumbers: prediction.getNonViableNumbers(),
+          viableNumbers: prediction.getViableNumbers(),
           notes: prediction.notes
         }))
       }

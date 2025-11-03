@@ -49,6 +49,16 @@ const purchaseSchema = new mongoose.Schema({
   refundReason: {
     type: String,
     maxlength: [200, 'Refund reason cannot exceed 200 characters']
+  },
+  // Additional transaction metadata
+  ipAddress: {
+    type: String
+  },
+  userAgent: {
+    type: String
+  },
+  paymentGatewayResponse: {
+    type: mongoose.Schema.Types.Mixed
   }
 }, {
   timestamps: true

@@ -25,7 +25,23 @@ const AdminLotteries: React.FC = () => {
     country: 'USA',
     officialWebsite: '',
     isActive: true,
-    drawSchedule: [{ day: 'Monday', time: '22:00' }]
+    drawSchedule: [{ day: 'monday', time: '22:00' }],
+    singleSelection: {
+      pickCount: 5,
+      totalNumbers: 47
+    },
+    doubleSelection: {
+      whiteBalls: {
+        pickCount: 5,
+        totalNumbers: 69
+      },
+      redBalls: {
+        pickCount: 1,
+        totalNumbers: 26
+      }
+    },
+    lastDrawDate: '',
+    nextDrawDate: ''
   });
 
   useEffect(() => {
@@ -72,32 +88,92 @@ const AdminLotteries: React.FC = () => {
   const handleCreateLottery = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const lotteryData = {
-        ...newLottery,
-        price: parseFloat(newLottery.price.toString())
+      // Prepare lottery data based on type
+      const lotteryData: any = {
+        name: newLottery.name,
+        code: newLottery.code.toUpperCase(),
+        type: newLottery.type,
+        description: newLottery.description,
+        price: parseFloat(newLottery.price.toString()),
+        currency: newLottery.currency,
+        state: newLottery.state,
+        country: newLottery.country,
+        officialWebsite: newLottery.officialWebsite || undefined,
+        isActive: newLottery.isActive,
+        drawSchedule: newLottery.drawSchedule.map(s => ({
+          day: s.day.toLowerCase(),
+          time: s.time
+        }))
       };
+
+      // Add number selection based on type
+      if (newLottery.type === 'single') {
+        lotteryData.singleSelection = {
+          pickCount: parseInt(newLottery.singleSelection.pickCount.toString()),
+          totalNumbers: parseInt(newLottery.singleSelection.totalNumbers.toString())
+        };
+      } else {
+        lotteryData.doubleSelection = {
+          whiteBalls: {
+            pickCount: parseInt(newLottery.doubleSelection.whiteBalls.pickCount.toString()),
+            totalNumbers: parseInt(newLottery.doubleSelection.whiteBalls.totalNumbers.toString())
+          },
+          redBalls: {
+            pickCount: parseInt(newLottery.doubleSelection.redBalls.pickCount.toString()),
+            totalNumbers: parseInt(newLottery.doubleSelection.redBalls.totalNumbers.toString())
+          }
+        };
+      }
+
+      // Add dates if provided
+      if (newLottery.lastDrawDate) {
+        lotteryData.lastDrawDate = new Date(newLottery.lastDrawDate);
+      }
+      if (newLottery.nextDrawDate) {
+        lotteryData.nextDrawDate = new Date(newLottery.nextDrawDate);
+      }
 
       const response = await apiService.post('/admin/lotteries', lotteryData);
       if ((response as any).success) {
         setShowCreateModal(false);
-        setNewLottery({
-          name: '',
-          code: '',
-          type: 'single',
-          description: '',
-          price: 0,
-          currency: 'USD',
-          state: '',
-          country: 'USA',
-          officialWebsite: '',
-          isActive: true,
-          drawSchedule: [{ day: 'Monday', time: '22:00' }]
-        });
+        resetLotteryForm();
         fetchLotteries();
       }
     } catch (err: any) {
       setError(err.message || 'Failed to create lottery');
     }
+  };
+
+  const resetLotteryForm = () => {
+    setNewLottery({
+      name: '',
+      code: '',
+      type: 'single',
+      description: '',
+      price: 0,
+      currency: 'USD',
+      state: '',
+      country: 'USA',
+      officialWebsite: '',
+      isActive: true,
+      drawSchedule: [{ day: 'monday', time: '22:00' }],
+      singleSelection: {
+        pickCount: 5,
+        totalNumbers: 47
+      },
+      doubleSelection: {
+        whiteBalls: {
+          pickCount: 5,
+          totalNumbers: 69
+        },
+        redBalls: {
+          pickCount: 1,
+          totalNumbers: 26
+        }
+      },
+      lastDrawDate: '',
+      nextDrawDate: ''
+    });
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -118,25 +194,13 @@ const AdminLotteries: React.FC = () => {
 
   const closeCreateModal = () => {
     setShowCreateModal(false);
-    setNewLottery({
-      name: '',
-      code: '',
-      type: 'single',
-      description: '',
-      price: 0,
-      currency: 'USD',
-      state: '',
-      country: 'USA',
-      officialWebsite: '',
-      isActive: true,
-      drawSchedule: [{ day: 'Monday', time: '22:00' }]
-    });
+    resetLotteryForm();
   };
 
   const addDrawSchedule = () => {
     setNewLottery({
       ...newLottery,
-      drawSchedule: [...newLottery.drawSchedule, { day: 'Monday', time: '22:00' }]
+      drawSchedule: [...newLottery.drawSchedule, { day: 'monday', time: '22:00' }]
     });
   };
 
@@ -249,6 +313,7 @@ const AdminLotteries: React.FC = () => {
                       <th>Name</th>
                       <th>Code</th>
                       <th>Type</th>
+                      <th>Numbers</th>
                       <th>Price</th>
                       <th>State/Country</th>
                       <th>Status</th>
@@ -274,6 +339,19 @@ const AdminLotteries: React.FC = () => {
                           <span className={`badge ${lottery.type === 'single' ? 'bg-primary' : 'bg-warning'}`}>
                             {lottery.type}
                           </span>
+                        </td>
+                        <td>
+                          {lottery.type === 'single' && lottery.singleSelection ? (
+                            <small>
+                              Pick {lottery.singleSelection.pickCount} from {lottery.singleSelection.totalNumbers}
+                            </small>
+                          ) : lottery.type === 'double' && lottery.doubleSelection ? (
+                            <small>
+                              {lottery.doubleSelection.whiteBalls.pickCount}/{lottery.doubleSelection.whiteBalls.totalNumbers} + {lottery.doubleSelection.redBalls.pickCount}/{lottery.doubleSelection.redBalls.totalNumbers}
+                            </small>
+                          ) : (
+                            <small className="text-muted">N/A</small>
+                          )}
                         </td>
                         <td>${lottery.price.toFixed(2)} {lottery.currency}</td>
                         <td>
@@ -376,6 +454,12 @@ const AdminLotteries: React.FC = () => {
                     <p><strong>Name:</strong> {selectedLottery.name}</p>
                     <p><strong>Code:</strong> {selectedLottery.code}</p>
                     <p><strong>Type:</strong> {selectedLottery.type}</p>
+                    {selectedLottery.type === 'single' && selectedLottery.singleSelection && (
+                      <p><strong>Numbers:</strong> Pick {selectedLottery.singleSelection.pickCount} from {selectedLottery.singleSelection.totalNumbers}</p>
+                    )}
+                    {selectedLottery.type === 'double' && selectedLottery.doubleSelection && (
+                      <p><strong>Numbers:</strong> Pick {selectedLottery.doubleSelection.whiteBalls.pickCount} from {selectedLottery.doubleSelection.whiteBalls.totalNumbers} (white) + Pick {selectedLottery.doubleSelection.redBalls.pickCount} from {selectedLottery.doubleSelection.redBalls.totalNumbers} (red)</p>
+                    )}
                     <p><strong>Price:</strong> ${selectedLottery.price.toFixed(2)} {selectedLottery.currency}</p>
                     <p><strong>State:</strong> {selectedLottery.state}</p>
                     <p><strong>Country:</strong> {selectedLottery.country}</p>
@@ -492,12 +576,36 @@ const AdminLotteries: React.FC = () => {
                         <select
                           className="form-select"
                           value={newLottery.type}
-                          onChange={(e) => setNewLottery({...newLottery, type: e.target.value as 'single' | 'double'})}
+                          onChange={(e) => {
+                            const newType = e.target.value as 'single' | 'double';
+                            setNewLottery({
+                              ...newLottery,
+                              type: newType,
+                              // Reset to defaults when type changes
+                              singleSelection: newType === 'single' ? {
+                                pickCount: 5,
+                                totalNumbers: 47
+                              } : newLottery.singleSelection,
+                              doubleSelection: newType === 'double' ? {
+                                whiteBalls: {
+                                  pickCount: 5,
+                                  totalNumbers: 69
+                                },
+                                redBalls: {
+                                  pickCount: 1,
+                                  totalNumbers: 26
+                                }
+                              } : newLottery.doubleSelection
+                            });
+                          }}
                           required
                         >
-                          <option value="single">Single</option>
-                          <option value="double">Double</option>
+                          <option value="single">Single (e.g., Gopher 5, Pick 3)</option>
+                          <option value="double">Double (e.g., Powerball, Mega Millions)</option>
                         </select>
+                        <small className="text-muted">
+                          Single: One set of numbers. Double: White balls + Red/Power ball
+                        </small>
                       </div>
                     </div>
                     <div className="col-md-6">
@@ -559,6 +667,174 @@ const AdminLotteries: React.FC = () => {
                       onChange={(e) => setNewLottery({...newLottery, officialWebsite: e.target.value})}
                     />
                   </div>
+                  {/* Number Selection Configuration */}
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Number Selection Configuration</label>
+                    {newLottery.type === 'single' ? (
+                      <div className="row">
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label className="form-label">Pick Count</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              className="form-control"
+                              value={newLottery.singleSelection.pickCount}
+                              onChange={(e) => setNewLottery({
+                                ...newLottery,
+                                singleSelection: {
+                                  ...newLottery.singleSelection,
+                                  pickCount: parseInt(e.target.value) || 0
+                                }
+                              })}
+                              required
+                            />
+                            <small className="text-muted">Number of numbers to pick</small>
+                          </div>
+                        </div>
+                        <div className="col-md-6">
+                          <div className="mb-3">
+                            <label className="form-label">Total Numbers</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              className="form-control"
+                              value={newLottery.singleSelection.totalNumbers}
+                              onChange={(e) => setNewLottery({
+                                ...newLottery,
+                                singleSelection: {
+                                  ...newLottery.singleSelection,
+                                  totalNumbers: parseInt(e.target.value) || 0
+                                }
+                              })}
+                              required
+                            />
+                            <small className="text-muted">Total numbers in the pool</small>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <h6 className="mb-3">White Balls</h6>
+                        <div className="row mb-3">
+                          <div className="col-md-6">
+                            <label className="form-label">Pick Count</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              className="form-control"
+                              value={newLottery.doubleSelection.whiteBalls.pickCount}
+                              onChange={(e) => setNewLottery({
+                                ...newLottery,
+                                doubleSelection: {
+                                  ...newLottery.doubleSelection,
+                                  whiteBalls: {
+                                    ...newLottery.doubleSelection.whiteBalls,
+                                    pickCount: parseInt(e.target.value) || 0
+                                  }
+                                }
+                              })}
+                              required
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">Total Numbers</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              className="form-control"
+                              value={newLottery.doubleSelection.whiteBalls.totalNumbers}
+                              onChange={(e) => setNewLottery({
+                                ...newLottery,
+                                doubleSelection: {
+                                  ...newLottery.doubleSelection,
+                                  whiteBalls: {
+                                    ...newLottery.doubleSelection.whiteBalls,
+                                    totalNumbers: parseInt(e.target.value) || 0
+                                  }
+                                }
+                              })}
+                              required
+                            />
+                          </div>
+                        </div>
+                        <h6 className="mb-3">Red Balls</h6>
+                        <div className="row">
+                          <div className="col-md-6">
+                            <label className="form-label">Pick Count</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              className="form-control"
+                              value={newLottery.doubleSelection.redBalls.pickCount}
+                              onChange={(e) => setNewLottery({
+                                ...newLottery,
+                                doubleSelection: {
+                                  ...newLottery.doubleSelection,
+                                  redBalls: {
+                                    ...newLottery.doubleSelection.redBalls,
+                                    pickCount: parseInt(e.target.value) || 0
+                                  }
+                                }
+                              })}
+                              required
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">Total Numbers</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="100"
+                              className="form-control"
+                              value={newLottery.doubleSelection.redBalls.totalNumbers}
+                              onChange={(e) => setNewLottery({
+                                ...newLottery,
+                                doubleSelection: {
+                                  ...newLottery.doubleSelection,
+                                  redBalls: {
+                                    ...newLottery.doubleSelection.redBalls,
+                                    totalNumbers: parseInt(e.target.value) || 0
+                                  }
+                                }
+                              })}
+                              required
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Draw Dates */}
+                  <div className="row mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label">Last Draw Date</label>
+                      <input
+                        type="datetime-local"
+                        className="form-control"
+                        value={newLottery.lastDrawDate}
+                        onChange={(e) => setNewLottery({...newLottery, lastDrawDate: e.target.value})}
+                      />
+                      <small className="text-muted">Optional - Last draw date for this lottery</small>
+                    </div>
+                    <div className="col-md-6">
+                      <label className="form-label">Next Draw Date</label>
+                      <input
+                        type="datetime-local"
+                        className="form-control"
+                        value={newLottery.nextDrawDate}
+                        onChange={(e) => setNewLottery({...newLottery, nextDrawDate: e.target.value})}
+                      />
+                      <small className="text-muted">Optional - Next scheduled draw date</small>
+                    </div>
+                  </div>
+
                   <div className="mb-3">
                     <label className="form-label">Draw Schedule</label>
                     {newLottery.drawSchedule.map((schedule, index) => (
@@ -569,13 +845,13 @@ const AdminLotteries: React.FC = () => {
                             value={schedule.day}
                             onChange={(e) => updateDrawSchedule(index, 'day', e.target.value)}
                           >
-                            <option value="Monday">Monday</option>
-                            <option value="Tuesday">Tuesday</option>
-                            <option value="Wednesday">Wednesday</option>
-                            <option value="Thursday">Thursday</option>
-                            <option value="Friday">Friday</option>
-                            <option value="Saturday">Saturday</option>
-                            <option value="Sunday">Sunday</option>
+                            <option value="monday">Monday</option>
+                            <option value="tuesday">Tuesday</option>
+                            <option value="wednesday">Wednesday</option>
+                            <option value="thursday">Thursday</option>
+                            <option value="friday">Friday</option>
+                            <option value="saturday">Saturday</option>
+                            <option value="sunday">Sunday</option>
                           </select>
                         </div>
                         <div className="col-md-4">
@@ -605,6 +881,22 @@ const AdminLotteries: React.FC = () => {
                       <i className="bi bi-plus me-2"></i>
                       Add Schedule
                     </button>
+                  </div>
+
+                  {/* Active Status */}
+                  <div className="mb-3">
+                    <div className="form-check form-switch">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="isActive"
+                        checked={newLottery.isActive}
+                        onChange={(e) => setNewLottery({...newLottery, isActive: e.target.checked})}
+                      />
+                      <label className="form-check-label" htmlFor="isActive">
+                        Active (Lottery will be visible to users)
+                      </label>
+                    </div>
                   </div>
                 </div>
                 <div className="modal-footer">

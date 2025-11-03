@@ -5,8 +5,50 @@ import User from '../models/User.js';
 import Prediction from '../models/Prediction.js';
 import Purchase from '../models/Purchase.js';
 import Lottery from '../models/Lottery.js';
+import { getAdminPayments, getPaymentStats } from '../controllers/paymentController.js';
 
 const router = express.Router();
+
+// Debug: Log when router is initialized
+console.log('📝 Admin router initialized');
+
+// Test route to verify server is working (before authentication)
+router.get('/test-payments', (req, res) => {
+  console.log('✅ Test route /test-payments hit!');
+  res.json({ 
+    success: true, 
+    message: 'Payments route test - server is working!',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// @route   GET /api/admin/payments
+// @desc    Get recent payment/purchase history for admin with all transaction details
+// @access  Private/Admin
+router.get('/payments', (req, res, next) => {
+  console.log('🔍 /payments route registered and hit!');
+  console.log('Request method:', req.method);
+  console.log('Request path:', req.path);
+  console.log('Request url:', req.url);
+  next();
+}, protect, authorize('admin'), async (req, res) => {
+  try {
+    console.log('✅ /payments route handler executing!');
+    await getAdminPayments(req, res);
+  } catch (error) {
+    console.error('❌ Route handler error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+});
+
+// @route   GET /api/admin/payments/stats
+// @desc    Get payment statistics summary
+// @access  Private/Admin
+router.get('/payments/stats', protect, authorize('admin'), getPaymentStats);
 
 // @route   GET /api/admin/stats
 // @desc    Get admin dashboard statistics
@@ -65,12 +107,74 @@ router.get('/stats', protect, authorize('admin'), async (req, res) => {
 // @access  Private/Admin
 router.post('/predictions', protect, authorize('admin'), validatePredictionUpload, async (req, res) => {
   try {
+    // Debug logging
+    console.log('=== CREATING PREDICTION ===');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     const predictionData = {
       ...req.body,
       uploadedBy: req.user.userId
     };
 
-    const prediction = await Prediction.create(predictionData);
+    console.log('Prediction data to save:', JSON.stringify(predictionData, null, 2));
+
+    // Prepare all data including nested objects BEFORE creating
+    const finalData = {
+      lotteryType: predictionData.lotteryType,
+      lotteryDisplayName: predictionData.lotteryDisplayName,
+      drawDate: predictionData.drawDate,
+      drawTime: predictionData.drawTime,
+      price: predictionData.price,
+      notes: predictionData.notes,
+      uploadedBy: predictionData.uploadedBy,
+      isActive: predictionData.isActive !== undefined ? predictionData.isActive : true
+    };
+
+    // SET NESTED FIELDS BEFORE CREATION - This is the key!
+    if (predictionData.viableNumbers && typeof predictionData.viableNumbers === 'object') {
+      const whiteBalls = Array.isArray(predictionData.viableNumbers.whiteBalls) ? 
+        predictionData.viableNumbers.whiteBalls.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0) : [];
+      const redBalls = Array.isArray(predictionData.viableNumbers.redBalls) ? 
+        predictionData.viableNumbers.redBalls.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0) : [];
+      
+      finalData.viableNumbers = {
+        whiteBalls: whiteBalls,
+        redBalls: redBalls
+      };
+      
+      console.log('✓ Setting viableNumbers whiteBalls:', whiteBalls);
+      console.log('✓ Setting viableNumbers redBalls:', redBalls);
+      console.log('✓ Final viableNumbers object:', JSON.stringify(finalData.viableNumbers, null, 2));
+    }
+    
+    if (predictionData.viableNumbersSingle && Array.isArray(predictionData.viableNumbersSingle)) {
+      const numbers = predictionData.viableNumbersSingle.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0);
+      finalData.viableNumbersSingle = numbers;
+      console.log('✓ Setting viableNumbersSingle:', numbers);
+    }
+    
+    if (predictionData.viableNumbersPick3 && Array.isArray(predictionData.viableNumbersPick3)) {
+      const numbers = predictionData.viableNumbersPick3.filter(n => n != null && n !== undefined && !isNaN(n) && n >= 0);
+      finalData.viableNumbersPick3 = numbers;
+      console.log('✓ Setting viableNumbersPick3:', numbers);
+    }
+
+    // Create with ALL data including nested objects
+    console.log('📝 Creating prediction with finalData:', JSON.stringify(finalData, null, 2));
+    const prediction = await Prediction.create(finalData);
+    
+    // Reload from DB to verify it was actually saved
+    const saved = await Prediction.findById(prediction._id).lean();
+    console.log('✅ VERIFIED SAVED - viableNumbers:', JSON.stringify(saved.viableNumbers, null, 2));
+    console.log('✅ VERIFIED SAVED - viableNumbersSingle:', saved.viableNumbersSingle);
+    console.log('✅ VERIFIED SAVED - viableNumbersPick3:', saved.viableNumbersPick3);
+    
+    if (!saved.viableNumbers || (saved.viableNumbers.whiteBalls && saved.viableNumbers.whiteBalls.length === 0 && saved.viableNumbers.redBalls && saved.viableNumbers.redBalls.length === 0)) {
+      console.error('❌ ERROR: Numbers were not saved correctly!');
+    } else {
+      console.log('✅ SUCCESS: Numbers saved correctly!');
+    }
+    console.log('================================');
 
     res.status(201).json({
       success: true,
@@ -97,7 +201,8 @@ router.get('/predictions', protect, authorize('admin'), validatePagination, asyn
       .populate('uploadedBy', 'firstName lastName')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .skip((page - 1) * limit)
+      .lean(); // Convert to plain objects to include all nested data
 
     const total = await Prediction.countDocuments();
 
@@ -211,6 +316,96 @@ router.patch('/users/:id/:action', protect, authorize('admin'), async (req, res)
     res.status(500).json({
       success: false,
       message: 'Server error'
+    });
+  }
+});
+
+// @route   PUT /api/admin/predictions/:id
+// @desc    Update prediction details
+// @access  Private/Admin
+router.put('/predictions/:id', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const prediction = await Prediction.findById(id);
+    
+    if (!prediction) {
+      return res.status(404).json({
+        success: false,
+        message: 'Prediction not found'
+      });
+    }
+
+    // Debug logging
+    console.log('=== UPDATING PREDICTION ===');
+    console.log('Prediction ID:', id);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+    // Update prediction fields
+    const updateData = { ...req.body };
+    delete updateData.uploadedBy; // Don't allow changing the uploader
+    delete updateData._id; // Don't allow changing the ID
+    
+    console.log('Update data:', JSON.stringify(updateData, null, 2));
+    
+    // EXPLICITLY SET NESTED FIELDS - Use set() to replace entire nested object
+    if (updateData.viableNumbers && typeof updateData.viableNumbers === 'object') {
+      const whiteBalls = Array.isArray(updateData.viableNumbers.whiteBalls) ? 
+        updateData.viableNumbers.whiteBalls.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0) : [];
+      const redBalls = Array.isArray(updateData.viableNumbers.redBalls) ? 
+        updateData.viableNumbers.redBalls.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0) : [];
+      
+      // Replace the entire nested object
+      prediction.set('viableNumbers', {
+        whiteBalls: whiteBalls,
+        redBalls: redBalls
+      });
+      
+      console.log('✓ Updating viableNumbers whiteBalls:', whiteBalls);
+      console.log('✓ Updating viableNumbers redBalls:', redBalls);
+      console.log('✓ After set - viableNumbers:', JSON.stringify(prediction.viableNumbers, null, 2));
+      delete updateData.viableNumbers;
+    }
+    
+    if (updateData.viableNumbersSingle && Array.isArray(updateData.viableNumbersSingle)) {
+      const numbers = updateData.viableNumbersSingle.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0);
+      prediction.set('viableNumbersSingle', numbers);
+      console.log('✓ Updating viableNumbersSingle:', numbers);
+      delete updateData.viableNumbersSingle;
+    }
+    
+    if (updateData.viableNumbersPick3 && Array.isArray(updateData.viableNumbersPick3)) {
+      const numbers = updateData.viableNumbersPick3.filter(n => n != null && n !== undefined && !isNaN(n) && n >= 0);
+      prediction.set('viableNumbersPick3', numbers);
+      console.log('✓ Updating viableNumbersPick3:', numbers);
+      delete updateData.viableNumbersPick3;
+    }
+    
+    // Apply remaining fields
+    Object.assign(prediction, updateData);
+    await prediction.save();
+    
+    // Reload from DB to verify it was actually saved
+    const saved = await Prediction.findById(id).lean();
+    console.log('✅ VERIFIED UPDATED - viableNumbers:', JSON.stringify(saved.viableNumbers, null, 2));
+    console.log('✅ VERIFIED UPDATED - viableNumbersSingle:', saved.viableNumbersSingle);
+    console.log('✅ VERIFIED UPDATED - viableNumbersPick3:', saved.viableNumbersPick3);
+
+    // Verify what was saved
+    const updatedPrediction = await Prediction.findById(id).lean();
+    console.log('Updated prediction:', JSON.stringify(updatedPrediction, null, 2));
+    console.log('getViableNumbers() result:', JSON.stringify(prediction.getViableNumbers(), null, 2));
+    console.log('================================');
+
+    res.json({
+      success: true,
+      message: 'Prediction updated successfully',
+      data: { prediction }
+    });
+  } catch (error) {
+    console.error('Update prediction error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error during prediction update'
     });
   }
 });

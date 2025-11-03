@@ -43,6 +43,20 @@ export interface Lottery {
   officialWebsite?: string;
   lastDrawDate?: string;
   nextDrawDate?: string;
+  singleSelection?: {
+    pickCount: number;
+    totalNumbers: number;
+  };
+  doubleSelection?: {
+    whiteBalls: {
+      pickCount: number;
+      totalNumbers: number;
+    };
+    redBalls: {
+      pickCount: number;
+      totalNumbers: number;
+    };
+  };
 }
 
 // Prediction Types
@@ -52,7 +66,13 @@ export interface Prediction {
   lotteryDisplayName: string;
   drawDate: string;
   drawTime: string;
-  nonViableNumbers: {
+  // Viable numbers - the recommended numbers that WILL appear
+  viableNumbers?: {
+    whiteBalls?: number[];
+    redBalls?: number[];
+  } | number[];
+  // Legacy support - nonViableNumbers (to avoid)
+  nonViableNumbers?: {
     whiteBalls?: number[];
     redBalls?: number[];
   } | number[];
@@ -74,7 +94,7 @@ export interface Prediction {
 export interface Purchase {
   id: string;
   user: string;
-  prediction: Prediction;
+  prediction: Prediction | any; // Prediction can be populated or just an ID
   amount: number;
   paymentMethod: 'wallet' | 'stripe' | 'paypal';
   paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';

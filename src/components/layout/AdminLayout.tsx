@@ -81,9 +81,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, stats }) => {
               <span>Predictions</span>
               <span className="badge">{stats?.totalPredictions || 0}</span>
             </a>
-            <a href="/admin/lotteries" className={`nav-item ${isActive('/admin/lotteries') ? 'active' : ''}`}>
-              <i className="bi bi-trophy-fill"></i>
-              <span>Lotteries</span>
+            <a href="/admin/payments" className={`nav-item ${isActive('/admin/payments') ? 'active' : ''}`}>
+              <i className="bi bi-credit-card"></i>
+              <span>Recent Payments</span>
             </a>
           </nav>
         </div>
