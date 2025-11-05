@@ -118,18 +118,6 @@ const AdminDashboard: React.FC = () => {
     return ((current - previous) / previous * 100).toFixed(1);
   };
 
-  // Get notification count (new users or activities)
-  const getNotificationCount = () => {
-    if (!analytics?.userGrowth) return 0;
-    // Count new users in last 24 hours
-    const now = new Date();
-    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-    return analytics.userGrowth.filter(item => {
-      const date = new Date(item.date);
-      return date >= yesterday;
-    }).reduce((sum, item) => sum + item.count, 0);
-  };
-
   // Export data functionality
   const exportData = async (type: 'revenue' | 'analytics' = 'analytics') => {
     try {
@@ -222,26 +210,6 @@ const AdminDashboard: React.FC = () => {
               </div>
             </div>
             <div className="header-actions">
-              <div className="notification-badge me-3">
-                <button 
-                  className="btn btn-outline-light position-relative"
-                  onClick={() => {
-                    if (getNotificationCount() > 0) {
-                      navigate('/admin/users');
-                    } else {
-                      toast.info('No new notifications');
-                    }
-                  }}
-                  title="View new users"
-                >
-                  <i className="bi bi-bell"></i>
-                  {getNotificationCount() > 0 && (
-                    <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
-                      {getNotificationCount()}
-                    </span>
-                  )}
-                </button>
-              </div>
               <button 
                 className="btn btn-outline-primary me-2"
                 onClick={() => exportData('analytics')}

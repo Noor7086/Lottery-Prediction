@@ -34,6 +34,7 @@ import Disclaimer from './pages/legal/Disclaimer'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import AdminRoute from './components/auth/AdminRoute'
 import AdminRedirect from './components/auth/AdminRedirect'
+import PublicRoute from './components/auth/PublicRoute'
 
 // Component to scroll to top on route change
 const ScrollToTop = () => {
@@ -80,27 +81,91 @@ function App() {
           <ConditionalNavbar />
           <main style={{ margin: 0, padding: 0 }}>
             <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/predictions" element={<Predictions />} />
-              <Route path="/blog" element={<Blog />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
-              <Route path="/features" element={<Features />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/results" element={<Results />} />
-              <Route path="/tools/number-generator" element={<NumberGenerator />} />
+              {/* Public Routes - Redirect admins to /admin */}
+              <Route path="/" element={
+                <PublicRoute>
+                  <Home />
+                </PublicRoute>
+              } />
+              <Route path="/about" element={
+                <PublicRoute>
+                  <About />
+                </PublicRoute>
+              } />
+              <Route path="/predictions" element={
+                <PublicRoute>
+                  <Predictions />
+                </PublicRoute>
+              } />
+              <Route path="/blog" element={
+                <PublicRoute>
+                  <Blog />
+                </PublicRoute>
+              } />
+              <Route path="/contact" element={
+                <PublicRoute>
+                  <Contact />
+                </PublicRoute>
+              } />
+              <Route path="/faq" element={
+                <PublicRoute>
+                  <FAQ />
+                </PublicRoute>
+              } />
+              <Route path="/how-it-works" element={
+                <PublicRoute>
+                  <HowItWorks />
+                </PublicRoute>
+              } />
+              <Route path="/features" element={
+                <PublicRoute>
+                  <Features />
+                </PublicRoute>
+              } />
+              <Route path="/pricing" element={
+                <PublicRoute>
+                  <Pricing />
+                </PublicRoute>
+              } />
+              <Route path="/results" element={
+                <PublicRoute>
+                  <Results />
+                </PublicRoute>
+              } />
+              <Route path="/tools/number-generator" element={
+                <PublicRoute>
+                  <NumberGenerator />
+                </PublicRoute>
+              } />
               
-              {/* Legal Pages */}
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/terms-conditions" element={<TermsConditions />} />
-              <Route path="/responsible-play" element={<ResponsiblePlay />} />
-              <Route path="/avoid-scams" element={<AvoidScams />} />
-              <Route path="/disclaimer" element={<Disclaimer />} />
+              {/* Legal Pages - Redirect admins to /admin */}
+              <Route path="/privacy-policy" element={
+                <PublicRoute>
+                  <PrivacyPolicy />
+                </PublicRoute>
+              } />
+              <Route path="/terms-conditions" element={
+                <PublicRoute>
+                  <TermsConditions />
+                </PublicRoute>
+              } />
+              <Route path="/responsible-play" element={
+                <PublicRoute>
+                  <ResponsiblePlay />
+                </PublicRoute>
+              } />
+              <Route path="/avoid-scams" element={
+                <PublicRoute>
+                  <AvoidScams />
+                </PublicRoute>
+              } />
+              <Route path="/disclaimer" element={
+                <PublicRoute>
+                  <Disclaimer />
+                </PublicRoute>
+              } />
               
-              {/* Auth Routes */}
+              {/* Auth Routes - Allow admins to access for logout/login */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               

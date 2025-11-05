@@ -16,6 +16,7 @@ export interface User {
   transactionCount: number;
   role: 'user' | 'admin';
   notificationsEnabled: boolean;
+  isActive?: boolean; // User active/inactive status
 }
 
 export interface AuthUser extends User {

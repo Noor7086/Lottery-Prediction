@@ -18,6 +18,7 @@ const AdminPredictions: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPrediction, setEditingPrediction] = useState<Prediction | null>(null);
+  const [togglingPredictionId, setTogglingPredictionId] = useState<string | null>(null);
   // Lottery configurations with pick limits
   const lotteryConfigs = {
     powerball: {
@@ -96,15 +97,72 @@ const AdminPredictions: React.FC = () => {
   };
 
   const handlePredictionAction = async (predictionId: string, action: string) => {
+    // Validate predictionId before making request
+    if (!predictionId || predictionId === 'undefined' || predictionId === 'null') {
+      toast.error('Invalid prediction ID');
+      console.error('Invalid predictionId:', predictionId);
+      return;
+    }
+
     try {
+      setTogglingPredictionId(predictionId);
+      setError(null);
+      
+      console.log('Toggling prediction status:', { predictionId, action });
+      
       const response = await apiService.patch(`/admin/predictions/${predictionId}/${action}`);
+      
       if ((response as any).success) {
+        const message = (response as any).message || `Prediction ${action === 'toggle-status' ? 'status updated' : action === 'delete' ? 'deleted' : 'updated'} successfully`;
+        toast.success(message);
+        
+        // Update the prediction in the local state immediately for better UX
+        if (action === 'toggle-status') {
+          const newIsActive = (response as any).data?.isActive;
+          setPredictions(prevPredictions => 
+            prevPredictions.map(prediction => 
+              prediction.id === predictionId 
+                ? { ...prediction, isActive: newIsActive !== undefined ? newIsActive : (prediction.isActive === undefined ? true : !prediction.isActive) }
+                : prediction
+            )
+          );
+          // Update selected prediction if modal is open
+          if (selectedPrediction && selectedPrediction.id === predictionId) {
+            setSelectedPrediction({ ...selectedPrediction, isActive: newIsActive !== undefined ? newIsActive : (selectedPrediction.isActive === undefined ? true : !selectedPrediction.isActive) });
+          }
+        } else if (action === 'delete') {
+          setPredictions(prevPredictions => prevPredictions.filter(prediction => prediction.id !== predictionId));
+          setShowModal(false);
+          setSelectedPrediction(null);
+        }
+        
+        // Refresh the list to ensure consistency
         fetchPredictions();
-        setShowModal(false);
-        setSelectedPrediction(null);
+        if (action !== 'toggle-status') {
+          setShowModal(false);
+          setSelectedPrediction(null);
+        }
+      } else {
+        const errorMessage = (response as any).message || 'Action failed';
+        toast.error(errorMessage);
+        setError(errorMessage);
       }
     } catch (err: any) {
-      setError(err.message || 'Action failed');
+      console.error('Error toggling prediction status:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Action failed';
+      setError(errorMessage);
+      
+      // Show more detailed error if available
+      if (err.response?.data?.errors) {
+        const errors = Array.isArray(err.response.data.errors) 
+          ? err.response.data.errors.map((e: any) => e.message || e.msg).join(', ')
+          : err.response.data.errors;
+        toast.error(errors || errorMessage);
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setTogglingPredictionId(null);
     }
   };
 
@@ -443,7 +501,7 @@ const AdminPredictions: React.FC = () => {
   }
 
   return (
-    <AdminLayout stats={{ totalPredictions: predictions.length }}>
+    <AdminLayout>
       <div className="container-fluid py-4">
       <div className="row">
         <div className="col-12">
@@ -598,11 +656,24 @@ const AdminPredictions: React.FC = () => {
                             <i className="bi bi-pencil"></i>
                           </button>
                           <button
-                            className="btn btn-sm btn-outline-warning"
-                            onClick={() => handlePredictionAction(prediction.id, 'toggle-status')}
-                            title="Toggle Status"
+                            className={`btn btn-sm ${!prediction.isActive ? 'btn-outline-success' : 'btn-outline-warning'}`}
+                            onClick={() => {
+                              const predictionId = prediction.id;
+                              if (predictionId) {
+                                handlePredictionAction(predictionId, 'toggle-status');
+                              } else {
+                                console.error('Prediction ID not found:', prediction);
+                                toast.error('Prediction ID is missing');
+                              }
+                            }}
+                            disabled={togglingPredictionId === prediction.id || !prediction.id}
+                            title={!prediction.isActive ? 'Activate Prediction' : 'Deactivate Prediction'}
                           >
-                            <i className="bi bi-toggle-on"></i>
+                            {togglingPredictionId === prediction.id ? (
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            ) : (
+                              <i className={`bi ${!prediction.isActive ? 'bi-toggle-off' : 'bi-toggle-on'}`}></i>
+                            )}
                           </button>
                         </td>
                       </tr>
@@ -716,10 +787,29 @@ const AdminPredictions: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-warning me-2"
-                  onClick={() => handlePredictionAction(selectedPrediction.id, 'toggle-status')}
+                  className={`btn me-2 ${!selectedPrediction.isActive ? 'btn-success' : 'btn-warning'}`}
+                  onClick={() => {
+                    const predictionId = selectedPrediction.id;
+                    if (predictionId) {
+                      handlePredictionAction(predictionId, 'toggle-status');
+                    } else {
+                      console.error('Selected prediction ID not found:', selectedPrediction);
+                      toast.error('Prediction ID is missing');
+                    }
+                  }}
+                  disabled={togglingPredictionId === selectedPrediction.id || !selectedPrediction.id}
                 >
-                  Toggle Status
+                  {togglingPredictionId === selectedPrediction.id ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <i className={`bi me-2 ${!selectedPrediction.isActive ? 'bi-toggle-on' : 'bi-toggle-off'}`}></i>
+                      {!selectedPrediction.isActive ? 'Activate Prediction' : 'Deactivate Prediction'}
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"

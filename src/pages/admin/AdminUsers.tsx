@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from '../../types';
 import { apiService } from '../../services/api';
 import AdminLayout from '../../components/layout/AdminLayout';
+import toast from 'react-hot-toast';
 
 const AdminUsers: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
@@ -13,6 +14,7 @@ const AdminUsers: React.FC = () => {
   const [filterRole, setFilterRole] = useState<'all' | 'user' | 'admin'>('all');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showModal, setShowModal] = useState(false);
+  const [togglingUserId, setTogglingUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -30,28 +32,93 @@ const AdminUsers: React.FC = () => {
 
       const response = await apiService.get(`/admin/users?${params}`);
       if ((response as any).success) {
-        setUsers((response as any).data.users);
+        // Ensure all users have proper id field (map _id to id if needed)
+        const users = ((response as any).data.users || []).map((user: any) => ({
+          ...user,
+          id: user.id || user._id || user.userId
+        }));
+        setUsers(users);
         setTotalPages((response as any).data.pagination.pages);
       } else {
         setError('Failed to fetch users');
+        toast.error('Failed to fetch users');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch users');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch users';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   const handleUserAction = async (userId: string, action: string) => {
+    // Validate userId before making request
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      toast.error('Invalid user ID');
+      console.error('Invalid userId:', userId);
+      return;
+    }
+
     try {
+      setTogglingUserId(userId);
+      setError(null);
+      
+      console.log('Toggling user status:', { userId, action });
+      
       const response = await apiService.patch(`/admin/users/${userId}/${action}`);
+      
       if ((response as any).success) {
+        const message = (response as any).message || `User ${action === 'toggle-status' ? 'status updated' : action === 'delete' ? 'deleted' : 'updated'} successfully`;
+        toast.success(message);
+        
+        // Update the user in the local state immediately for better UX
+        if (action === 'toggle-status') {
+          const newIsActive = (response as any).data?.isActive;
+          setUsers(prevUsers => 
+            prevUsers.map(user => 
+              user.id === userId 
+                ? { ...user, isActive: newIsActive !== undefined ? newIsActive : (user.isActive === undefined ? false : !user.isActive) }
+                : user
+            )
+          );
+          // Update selected user if modal is open
+          if (selectedUser && selectedUser.id === userId) {
+            setSelectedUser({ ...selectedUser, isActive: newIsActive !== undefined ? newIsActive : (selectedUser.isActive === undefined ? false : !selectedUser.isActive) });
+          }
+        } else if (action === 'delete') {
+          setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+          setShowModal(false);
+          setSelectedUser(null);
+        }
+        
+        // Refresh the list to ensure consistency
         fetchUsers();
-        setShowModal(false);
-        setSelectedUser(null);
+        if (action !== 'toggle-status') {
+          setShowModal(false);
+          setSelectedUser(null);
+        }
+      } else {
+        const errorMessage = (response as any).message || 'Action failed';
+        toast.error(errorMessage);
+        setError(errorMessage);
       }
     } catch (err: any) {
-      setError(err.message || 'Action failed');
+      console.error('Error toggling user status:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Action failed';
+      setError(errorMessage);
+      
+      // Show more detailed error if available
+      if (err.response?.data?.errors) {
+        const errors = Array.isArray(err.response.data.errors) 
+          ? err.response.data.errors.map((e: any) => e.message || e.msg).join(', ')
+          : err.response.data.errors;
+        toast.error(errors || errorMessage);
+      } else {
+        toast.error(errorMessage);
+      }
+    } finally {
+      setTogglingUserId(null);
     }
   };
 
@@ -85,7 +152,7 @@ const AdminUsers: React.FC = () => {
   }
 
   return (
-    <AdminLayout stats={{ totalUsers: users.length }}>
+    <AdminLayout>
       <div className="container-fluid py-4">
       <div className="row">
         <div className="col-12">
@@ -168,7 +235,7 @@ const AdminUsers: React.FC = () => {
                   </thead>
                   <tbody>
                     {users.map((user) => (
-                      <tr key={user.id}>
+                      <tr key={user.id || user._id}>
                         <td>{user.firstName} {user.lastName}</td>
                         <td>{user.email}</td>
                         <td>{user.phone}</td>
@@ -183,8 +250,8 @@ const AdminUsers: React.FC = () => {
                           </span>
                         </td>
                         <td>
-                          <span className={`badge ${user.isInTrial ? 'bg-warning' : 'bg-success'}`}>
-                            {user.isInTrial ? 'Trial' : 'Active'}
+                          <span className={`badge ${(user.isActive === false) ? 'bg-danger' : user.isInTrial ? 'bg-warning' : 'bg-success'}`}>
+                            {(user.isActive === false) ? 'Inactive' : user.isInTrial ? 'Trial' : 'Active'}
                           </span>
                         </td>
                         <td>${user.walletBalance.toFixed(2)}</td>
@@ -193,14 +260,29 @@ const AdminUsers: React.FC = () => {
                           <button
                             className="btn btn-sm btn-outline-primary me-2"
                             onClick={() => openUserModal(user)}
+                            title="View Details"
                           >
                             <i className="bi bi-eye"></i>
                           </button>
                           <button
-                            className="btn btn-sm btn-outline-warning"
-                            onClick={() => handleUserAction(user.id, 'toggle-status')}
+                            className={`btn btn-sm ${(user.isActive === false) ? 'btn-outline-success' : 'btn-outline-warning'}`}
+                            onClick={() => {
+                              const userId = user.id || user._id || user.userId;
+                              if (userId) {
+                                handleUserAction(userId, 'toggle-status');
+                              } else {
+                                console.error('User ID not found:', user);
+                                toast.error('User ID is missing');
+                              }
+                            }}
+                            disabled={togglingUserId === (user.id || user._id || user.userId) || !(user.id || user._id || user.userId)}
+                            title={(user.isActive === false) ? 'Activate User' : 'Deactivate User'}
                           >
-                            <i className="bi bi-toggle-on"></i>
+                            {togglingUserId === (user.id || user._id) ? (
+                              <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            ) : (
+                              <i className={`bi ${(user.isActive === false) ? 'bi-toggle-off' : 'bi-toggle-on'}`}></i>
+                            )}
                           </button>
                         </td>
                       </tr>
@@ -276,8 +358,8 @@ const AdminUsers: React.FC = () => {
                     <p><strong>Selected Lottery:</strong> {selectedUser.selectedLottery}</p>
                     <p><strong>Wallet Balance:</strong> ${selectedUser.walletBalance.toFixed(2)}</p>
                     <p><strong>Status:</strong> 
-                      <span className={`badge ms-2 ${selectedUser.isInTrial ? 'bg-warning' : 'bg-success'}`}>
-                        {selectedUser.isInTrial ? 'Trial' : 'Active'}
+                      <span className={`badge ms-2 ${(selectedUser.isActive === false) ? 'bg-danger' : selectedUser.isInTrial ? 'bg-warning' : 'bg-success'}`}>
+                        {(selectedUser.isActive === false) ? 'Inactive' : selectedUser.isInTrial ? 'Trial' : 'Active'}
                       </span>
                     </p>
                     <p><strong>Notifications:</strong> 
@@ -301,15 +383,43 @@ const AdminUsers: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-warning"
-                  onClick={() => handleUserAction(selectedUser.id, 'toggle-status')}
+                  className={`btn ${(selectedUser.isActive === false) ? 'btn-success' : 'btn-warning'}`}
+                  onClick={() => {
+                    const userId = selectedUser.id || selectedUser._id || (selectedUser as any).userId;
+                    if (userId) {
+                      handleUserAction(userId, 'toggle-status');
+                    } else {
+                      console.error('Selected user ID not found:', selectedUser);
+                      toast.error('User ID is missing');
+                    }
+                  }}
+                  disabled={togglingUserId === (selectedUser.id || selectedUser._id || (selectedUser as any).userId) || !(selectedUser.id || selectedUser._id || (selectedUser as any).userId)}
                 >
-                  Toggle Status
+                  {togglingUserId === (selectedUser.id || selectedUser._id) ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <i className={`bi me-2 ${(selectedUser.isActive === false) ? 'bi-toggle-on' : 'bi-toggle-off'}`}></i>
+                      {(selectedUser.isActive === false) ? 'Activate User' : 'Deactivate User'}
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
                   className="btn btn-danger"
-                  onClick={() => handleUserAction(selectedUser.id, 'delete')}
+                  onClick={() => {
+                    const userId = selectedUser.id || selectedUser._id || (selectedUser as any).userId;
+                    if (userId) {
+                      handleUserAction(userId, 'delete');
+                    } else {
+                      console.error('Selected user ID not found:', selectedUser);
+                      toast.error('User ID is missing');
+                    }
+                  }}
+                  disabled={!selectedUser.id && !selectedUser._id && !(selectedUser as any).userId}
                 >
                   Delete User
                 </button>

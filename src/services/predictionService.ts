@@ -3,13 +3,30 @@ import { Prediction, Purchase, LotteryType, ApiResponse } from '../types';
 
 class PredictionService {
   async getPredictions(lotteryType: LotteryType, page = 1, limit = 10): Promise<Prediction[]> {
-    const response = await apiService.get<ApiResponse<{ predictions: Prediction[] }>>(
-      `/predictions/${lotteryType}?page=${page}&limit=${limit}`
-    );
-    if (!response.success || !response.data) {
-      throw new Error(response.message || 'Failed to fetch predictions');
+    try {
+      const response = await apiService.get<ApiResponse<{ predictions: Prediction[]; pagination?: any }>>(
+        `/predictions/${lotteryType}?page=${page}&limit=${limit}`
+      );
+      
+      console.log('GetPredictions response:', response);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch predictions');
+      }
+      
+      // Handle both response formats
+      if (response.data?.predictions) {
+        return response.data.predictions;
+      } else if (Array.isArray(response.data)) {
+        return response.data as Prediction[];
+      } else {
+        console.warn('Unexpected response format:', response);
+        return [];
+      }
+    } catch (error: any) {
+      console.error('Error in getPredictions:', error);
+      throw error;
     }
-    return response.data.predictions;
   }
 
   async getPredictionDetails(lotteryType: LotteryType, id: string): Promise<Prediction> {

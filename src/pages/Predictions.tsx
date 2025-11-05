@@ -86,21 +86,28 @@ const Predictions: React.FC = () => {
       setLoading(true);
       setTrialMessage(null);
       
+      console.log('Fetching predictions for:', selectedLottery);
+      
       // Check if user is in trial period
       if (user?.isInTrial && user?.selectedLottery === selectedLottery) {
         // Fetch trial predictions (free) - 1 per day
+        console.log('Fetching trial predictions');
         const trialData = await predictionService.getTrialPredictions(selectedLottery);
-        setPredictions(trialData.predictions);
+        console.log('Trial predictions received:', trialData);
+        setPredictions(trialData.predictions || []);
         if (trialData.message) {
           setTrialMessage(trialData.message);
         }
       } else {
         // Fetch regular predictions (trial expired or different lottery)
+        console.log('Fetching regular predictions');
         const fetchedPredictions = await predictionService.getPredictions(selectedLottery, 1, 10);
-        setPredictions(fetchedPredictions);
+        console.log('Predictions received:', fetchedPredictions);
+        setPredictions(fetchedPredictions || []);
       }
     } catch (error: any) {
       console.error('Error fetching predictions:', error);
+      console.error('Error details:', error.response?.data);
       toast.error(error.message || 'Failed to fetch predictions');
       setPredictions([]);
     } finally {
@@ -577,7 +584,19 @@ const Predictions: React.FC = () => {
               ) : predictions.length === 0 ? (
                 <div className="alert alert-info text-center">
                   <i className="bi bi-info-circle me-2"></i>
-                  {trialMessage || 'No predictions available for this lottery at the moment. Please check back later.'}
+                  {trialMessage || (
+                    <>
+                      <strong>No predictions available for {selectedLotteryData?.name || selectedLottery} at the moment.</strong>
+                      <br />
+                      <small>This could mean:</small>
+                      <ul className="text-start mt-2" style={{ maxWidth: '400px', margin: '0 auto' }}>
+                        <li>No active predictions have been created for this lottery</li>
+                        <li>All available predictions have past draw dates</li>
+                        <li>Predictions are inactive</li>
+                      </ul>
+                      <small className="d-block mt-2">Please check back later or contact admin to add predictions for this lottery.</small>
+                    </>
+                  )}
                 </div>
               ) : (
                 <>

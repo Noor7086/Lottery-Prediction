@@ -1,4 +1,5 @@
 import express from 'express';
+import mongoose from 'mongoose';
 import { protect, authorize } from '../middleware/auth.js';
 import { validatePredictionUpload, validatePagination } from '../middleware/validation.js';
 import User from '../models/User.js';
@@ -256,10 +257,17 @@ router.get('/users', protect, authorize('admin'), validatePagination, async (req
 
     const total = await User.countDocuments(query);
 
+    // Transform users to include id field (from _id)
+    const transformedUsers = users.map(user => ({
+      ...user.toObject(),
+      id: user._id.toString(),
+      _id: user._id.toString() // Keep _id as well for compatibility
+    }));
+
     res.json({
       success: true,
       data: {
-        users,
+        users: transformedUsers,
         pagination: {
           current: parseInt(page),
           pages: Math.ceil(total / limit),
@@ -283,28 +291,92 @@ router.patch('/users/:id/:action', protect, authorize('admin'), async (req, res)
   try {
     const { id, action } = req.params;
 
+    // Validate MongoDB ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('Invalid ObjectId format:', id);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format'
+      });
+    }
+
+    // Convert string ID to ObjectId to ensure proper casting
+    let objectId;
+    try {
+      objectId = new mongoose.Types.ObjectId(id);
+    } catch (err) {
+      console.error('Error creating ObjectId:', err);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid user ID format'
+      });
+    }
+
     if (action === 'toggle-status') {
-      const user = await User.findById(id);
-      if (!user) {
-        return res.status(404).json({
+      try {
+        // First check if user exists using ObjectId
+        const user = await User.findById(objectId).select('isActive');
+        if (!user) {
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+
+        // Handle undefined/null isActive - default to true if not set
+        const currentStatus = user.isActive !== undefined && user.isActive !== null ? user.isActive : true;
+        const newStatus = !currentStatus;
+        
+        // Use findByIdAndUpdate with ObjectId to avoid triggering save hooks and validation
+        const updatedUser = await User.findByIdAndUpdate(
+          objectId,
+          { $set: { isActive: newStatus } },
+          { new: true, runValidators: false }
+        );
+
+        if (!updatedUser) {
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+        
+        res.json({
+          success: true,
+          message: `User ${newStatus ? 'activated' : 'deactivated'} successfully`,
+          data: {
+            userId: updatedUser._id.toString(),
+            isActive: updatedUser.isActive
+          }
+        });
+      } catch (updateError) {
+        console.error('Update user error:', updateError);
+        return res.status(500).json({
           success: false,
-          message: 'User not found'
+          message: updateError.message || 'Failed to update user status',
+          error: process.env.NODE_ENV === 'development' ? updateError.stack : undefined
         });
       }
-
-      user.isActive = !user.isActive;
-      await user.save();
-
-      res.json({
-        success: true,
-        message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`
-      });
     } else if (action === 'delete') {
-      await User.findByIdAndDelete(id);
-      res.json({
-        success: true,
-        message: 'User deleted successfully'
-      });
+      try {
+        const deletedUser = await User.findByIdAndDelete(objectId);
+        if (!deletedUser) {
+          return res.status(404).json({
+            success: false,
+            message: 'User not found'
+          });
+        }
+        res.json({
+          success: true,
+          message: 'User deleted successfully'
+        });
+      } catch (deleteError) {
+        console.error('Delete user error:', deleteError);
+        return res.status(500).json({
+          success: false,
+          message: deleteError.message || 'Failed to delete user'
+        });
+      }
     } else {
       res.status(400).json({
         success: false,
@@ -417,28 +489,93 @@ router.patch('/predictions/:id/:action', protect, authorize('admin'), async (req
   try {
     const { id, action } = req.params;
 
+    // Validate MongoDB ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('Invalid ObjectId format:', id);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid prediction ID format'
+      });
+    }
+
+    // Convert string ID to ObjectId to ensure proper casting
+    let objectId;
+    try {
+      objectId = new mongoose.Types.ObjectId(id);
+    } catch (err) {
+      console.error('Error creating ObjectId:', err);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid prediction ID format'
+      });
+    }
+
     if (action === 'toggle-status') {
-      const prediction = await Prediction.findById(id);
-      if (!prediction) {
-        return res.status(404).json({
+      try {
+        // First check if prediction exists using ObjectId
+        const prediction = await Prediction.findById(objectId).select('isActive');
+        if (!prediction) {
+          return res.status(404).json({
+            success: false,
+            message: 'Prediction not found'
+          });
+        }
+
+        // Handle undefined/null isActive - default to true if not set
+        const currentStatus = prediction.isActive !== undefined && prediction.isActive !== null ? prediction.isActive : true;
+        const newStatus = !currentStatus;
+        
+        // Use findByIdAndUpdate with ObjectId to avoid triggering save hooks and validation
+        const updatedPrediction = await Prediction.findByIdAndUpdate(
+          objectId,
+          { $set: { isActive: newStatus } },
+          { new: true, runValidators: false }
+        );
+
+        if (!updatedPrediction) {
+          return res.status(404).json({
+            success: false,
+            message: 'Prediction not found'
+          });
+        }
+        
+        res.json({
+          success: true,
+          message: `Prediction ${newStatus ? 'activated' : 'deactivated'} successfully`,
+          data: {
+            predictionId: updatedPrediction._id.toString(),
+            isActive: updatedPrediction.isActive
+          }
+        });
+      } catch (updateError) {
+        console.error('Update prediction error:', updateError);
+        return res.status(500).json({
           success: false,
-          message: 'Prediction not found'
+          message: updateError.message || 'Failed to update prediction status',
+          error: process.env.NODE_ENV === 'development' ? updateError.stack : undefined
         });
       }
-
-      prediction.isActive = !prediction.isActive;
-      await prediction.save();
-
-      res.json({
-        success: true,
-        message: `Prediction ${prediction.isActive ? 'activated' : 'deactivated'} successfully`
-      });
     } else if (action === 'delete') {
-      await Prediction.findByIdAndDelete(id);
-      res.json({
-        success: true,
-        message: 'Prediction deleted successfully'
-      });
+      try {
+        const deletedPrediction = await Prediction.findByIdAndDelete(objectId);
+        if (!deletedPrediction) {
+          return res.status(404).json({
+            success: false,
+            message: 'Prediction not found'
+          });
+        }
+        res.json({
+          success: true,
+          message: 'Prediction deleted successfully'
+        });
+      } catch (deleteError) {
+        console.error('Delete prediction error:', deleteError);
+        return res.status(500).json({
+          success: false,
+          message: deleteError.message || 'Failed to delete prediction',
+          error: process.env.NODE_ENV === 'development' ? deleteError.stack : undefined
+        });
+      }
     } else {
       res.status(400).json({
         success: false,
