@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import logo from '../../assets/logo.png';
 
 const AdminNavbar: React.FC = () => {
   const navigate = useNavigate();
@@ -72,18 +73,18 @@ const AdminNavbar: React.FC = () => {
               to="/admin"
               style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: 1, textDecoration: 'none' }}
             >
-              <div 
-                className="me-2 d-flex align-items-center justify-content-center brand-icon"
+              <img 
+                src={logo} 
+                alt="Obyyo Logo" 
+                className="me-2"
                 style={{ 
-                  width: '35px', 
-                  height: '35px',
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  borderRadius: '8px',
-                  flexShrink: 0
-                }}
-              >
-                <i className="bi bi-shield-check text-white" style={{ fontSize: '1.1rem' }}></i>
-              </div>
+                  height: '55px', 
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: 'brightness(0)',
+                  transition: 'filter 0.3s ease'
+                }} 
+              />
               <span className="d-none d-sm-inline">Admin Panel</span>
               <span className="d-inline d-sm-none">Admin</span>
             </Link>

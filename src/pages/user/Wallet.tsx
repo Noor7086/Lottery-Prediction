@@ -301,7 +301,7 @@ const Wallet: React.FC = () => {
                   <FaHistory className="text-info fs-2 mb-2" />
                   <h6 className="card-title">Transactions</h6>
                   <h4 className="text-info fw-bold">
-                    {walletStats?.transactionCount ?? user?.transactions?.length ?? 0}
+                    {walletStats?.transactionCount ?? 0}
                   </h4>
                 </Card.Body>
               </Card>
@@ -313,8 +313,8 @@ const Wallet: React.FC = () => {
                   <FaCreditCard className="text-warning fs-2 mb-2" />
                   <h6 className="card-title">Last Payment</h6>
                   <p className="text-muted small mb-0">
-                    {(user?.lastTransactionDate ?? walletStats?.lastTransactionDate)
-                      ? new Date(user?.lastTransactionDate ?? walletStats?.lastTransactionDate).toLocaleDateString()
+                    {walletStats?.lastTransactionDate
+                      ? new Date(walletStats.lastTransactionDate).toLocaleDateString()
                       : 'Never'
                     }
                   </p>

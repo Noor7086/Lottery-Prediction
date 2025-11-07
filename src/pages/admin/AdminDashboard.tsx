@@ -53,20 +53,12 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Calculate trend percentage for revenue
-  const calculateRevenueTrend = () => {
-    if (!analytics?.revenueData || analytics.revenueData.length < 2) return 0;
+  const calculateRevenueTrend = (): string => {
+    if (!analytics?.revenueData || analytics.revenueData.length < 2) return '0';
     const current = analytics.revenueData[analytics.revenueData.length - 1]?.amount || 0;
     const previous = analytics.revenueData[analytics.revenueData.length - 2]?.amount || 0;
-    if (previous === 0) return 0;
+    if (previous === 0) return '0';
     return ((current - previous) / previous * 100).toFixed(1);
-  };
-
-  // Calculate trend percentage for purchases
-  const calculatePurchaseTrend = () => {
-    if (!stats?.totalPurchases) return 0;
-    // This would ideally come from analytics, but for now we'll use a placeholder
-    // In a real scenario, you'd compare current period vs previous period
-    return 0; // Will be 0% if no historical data available
   };
 
   // Get monthly revenue chart data
@@ -97,7 +89,6 @@ const AdminDashboard: React.FC = () => {
     
     // Map dates to day names and get active users
     const data = last7Days.map(item => {
-      const date = new Date(item.date);
       return item.activeUsers || 0;
     });
     
@@ -110,11 +101,11 @@ const AdminDashboard: React.FC = () => {
   };
 
   // Calculate user growth trend
-  const calculateUserGrowthTrend = () => {
-    if (!analytics?.userGrowth || analytics.userGrowth.length < 2) return 0;
+  const calculateUserGrowthTrend = (): string => {
+    if (!analytics?.userGrowth || analytics.userGrowth.length < 2) return '0';
     const current = analytics.userGrowth[analytics.userGrowth.length - 1]?.count || 0;
     const previous = analytics.userGrowth[analytics.userGrowth.length - 2]?.count || 0;
-    if (previous === 0) return 0;
+    if (previous === 0) return '0';
     return ((current - previous) / previous * 100).toFixed(1);
   };
 

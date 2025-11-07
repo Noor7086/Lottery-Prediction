@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useWallet } from '../contexts/WalletContext';
 import { predictionService } from '../services/predictionService';
 import { lotteryService } from '../services/lotteryService';
 import { Prediction, LotteryType, Lottery } from '../types';
@@ -11,7 +10,6 @@ import toast from 'react-hot-toast';
 
 const Predictions: React.FC = () => {
   const { user, refreshUser } = useAuth();
-  const { makePayment } = useWallet();
   const [searchParams] = useSearchParams();
   const [selectedLottery, setSelectedLottery] = useState<LotteryType>('powerball');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -227,7 +225,7 @@ const Predictions: React.FC = () => {
     setPaymentLoading(true);
     try {
       // Purchase prediction directly using prediction service
-      const purchaseResponse = await predictionService.purchasePrediction(
+      await predictionService.purchasePrediction(
         selectedPrediction.lotteryType,
         selectedPrediction.id,
         'wallet'

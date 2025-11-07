@@ -196,21 +196,65 @@ router.post('/predictions', protect, authorize('admin'), validatePredictionUploa
 // @access  Private/Admin
 router.get('/predictions', protect, authorize('admin'), validatePagination, async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, search, lotteryType, status } = req.query;
 
-    const predictions = await Prediction.find({})
+    let query = {};
+    const andConditions = [];
+    
+    // Build search condition
+    if (search) {
+      andConditions.push({
+        $or: [
+          { lotteryDisplayName: { $regex: search, $options: 'i' } },
+          { lotteryType: { $regex: search, $options: 'i' } },
+          { notes: { $regex: search, $options: 'i' } }
+        ]
+      });
+    }
+
+    // Build lottery type filter
+    if (lotteryType && lotteryType !== 'all') {
+      andConditions.push({ lotteryType: lotteryType });
+    }
+
+    // Build status filter
+    if (status && status !== 'all') {
+      if (status === 'active') {
+        andConditions.push({ isActive: true });
+      } else if (status === 'inactive') {
+        andConditions.push({ isActive: false });
+      }
+    }
+
+    // Combine all conditions with $and if there are multiple conditions
+    if (andConditions.length > 0) {
+      if (andConditions.length === 1) {
+        query = andConditions[0];
+      } else {
+        query = { $and: andConditions };
+      }
+    }
+
+    const predictions = await Prediction.find(query)
       .populate('uploadedBy', 'firstName lastName')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit)
       .lean(); // Convert to plain objects to include all nested data
 
-    const total = await Prediction.countDocuments();
+    const total = await Prediction.countDocuments(query);
+
+    // Transform predictions to include id field (from _id)
+    const transformedPredictions = predictions.map(prediction => ({
+      ...prediction,
+      id: prediction._id.toString(),
+      _id: prediction._id.toString() // Keep _id as well for compatibility
+    }));
 
     res.json({
       success: true,
       data: {
-        predictions,
+        predictions: transformedPredictions,
         pagination: {
           current: parseInt(page),
           pages: Math.ceil(total / limit),

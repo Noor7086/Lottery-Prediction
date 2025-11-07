@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import logo from '../../assets/logo.png';
 
 const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
@@ -10,10 +11,18 @@ const Footer: React.FC = () => {
         <div className="row py-5">
           {/* Enhanced Company Info */}
           <div className="col-lg-4 col-md-6 mb-4">
-            <h5 className="text-white mb-3">
-              <i className="bi bi-eye-fill me-2" style={{ fontSize: '1.5rem' }}></i>
-              <span className="gradient-text">Obyyo</span>
-            </h5>
+            <div className="mb-3">
+              <img 
+                src={logo} 
+                alt="Obyyo Logo" 
+                style={{ 
+                  height: '75px', 
+                  width: 'auto',
+                  objectFit: 'contain',
+                  filter: 'brightness(0) invert(1)'
+                }} 
+              />
+            </div>
             <p className="text-light mb-4">
               Enhance your lottery winning odds with 80-100% accurate predictions. 
               Reduce waste on low vibration numbers and build a winning community.

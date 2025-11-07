@@ -69,7 +69,7 @@ export const PredictionProvider: React.FC<PredictionProviderProps> = ({ children
     try {
       setLoading(true);
       const data = await predictionService.getTrialPredictions(lotteryType);
-      return data;
+      return data.predictions;
     } catch (error: any) {
       toast.error(error.message || 'Failed to fetch trial predictions');
       throw error;

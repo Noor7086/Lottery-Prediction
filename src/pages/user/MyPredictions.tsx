@@ -228,11 +228,11 @@ const MyPredictions: React.FC = () => {
                 Filter Predictions
               </h5>
               <div className="d-flex flex-wrap gap-2">
-                {[
-                  { id: 'all', name: 'All Predictions', icon: '📊' },
-                  { id: 'active', name: 'Active', icon: '⏰' },
-                  { id: 'completed', name: 'Completed', icon: '✅' }
-                ].map((filter) => (
+                {([
+                  { id: 'all' as const, name: 'All Predictions', icon: '📊' },
+                  { id: 'active' as const, name: 'Active', icon: '⏰' },
+                  { id: 'completed' as const, name: 'Completed', icon: '✅' }
+                ] as const).map((filter) => (
                   <button
                     key={filter.id}
                     className={`btn ${selectedFilter === filter.id ? 'btn-primary' : 'btn-outline-primary'}`}

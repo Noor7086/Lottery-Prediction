@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { LotteryType } from '../../types';
 import { walletService } from '../../services/walletService';
+import logo from '../../assets/logo.png';
 
 const Navbar: React.FC = () => {
   const { user, logout, canStartTrial } = useAuth();
@@ -314,9 +315,18 @@ const Navbar: React.FC = () => {
       `}</style>
       <div className="container">
         {/* Logo */}
-        <Link className={`navbar-brand fw-bold ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`} to="/">
-          <i className={`bi bi-eye-fill me-2 ${(isScrolled || !isHomePage) ? 'text-primary' : 'text-white'}`}></i>
-          Obyyo
+        <Link className="navbar-brand d-flex align-items-center" to="/">
+          <img 
+            src={logo} 
+            alt="Obyyo Logo" 
+            style={{ 
+              height: '65px', 
+              width: 'auto',
+              objectFit: 'contain',
+              filter: (isScrolled || !isHomePage) ? 'brightness(0)' : 'brightness(0) invert(1)',
+              transition: 'filter 0.3s ease'
+            }} 
+          />
         </Link>
 
         {/* Mobile menu button */}

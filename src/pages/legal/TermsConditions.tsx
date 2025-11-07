@@ -33,13 +33,16 @@ const TermsConditions: React.FC = () => {
               <h2 className="fw-bold mb-3 mt-4">6. Privacy and Data Protection</h2>
               <p>We are committed to protecting your privacy. Please review our Privacy Policy for information on how we collect, use, and protect your personal information.</p>
               
-              <h2 className="fw-bold mb-3 mt-4">7. Limitation of Liability</h2>
+              <h2 className="fw-bold mb-3 mt-4">7. Distributor Confidentiality</h2>
+              <p>Distributors are strictly prohibited from disclosing, sharing, or reproducing any confidential information related to the website's data, prediction methods, or user details with any third party without prior written consent.</p>
+              
+              <h2 className="fw-bold mb-3 mt-4">8. Limitation of Liability</h2>
               <p>Obyyo shall not be liable for any direct, indirect, incidental, special, or consequential damages resulting from the use or inability to use our services.</p>
               
-              <h2 className="fw-bold mb-3 mt-4">8. Modifications</h2>
+              <h2 className="fw-bold mb-3 mt-4">9. Modifications</h2>
               <p>We reserve the right to modify these terms at any time. Users will be notified of significant changes via email or through our platform.</p>
               
-              <h2 className="fw-bold mb-3 mt-4">9. Contact Information</h2>
+              <h2 className="fw-bold mb-3 mt-4">10. Contact Information</h2>
               <p>For questions about these Terms & Conditions, please contact us at legal@obyyo.com</p>
             </div>
           </div>

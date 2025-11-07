@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, Button } from 'react-bootstrap';
-import { FaExclamationTriangle, FaCheckCircle, FaGift } from 'react-icons/fa';
+import { FaGift } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 
 const TrialStatus: React.FC = () => {

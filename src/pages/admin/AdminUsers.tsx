@@ -235,7 +235,7 @@ const AdminUsers: React.FC = () => {
                   </thead>
                   <tbody>
                     {users.map((user) => (
-                      <tr key={user.id || user._id}>
+                      <tr key={user.id}>
                         <td>{user.firstName} {user.lastName}</td>
                         <td>{user.email}</td>
                         <td>{user.phone}</td>
@@ -267,7 +267,7 @@ const AdminUsers: React.FC = () => {
                           <button
                             className={`btn btn-sm ${(user.isActive === false) ? 'btn-outline-success' : 'btn-outline-warning'}`}
                             onClick={() => {
-                              const userId = user.id || user._id || user.userId;
+                              const userId = user.id;
                               if (userId) {
                                 handleUserAction(userId, 'toggle-status');
                               } else {
@@ -275,10 +275,10 @@ const AdminUsers: React.FC = () => {
                                 toast.error('User ID is missing');
                               }
                             }}
-                            disabled={togglingUserId === (user.id || user._id || user.userId) || !(user.id || user._id || user.userId)}
+                            disabled={togglingUserId === user.id || !user.id}
                             title={(user.isActive === false) ? 'Activate User' : 'Deactivate User'}
                           >
-                            {togglingUserId === (user.id || user._id) ? (
+                            {togglingUserId === user.id ? (
                               <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                             ) : (
                               <i className={`bi ${(user.isActive === false) ? 'bi-toggle-off' : 'bi-toggle-on'}`}></i>
@@ -385,7 +385,7 @@ const AdminUsers: React.FC = () => {
                   type="button"
                   className={`btn ${(selectedUser.isActive === false) ? 'btn-success' : 'btn-warning'}`}
                   onClick={() => {
-                    const userId = selectedUser.id || selectedUser._id || (selectedUser as any).userId;
+                    const userId = selectedUser.id;
                     if (userId) {
                       handleUserAction(userId, 'toggle-status');
                     } else {
@@ -393,9 +393,9 @@ const AdminUsers: React.FC = () => {
                       toast.error('User ID is missing');
                     }
                   }}
-                  disabled={togglingUserId === (selectedUser.id || selectedUser._id || (selectedUser as any).userId) || !(selectedUser.id || selectedUser._id || (selectedUser as any).userId)}
+                  disabled={togglingUserId === selectedUser.id || !selectedUser.id}
                 >
-                  {togglingUserId === (selectedUser.id || selectedUser._id) ? (
+                  {togglingUserId === selectedUser.id ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
                       Processing...
@@ -411,7 +411,7 @@ const AdminUsers: React.FC = () => {
                   type="button"
                   className="btn btn-danger"
                   onClick={() => {
-                    const userId = selectedUser.id || selectedUser._id || (selectedUser as any).userId;
+                    const userId = selectedUser.id;
                     if (userId) {
                       handleUserAction(userId, 'delete');
                     } else {
@@ -419,7 +419,7 @@ const AdminUsers: React.FC = () => {
                       toast.error('User ID is missing');
                     }
                   }}
-                  disabled={!selectedUser.id && !selectedUser._id && !(selectedUser as any).userId}
+                  disabled={!selectedUser.id}
                 >
                   Delete User
                 </button>
