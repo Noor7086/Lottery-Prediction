@@ -10,7 +10,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
 const Home: React.FC = () => {
-  const { user, canStartTrial } = useAuth();
+  const { user, canStartTrial, loading } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // Hero slideshow effect
@@ -317,7 +317,13 @@ const Home: React.FC = () => {
                   Join over 50,000 professionals who trust Obyyo for data-driven lottery strategies.
                     </p>
                 <div className="d-flex flex-wrap gap-3 justify-content-center mb-5 fade-in animate-delay-2">
-                      {user ? (
+                      {loading ? (
+                        <div className="d-flex align-items-center justify-content-center">
+                          <div className="spinner-border text-primary" role="status">
+                            <span className="visually-hidden">Loading...</span>
+                          </div>
+                        </div>
+                      ) : user ? (
                     <Link to="/dashboard" className="btn btn-primary btn-lg px-5 hover-lift">
                           <i className="bi bi-speedometer2 me-2"></i>
                       Go to Dashboard

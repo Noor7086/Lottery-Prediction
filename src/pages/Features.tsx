@@ -234,21 +234,33 @@ const Features: React.FC = () => {
               <p className="mb-4">
                 Join thousands of users who are already using our reliable prediction system to improve their lottery success.
               </p>
-              <div className="d-flex justify-content-center gap-3">
-                {canStartTrial() ? (
-                  <>
-                    <a href="/register" className="btn btn-light btn-lg">
-                      Start Free Trial
-                    </a>
-                    <a href="/pricing" className="btn btn-outline-light btn-lg">
-                      View Pricing
-                    </a>
-                  </>
-                ) : (
-                  <a href="/pricing" className="btn btn-light btn-lg">
-                    View Pricing
+              <div className="d-flex justify-content-center gap-3 flex-wrap">
+                {canStartTrial() && (
+                  <a href="/register" className="btn btn-light btn-lg">
+                    Start Free Trial
                   </a>
                 )}
+                <a 
+                  href="/pricing" 
+                  className="btn btn-lg"
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: '2px solid white',
+                    color: 'white',
+                    fontWeight: '600',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'white';
+                    e.currentTarget.style.color = '#0d6efd';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = 'white';
+                  }}
+                >
+                  View Pricing
+                </a>
               </div>
             </Card.Body>
           </Card>

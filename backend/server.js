@@ -60,6 +60,7 @@ import adminRoutes from './routes/admin.js';
 import notificationRoutes from './routes/notifications.js';
 import lotteryRoutes from './routes/lotteries.js';
 import walletRoutes from './routes/wallet.js';
+import contactRoutes from './routes/contact.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -72,6 +73,8 @@ console.log('✅ Admin routes registered at /api/admin');
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/lotteries', lotteryRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/contact', contactRoutes);
+console.log('✅ Contact routes registered at /api/contact');
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

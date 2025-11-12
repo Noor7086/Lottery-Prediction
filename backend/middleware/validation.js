@@ -79,10 +79,22 @@ const validateProfileUpdate = [
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be between 2 and 50 characters'),
   
+  body('email')
+    .optional()
+    .trim()
+    .isEmail()
+    .withMessage('Please provide a valid email address')
+    .normalizeEmail(),
+  
   body('phone')
     .optional()
     .matches(/^\+?[\d\s\-\(\)]+$/)
     .withMessage('Please provide a valid phone number'),
+  
+  body('selectedLottery')
+    .optional()
+    .isIn(['gopher5', 'pick3', 'lottoamerica', 'megamillion', 'powerball', ''])
+    .withMessage('Invalid lottery type'),
   
   body('notificationsEnabled')
     .optional()

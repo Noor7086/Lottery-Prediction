@@ -198,8 +198,10 @@ const getMe = async (req, res) => {
 // @access  Private
 const updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, phone, notificationsEnabled } = req.body;
+    const { firstName, lastName, email, phone, selectedLottery, notificationsEnabled } = req.body;
     const userId = req.user.userId;
+
+    console.log('Update profile request body:', req.body);
 
     const user = await User.findById(userId);
     if (!user) {
@@ -209,13 +211,38 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // Update fields
-    if (firstName) user.firstName = firstName;
-    if (lastName) user.lastName = lastName;
-    if (phone) user.phone = phone;
+    // Check if email is being changed and if it already exists
+    if (email !== undefined && email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already in use'
+        });
+      }
+    }
+
+    // Update fields - check for undefined to allow updates even if value is the same
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (email !== undefined) user.email = email;
+    if (phone !== undefined) user.phone = phone;
+    if (selectedLottery !== undefined && selectedLottery !== '') {
+      user.selectedLottery = selectedLottery;
+    }
     if (notificationsEnabled !== undefined) user.notificationsEnabled = notificationsEnabled;
 
+    console.log('User before save:', {
+      email: user.email,
+      selectedLottery: user.selectedLottery
+    });
+
     await user.save();
+
+    console.log('User after save:', {
+      email: user.email,
+      selectedLottery: user.selectedLottery
+    });
 
     res.json({
       success: true,

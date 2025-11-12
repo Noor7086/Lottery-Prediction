@@ -52,20 +52,20 @@ class ApiService {
               toast.error('Access denied. You do not have permission to perform this action.');
               break;
             case 400:
-              // Bad request - don't show toast here, let the component handle it
+              // Bad request - don't show toast for validation errors (let components handle them)
+              // Only show toast for non-validation 400 errors
+              if (!data.errors && data.message) {
+                toast.error(data.message);
+              }
+              // If data.errors exists, it's a validation error - let the component handle it
               break;
             case 404:
-              toast.error('Resource not found.');
+              // Don't show toast for 404 errors - let components handle them
+              // Components can show appropriate messages or handle silently
               break;
             case 422:
-              // Validation errors
-              if (data.errors && Array.isArray(data.errors)) {
-                data.errors.forEach((error: any) => {
-                  toast.error(error.message || 'Validation error');
-                });
-              } else {
-                toast.error(data.message || 'Validation failed');
-              }
+              // Validation errors - don't show toast (let components handle them)
+              // Components will display field-level validation errors
               break;
             case 429:
               toast.error('Too many requests. Please try again later.');
@@ -136,6 +136,16 @@ class ApiService {
   // Health check
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     return this.get('/health');
+  }
+
+  // Contact form submission
+  async sendContactMessage(data: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }): Promise<{ success: boolean; message: string }> {
+    return this.post('/contact', data);
   }
 }
 

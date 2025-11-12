@@ -151,8 +151,10 @@ export interface RegisterForm {
 export interface ProfileUpdateForm {
   firstName: string;
   lastName: string;
+  email: string;
   phone: string;
-  notificationsEnabled: boolean;
+  selectedLottery: LotteryType;
+  notificationsEnabled?: boolean;
 }
 
 export interface PasswordChangeForm {

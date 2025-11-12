@@ -4,18 +4,21 @@ import { FaGift } from 'react-icons/fa';
 import { useAuth } from '../contexts/AuthContext';
 
 const TrialStatus: React.FC = () => {
-  const { user } = useAuth();
+  const { user, canStartTrial, isTrialExpired } = useAuth();
 
   if (!user) return null;
 
-  // Don't show this component if user is in trial or has used trial
-  // Trial info should only be shown in dashboard
+  // Don't show this component if:
+  // 1. User is currently in trial
+  // 2. User has used trial
+  // 3. Trial has expired (trial days = 0)
+  // 4. User cannot start trial
   const hasUsedTrialValue = user.hasUsedTrial ?? false;
-  if (user.isInTrial || hasUsedTrialValue) {
+  if (user.isInTrial || hasUsedTrialValue || isTrialExpired() || !canStartTrial()) {
     return null;
   }
 
-  // User has never used trial (and not currently in trial) - should not happen but as fallback
+  // User can start trial - show the message
   return (
     <Alert variant="info" className="border-0 shadow-sm">
       <div className="d-flex align-items-center">

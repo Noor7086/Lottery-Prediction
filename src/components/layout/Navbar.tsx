@@ -6,7 +6,7 @@ import { walletService } from '../../services/walletService';
 import logo from '../../assets/logo.png';
 
 const Navbar: React.FC = () => {
-  const { user, logout, canStartTrial } = useAuth();
+  const { user, logout, canStartTrial, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -438,22 +438,32 @@ const Navbar: React.FC = () => {
 
           {/* Right Section - User Menu / Login */}
           <ul className={`navbar-nav`}>
-            {user && (
-              <li className={`nav-item ${isMenuOpen ? 'mt-3' : ''} `}>
-                <Link 
-                  className={`nav-link d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
-                  to="/wallet"
-                  onClick={closeMobileMenu}
-                >
-                  <i className="bi bi-wallet2 me-1"></i>
-                  <span className="d-none d-md-inline">Wallet:</span>
-                  <span className="badge bg-success ms-1">
-                    ${(user?.walletBalance ?? walletBalance ?? 0).toFixed(2)}
-                  </span>
-                </Link>
+            {loading ? (
+              <li className={`nav-item ${isMenuOpen ? 'mt-3' : ''}`}>
+                <div className={`nav-link d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}>
+                  <div className="spinner-border spinner-border-sm" role="status" style={{ width: '1rem', height: '1rem' }}>
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
               </li>
-            )}
-            {user ? (
+            ) : (
+              <>
+                {user && (
+                  <li className={`nav-item ${isMenuOpen ? 'mt-3' : ''} `}>
+                    <Link 
+                      className={`nav-link d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
+                      to="/wallet"
+                      onClick={closeMobileMenu}
+                    >
+                      <i className="bi bi-wallet2 me-1"></i>
+                      <span className="d-none d-md-inline">Wallet:</span>
+                      <span className="badge bg-success ms-1">
+                        ${(user?.walletBalance ?? walletBalance ?? 0).toFixed(2)}
+                      </span>
+                    </Link>
+                  </li>
+                )}
+                {user ? (
               <li className={`nav-item dropdown ${isMenuOpen ? 'mt-2' : ''} ${isUserMenuOpen ? 'show' : ''}`}>
                 <a 
                   className={`nav-link dropdown-toggle d-flex align-items-center ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
@@ -647,26 +657,28 @@ const Navbar: React.FC = () => {
                   </li>
                 </ul>
               </li>
-            ) : (
-              <>
-                <li className={`nav-item  ${isMenuOpen ? 'mt-3' : ''}`}>
-                  <Link 
-                    className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
-                    to="/login"
-                    onClick={closeMobileMenu}
-                  >
-                    Login
-                  </Link>
-                </li>
-                <li className="nav-item">
-                  <Link 
-                    className={`btn ms-2 ${(isScrolled || !isHomePage) ? 'btn-primary' : 'btn-secondary'}`}
-                    to={canStartTrial() ? "/register" : "/pricing"}
-                    onClick={closeMobileMenu}
-                  >
-                    {canStartTrial() ? "Get Started" : "View Pricing"}
-                  </Link>
-                </li>
+                ) : (
+                  <>
+                    <li className={`nav-item  ${isMenuOpen ? 'mt-3' : ''}`}>
+                      <Link 
+                        className={`nav-link ${(isScrolled || !isHomePage) ? 'text-dark' : 'text-white'}`}
+                        to="/login"
+                        onClick={closeMobileMenu}
+                      >
+                        Login
+                      </Link>
+                    </li>
+                    <li className="nav-item">
+                      <Link 
+                        className={`btn ms-2 ${(isScrolled || !isHomePage) ? 'btn-primary' : 'btn-secondary'}`}
+                        to={canStartTrial() ? "/register" : "/pricing"}
+                        onClick={closeMobileMenu}
+                      >
+                        {canStartTrial() ? "Get Started" : "View Pricing"}
+                      </Link>
+                    </li>
+                  </>
+                )}
               </>
             )}
           </ul>

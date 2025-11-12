@@ -46,12 +46,13 @@ PAYPAL_MODE=sandbox
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password-here
+SMTP_USER="mahnoorazhar70@gmail.com"
+SMTP_PASS="jysc rski aaju pltn"
 
 # Email addresses
 FROM_EMAIL=noreply@obyyo.com
-ADMIN_EMAIL=admin@obyyo.com
+# Admin email where contact form submissions will be sent
+ADMIN_EMAIL=mahnoorazhar70@gmail.com
 
 # ===========================================
 # SMS/OTP CONFIGURATION

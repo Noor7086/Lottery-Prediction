@@ -1,54 +1,70 @@
 import React, { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
-import { Container, Row, Col, Card, Form, Button, Alert, Badge } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Badge } from 'react-bootstrap';
+import toast from 'react-hot-toast';
+import { ProfileUpdateForm } from '../../types';
 
 const Profile: React.FC = () => {
   const { user, updateProfile, changePassword } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState({
-    firstName: user?.firstName || '',
-    lastName: user?.lastName || '',
-    email: user?.email || '',
-    phone: user?.phone || '',
-    selectedLottery: user?.selectedLottery || ''
-  });
-  const [passwordData, setPasswordData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
   const [showPasswords, setShowPasswords] = useState({
     currentPassword: false,
     newPassword: false,
     confirmPassword: false
   });
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Debug message state changes
-  useEffect(() => {
-    console.log('Message state changed:', message);
-    if (message === null) {
-      console.log('Message was set to null - checking call stack');
-      console.trace('Message set to null');
+  const {
+    register: registerProfile,
+    handleSubmit: handleProfileSubmit,
+    formState: { errors: profileErrors },
+    setError: setProfileError,
+    reset: resetProfile,
+    watch: watchProfile
+  } = useForm<ProfileUpdateForm>({
+    defaultValues: {
+      firstName: user?.firstName || '',
+      lastName: user?.lastName || '',
+      email: user?.email || '',
+      phone: user?.phone || '',
+      selectedLottery: user?.selectedLottery || ''
     }
-  }, [message]);
+  });
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const {
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    formState: { errors: passwordErrors },
+    setError: setPasswordError,
+    reset: resetPassword,
+    watch: watchPassword
+  } = useForm<{
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }>({
+    defaultValues: {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+  });
 
-  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPasswordData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const newPassword = watchPassword('newPassword');
+
+  // Update form when user changes
+  useEffect(() => {
+    if (user) {
+      resetProfile({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        selectedLottery: user.selectedLottery || ''
+      });
+    }
+  }, [user, resetProfile]);
 
   const togglePasswordVisibility = (field: keyof typeof showPasswords) => {
     setShowPasswords(prev => ({
@@ -57,59 +73,82 @@ const Profile: React.FC = () => {
     }));
   };
 
-  const handleProfileUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleProfileUpdate = async (data: ProfileUpdateForm) => {
     setLoading(true);
-    setMessage(null);
 
     try {
-      await updateProfile({ ...formData, notificationsEnabled: true });
-      setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      await updateProfile({ ...data, notificationsEnabled: true });
+      toast.success('Profile updated successfully!');
       setIsEditing(false);
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' });
+    } catch (error: any) {
+      const errorData = error.response?.data;
+      const status = error.response?.status;
+
+      // Handle validation errors (400, 422) - show below fields, NO toasts
+      if ((status === 400 || status === 422) && errorData?.errors && Array.isArray(errorData.errors)) {
+        errorData.errors.forEach((err: any) => {
+          const fieldName = err.param || err.field || err.path;
+          const errorMsg = err.msg || err.message || 'Validation error';
+          
+          if (fieldName && ['firstName', 'lastName', 'email', 'phone', 'selectedLottery'].includes(fieldName)) {
+            setProfileError(fieldName as keyof ProfileUpdateForm, {
+              type: 'server',
+              message: errorMsg
+            });
+          }
+        });
+      } else if (errorData?.message) {
+        // For non-validation errors, show toast
+        if (errorData.message.includes('Email already in use')) {
+          setProfileError('email', {
+            type: 'server',
+            message: 'Email already in use'
+          });
+        } else {
+          toast.error(errorData.message);
+        }
+      } else {
+        toast.error('Failed to update profile. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePasswordUpdate = async (data: { currentPassword: string; newPassword: string; confirmPassword: string }) => {
     setLoading(true);
-    setMessage(null);
-
-    if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match.' });
-      setLoading(false);
-      return;
-    }
-
-    // Test error message display
-    console.log('Starting password change...');
-    console.log('Current password:', passwordData.currentPassword);
-    console.log('New password:', passwordData.newPassword);
 
     try {
       await changePassword({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-        confirmPassword: passwordData.confirmPassword
+        currentPassword: data.currentPassword,
+        newPassword: data.newPassword,
+        confirmPassword: data.confirmPassword
       });
-      setMessage({ type: 'success', text: 'Password updated successfully!' });
-      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast.success('Password updated successfully!');
+      resetPassword();
     } catch (error: any) {
-      console.error('Password change error:', error);
-      console.error('Error message:', error.message);
-      const errorText = error.message || 'Failed to update password. Please try again.';
-      console.log('Setting error message:', errorText);
-      const messageObj = { type: 'error' as const, text: errorText };
-      console.log('Message object:', messageObj);
-      setMessage(messageObj);
-      
-      // Check if message is still there after a short delay
-      setTimeout(() => {
-        console.log('Message after 100ms:', message);
-      }, 100);
+      const errorData = error.response?.data;
+      const status = error.response?.status;
+
+      // Handle validation errors (400, 422) - show below fields, NO toasts
+      if ((status === 400 || status === 422) && errorData?.errors && Array.isArray(errorData.errors)) {
+        errorData.errors.forEach((err: any) => {
+          const fieldName = err.param || err.field || err.path;
+          const errorMsg = err.msg || err.message || 'Validation error';
+          
+          if (fieldName && ['currentPassword', 'newPassword', 'confirmPassword'].includes(fieldName)) {
+            setPasswordError(fieldName as 'currentPassword' | 'newPassword' | 'confirmPassword', {
+              type: 'server',
+              message: errorMsg
+            });
+          }
+        });
+      } else if (errorData?.message) {
+        // For non-validation errors, show toast
+        toast.error(errorData.message);
+      } else {
+        toast.error('Failed to update password. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -148,13 +187,6 @@ const Profile: React.FC = () => {
         </Col>
       </Row>
 
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'danger'} className="mb-4">
-          <i className={`bi bi-${message.type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2`}></i>
-          {message.text}
-        </Alert>
-      )}
-
       <Row>
         {/* Profile Information */}
         <Col lg={8}>
@@ -176,19 +208,32 @@ const Profile: React.FC = () => {
               </div>
             </Card.Header>
             <Card.Body className="p-4">
-              <Form onSubmit={handleProfileUpdate}>
+              <Form onSubmit={handleProfileSubmit(handleProfileUpdate)}>
                 <Row>
                   <Col md={6}>
                     <Form.Group className="mb-3">
                       <Form.Label className="fw-medium">First Name</Form.Label>
                       <Form.Control
                         type="text"
-                        name="firstName"
-                        value={formData.firstName}
-                        onChange={handleInputChange}
+                        {...registerProfile('firstName', {
+                          required: 'First name is required',
+                          minLength: {
+                            value: 2,
+                            message: 'First name must be at least 2 characters'
+                          },
+                          maxLength: {
+                            value: 50,
+                            message: 'First name must not exceed 50 characters'
+                          }
+                        })}
                         disabled={!isEditing}
-                        className="border-0 bg-light"
+                        className={`border-0 bg-light ${profileErrors.firstName ? 'is-invalid' : ''}`}
                       />
+                      {profileErrors.firstName && (
+                        <div className="invalid-feedback d-block">
+                          {profileErrors.firstName.message}
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                   <Col md={6}>
@@ -196,12 +241,25 @@ const Profile: React.FC = () => {
                       <Form.Label className="fw-medium">Last Name</Form.Label>
                       <Form.Control
                         type="text"
-                        name="lastName"
-                        value={formData.lastName}
-                        onChange={handleInputChange}
+                        {...registerProfile('lastName', {
+                          required: 'Last name is required',
+                          minLength: {
+                            value: 2,
+                            message: 'Last name must be at least 2 characters'
+                          },
+                          maxLength: {
+                            value: 50,
+                            message: 'Last name must not exceed 50 characters'
+                          }
+                        })}
                         disabled={!isEditing}
-                        className="border-0 bg-light"
+                        className={`border-0 bg-light ${profileErrors.lastName ? 'is-invalid' : ''}`}
                       />
+                      {profileErrors.lastName && (
+                        <div className="invalid-feedback d-block">
+                          {profileErrors.lastName.message}
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                 </Row>
@@ -211,12 +269,21 @@ const Profile: React.FC = () => {
                       <Form.Label className="fw-medium">Email Address</Form.Label>
                       <Form.Control
                         type="email"
-                        name="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
+                        {...registerProfile('email', {
+                          required: 'Email is required',
+                          pattern: {
+                            value: /^\S+@\S+$/i,
+                            message: 'Invalid email address'
+                          }
+                        })}
                         disabled={!isEditing}
-                        className="border-0 bg-light"
+                        className={`border-0 bg-light ${profileErrors.email ? 'is-invalid' : ''}`}
                       />
+                      {profileErrors.email && (
+                        <div className="invalid-feedback d-block">
+                          {profileErrors.email.message}
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                   <Col md={6}>
@@ -224,23 +291,32 @@ const Profile: React.FC = () => {
                       <Form.Label className="fw-medium">Phone Number</Form.Label>
                       <Form.Control
                         type="tel"
-                        name="phone"
-                        value={formData.phone}
-                        onChange={handleInputChange}
+                        {...registerProfile('phone', {
+                          required: 'Phone number is required',
+                          pattern: {
+                            value: /^\+?[\d\s\-\(\)]+$/,
+                            message: 'Invalid phone number'
+                          }
+                        })}
                         disabled={!isEditing}
-                        className="border-0 bg-light"
+                        className={`border-0 bg-light ${profileErrors.phone ? 'is-invalid' : ''}`}
                       />
+                      {profileErrors.phone && (
+                        <div className="invalid-feedback d-block">
+                          {profileErrors.phone.message}
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                 </Row>
                 <Form.Group className="mb-4">
                   <Form.Label className="fw-medium">Preferred Lottery</Form.Label>
                   <Form.Select
-                    name="selectedLottery"
-                    value={formData.selectedLottery}
-                    onChange={handleInputChange}
+                    {...registerProfile('selectedLottery', {
+                      required: 'Please select a lottery'
+                    })}
                     disabled={!isEditing}
-                    className="border-0 bg-light"
+                    className={`border-0 bg-light ${profileErrors.selectedLottery ? 'is-invalid' : ''}`}
                   >
                     <option value="">Select a lottery</option>
                     {lotteryTypes.map((lottery) => (
@@ -249,6 +325,11 @@ const Profile: React.FC = () => {
                       </option>
                     ))}
                   </Form.Select>
+                  {profileErrors.selectedLottery && (
+                    <div className="invalid-feedback d-block">
+                      {profileErrors.selectedLottery.message}
+                    </div>
+                  )}
                 </Form.Group>
                 {isEditing && (
                   <div className="d-flex gap-2">
@@ -274,17 +355,16 @@ const Profile: React.FC = () => {
               </h5>
             </Card.Header>
             <Card.Body className="p-4">
-              <Form onSubmit={handlePasswordUpdate}>
+              <Form onSubmit={handlePasswordSubmit(handlePasswordUpdate)}>
                 <Form.Group className="mb-3">
                   <Form.Label className="fw-medium">Current Password</Form.Label>
                   <div className="position-relative">
                     <Form.Control
                       type={showPasswords.currentPassword ? "text" : "password"}
-                      name="currentPassword"
-                      value={passwordData.currentPassword}
-                      onChange={handlePasswordChange}
-                      className="border-0 bg-light pe-5"
-                      required
+                      {...registerPassword('currentPassword', {
+                        required: 'Current password is required'
+                      })}
+                      className={`border-0 bg-light pe-5 ${passwordErrors.currentPassword ? 'is-invalid' : ''}`}
                     />
                     <button
                       type="button"
@@ -294,6 +374,11 @@ const Profile: React.FC = () => {
                       <i className={`bi bi-${showPasswords.currentPassword ? 'eye' : 'eye-slash'}`}></i>
                     </button>
                   </div>
+                  {passwordErrors.currentPassword && (
+                    <div className="invalid-feedback d-block">
+                      {passwordErrors.currentPassword.message}
+                    </div>
+                  )}
                 </Form.Group>
                 <Row>
                   <Col md={6}>
@@ -302,11 +387,18 @@ const Profile: React.FC = () => {
                       <div className="position-relative">
                         <Form.Control
                           type={showPasswords.newPassword ? "text" : "password"}
-                          name="newPassword"
-                          value={passwordData.newPassword}
-                          onChange={handlePasswordChange}
-                          className="border-0 bg-light pe-5"
-                          required
+                          {...registerPassword('newPassword', {
+                            required: 'New password is required',
+                            minLength: {
+                              value: 6,
+                              message: 'Password must be at least 6 characters'
+                            },
+                            pattern: {
+                              value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
+                              message: 'Password must contain uppercase, lowercase, and number'
+                            }
+                          })}
+                          className={`border-0 bg-light pe-5 ${passwordErrors.newPassword ? 'is-invalid' : ''}`}
                         />
                         <button
                           type="button"
@@ -316,6 +408,11 @@ const Profile: React.FC = () => {
                           <i className={`bi bi-${showPasswords.newPassword ? 'eye' : 'eye-slash'}`}></i>
                         </button>
                       </div>
+                      {passwordErrors.newPassword && (
+                        <div className="invalid-feedback d-block">
+                          {passwordErrors.newPassword.message}
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                   <Col md={6}>
@@ -324,11 +421,12 @@ const Profile: React.FC = () => {
                       <div className="position-relative">
                         <Form.Control
                           type={showPasswords.confirmPassword ? "text" : "password"}
-                          name="confirmPassword"
-                          value={passwordData.confirmPassword}
-                          onChange={handlePasswordChange}
-                          className="border-0 bg-light pe-5"
-                          required
+                          {...registerPassword('confirmPassword', {
+                            required: 'Please confirm your password',
+                            validate: (value) =>
+                              value === newPassword || 'Passwords do not match'
+                          })}
+                          className={`border-0 bg-light pe-5 ${passwordErrors.confirmPassword ? 'is-invalid' : ''}`}
                         />
                         <button
                           type="button"
@@ -338,6 +436,11 @@ const Profile: React.FC = () => {
                           <i className={`bi bi-${showPasswords.confirmPassword ? 'eye' : 'eye-slash'}`}></i>
                         </button>
                       </div>
+                      {passwordErrors.confirmPassword && (
+                        <div className="invalid-feedback d-block">
+                          {passwordErrors.confirmPassword.message}
+                        </div>
+                      )}
                     </Form.Group>
                   </Col>
                 </Row>
@@ -388,8 +491,8 @@ const Profile: React.FC = () => {
               <div className="mb-3">
                 <small className="text-muted">Preferred Lottery</small>
                 <div className="fw-medium">
-                  {formData.selectedLottery ? 
-                    lotteryTypes.find(l => l.value === formData.selectedLottery)?.label || 'Not selected' 
+                  {watchProfile('selectedLottery') ? 
+                    lotteryTypes.find(l => l.value === watchProfile('selectedLottery'))?.label || 'Not selected' 
                     : 'Not selected'
                   }
                 </div>
