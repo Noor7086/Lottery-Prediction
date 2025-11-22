@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import AdminNavbar from './AdminNavbar';
 import { apiService } from '../../services/api';
 
@@ -129,8 +129,19 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, stats: propStats })
         {/* Sidebar */}
         <div className={`dashboard-sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
+            <Link 
+              to="/admin"
+              className="d-flex align-items-center justify-content-start fw-bold text-dark"
+              style={{ 
+                textDecoration: 'none',
+                fontSize: '1.25rem',
+                paddingLeft: '1.5rem'
+              }}
+            >
+              <span>Admin Panel</span>
+            </Link>
             <button 
-              className="sidebar-toggle d-lg-none ms-auto"
+              className="sidebar-toggle d-admin-desktop-toggle ms-auto"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               aria-label="Close sidebar"
             >
@@ -169,7 +180,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, stats: propStats })
       {/* Overlay for mobile */}
       {sidebarOpen && (
         <div 
-          className="sidebar-overlay d-lg-none"
+          className="sidebar-overlay d-admin-desktop-toggle"
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}

@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       toast.success('Login successful!');
       return response; // Return the response so components can access user data
     } catch (error: any) {
-      toast.error(error.message || 'Login failed');
+      // Don't show toast for login errors - let the component handle error display
       throw error;
     } finally {
       setLoading(false);
@@ -75,9 +75,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(true);
       const updatedUser = await authService.updateProfile(data);
       setUser(updatedUser);
-      // Don't show toast here - let the component handle success/error messages
+      toast.success('Profile updated successfully!');
     } catch (error: any) {
-      // Don't show toast here - let the component handle error messages
+      toast.error(error.message || 'Profile update failed');
       throw error;
     } finally {
       setLoading(false);
@@ -129,9 +129,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (!user) return true; // Not logged in, can register for trial
     // Safety check: if hasUsedTrial is undefined, treat as false (newer users have this field)
     const hasUsedTrialValue = user.hasUsedTrial ?? false;
-    // Check if trial has expired (trial days = 0)
-    const trialExpired = isTrialExpired();
-    return !hasUsedTrialValue && !user.isInTrial && !trialExpired;
+    return !hasUsedTrialValue && !user.isInTrial;
   };
 
   const value: AuthContextType = {

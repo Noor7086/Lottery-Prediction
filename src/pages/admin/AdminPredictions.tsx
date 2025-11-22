@@ -22,26 +22,26 @@ const AdminPredictions: React.FC = () => {
   // Lottery configurations with pick limits
   const lotteryConfigs = {
     powerball: {
-      whiteBalls: { min: 1, max: 69, pickCount: 5, label: 'White Balls (1-69) - Select exactly 5' },
-      redBalls: { min: 1, max: 26, pickCount: 1, label: 'Red Ball / Powerball (1-26) - Select exactly 1' },
+      whiteBalls: { min: 1, max: 69, pickCount: 5, label: 'White Balls (1-69)' },
+      redBalls: { min: 1, max: 26, pickCount: 1, label: 'Red Ball / Powerball (1-26)' },
       type: 'double' as const
     },
     megamillion: {
-      whiteBalls: { min: 1, max: 70, pickCount: 5, label: 'White Balls (1-70) - Select exactly 5' },
-      redBalls: { min: 1, max: 25, pickCount: 1, label: 'Mega Ball (1-25) - Select exactly 1' },
+      whiteBalls: { min: 1, max: 70, pickCount: 5, label: 'White Balls (1-70)' },
+      redBalls: { min: 1, max: 25, pickCount: 1, label: 'Mega Ball (1-25)' },
       type: 'double' as const
     },
     lottoamerica: {
-      whiteBalls: { min: 1, max: 52, pickCount: 5, label: 'White Balls (1-52) - Select exactly 5' },
-      redBalls: { min: 1, max: 10, pickCount: 1, label: 'Star Ball (1-10) - Select exactly 1' },
+      whiteBalls: { min: 1, max: 52, pickCount: 5, label: 'White Balls (1-52)' },
+      redBalls: { min: 1, max: 10, pickCount: 1, label: 'Star Ball (1-10)' },
       type: 'double' as const
     },
     gopher5: {
-      numbers: { min: 1, max: 47, pickCount: 5, label: 'Numbers (1-47) - Select exactly 5' },
+      numbers: { min: 1, max: 47, pickCount: 5, label: 'Numbers (1-47)' },
       type: 'single' as const
     },
     pick3: {
-      numbers: { min: 0, max: 9, pickCount: 3, label: 'Numbers (0-9) - Select exactly 3' },
+      numbers: { min: 0, max: 9, pickCount: 3, label: 'Numbers (0-9)' },
       type: 'pick3' as const
     }
   };
@@ -55,9 +55,10 @@ const AdminPredictions: React.FC = () => {
     redBalls: [] as number[],
     singleNumbers: [] as number[],
     pick3Numbers: [] as number[],
-    price: 0,
+    price: '' as any,
     notes: ''
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const lotteryTypes: { value: LotteryType; label: string }[] = [
     { value: 'powerball', label: 'Powerball' },
@@ -196,32 +197,27 @@ const AdminPredictions: React.FC = () => {
   };
 
   const submitPrediction = async (isEdit: boolean) => {
-    // Validate number selections
-    const config = lotteryConfigs[newPrediction.lotteryType];
-    let validationError = '';
-    
-    if (config.type === 'double') {
-      if (newPrediction.whiteBalls.length !== config.whiteBalls.pickCount) {
-        validationError = `Please select exactly ${config.whiteBalls.pickCount} white balls`;
-      } else if (newPrediction.redBalls.length !== config.redBalls.pickCount) {
-        validationError = `Please select exactly ${config.redBalls.pickCount} ${config.redBalls.pickCount === 1 ? 'red ball' : 'red balls'}`;
+    // Validate draw date - must be >= current date
+    if (newPrediction.drawDate) {
+      const selectedDate = new Date(newPrediction.drawDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+      selectedDate.setHours(0, 0, 0, 0);
+      
+      if (selectedDate < today) {
+        setFieldErrors(prev => ({
+          ...prev,
+          drawDate: 'Draw date must be greater than or equal to the current date'
+        }));
+        setError('Draw date must be greater than or equal to the current date');
+        return;
       }
-    } else if (config.type === 'single') {
-      if (newPrediction.singleNumbers.length !== config.numbers.pickCount) {
-        validationError = `Please select exactly ${config.numbers.pickCount} numbers`;
-      }
-    } else if (config.type === 'pick3') {
-      if (newPrediction.pick3Numbers.length !== config.numbers.pickCount) {
-        validationError = `Please select exactly ${config.numbers.pickCount} numbers`;
-      }
-    }
-    
-    if (validationError) {
-      setError(validationError);
-      return;
     }
     
     try {
+      // Get lottery config for formatting numbers
+      const config = lotteryConfigs[newPrediction.lotteryType];
+      
       // Combine date and time into ISO8601 datetime string
       const drawDateTime = new Date(`${newPrediction.drawDate}T${newPrediction.drawTime}`).toISOString();
       
@@ -230,7 +226,7 @@ const AdminPredictions: React.FC = () => {
         lotteryDisplayName: newPrediction.lotteryDisplayName,
         drawDate: drawDateTime,
         drawTime: newPrediction.drawTime,
-        price: parseFloat(newPrediction.price.toString()),
+        price: newPrediction.price === '' ? 0 : parseFloat(newPrediction.price.toString()),
         notes: newPrediction.notes || undefined
       };
 
@@ -277,6 +273,7 @@ const AdminPredictions: React.FC = () => {
           resetPredictionForm();
           fetchPredictions();
           setError(null);
+          setFieldErrors({});
           toast.success('Prediction updated successfully!');
         } else {
           const errorMsg = (response as any).message || 'Failed to update prediction';
@@ -291,6 +288,7 @@ const AdminPredictions: React.FC = () => {
           resetPredictionForm();
           fetchPredictions();
           setError(null);
+          setFieldErrors({});
           toast.success('Prediction created successfully!');
         } else {
           const errorMsg = (response as any).message || 'Failed to create prediction';
@@ -299,9 +297,29 @@ const AdminPredictions: React.FC = () => {
         }
       }
     } catch (err: any) {
+      // Handle validation errors from backend
+      if (err.response?.status === 400 || err.response?.status === 422) {
+        const validationErrors = err.response?.data?.errors;
+        if (Array.isArray(validationErrors)) {
+          const errors: Record<string, string> = {};
+          validationErrors.forEach((error: any) => {
+            const field = error.param || error.path || error.field;
+            const message = error.msg || error.message || 'Validation error';
+            if (field) {
+              errors[field] = message;
+            }
+          });
+          setFieldErrors(errors);
+          // Don't show toast for validation errors - they're shown on fields
+          return;
+        }
+      }
+      
+      // For other errors, show toast
       const errorMsg = err.response?.data?.message || err.message || `Failed to ${isEdit ? 'update' : 'create'} prediction`;
       setError(errorMsg);
       toast.error(errorMsg);
+      setFieldErrors({});
     }
   };
 
@@ -315,9 +333,10 @@ const AdminPredictions: React.FC = () => {
       redBalls: [],
       singleNumbers: [],
       pick3Numbers: [],
-      price: 0,
+      price: '' as any,
       notes: ''
     });
+    setFieldErrors({});
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -408,12 +427,16 @@ const AdminPredictions: React.FC = () => {
   const closeCreateModal = () => {
     setShowCreateModal(false);
     resetPredictionForm();
+    setError(null);
+    setFieldErrors({});
   };
 
   const closeEditModal = () => {
     setShowEditModal(false);
     setEditingPrediction(null);
     resetPredictionForm();
+    setError(null);
+    setFieldErrors({});
   };
 
   const toggleNumber = (number: number, type: 'whiteBalls' | 'redBalls' | 'singleNumbers' | 'pick3Numbers') => {
@@ -444,19 +467,16 @@ const AdminPredictions: React.FC = () => {
     onToggle: (num: number) => void;
     onClear: () => void;
     label: string;
-    requiredCount: number;
-  }> = ({ min, max, selected, onToggle, onClear, label, requiredCount }) => {
+  }> = ({ min, max, selected, onToggle, onClear, label }) => {
     const numbers = Array.from({ length: max - min + 1 }, (_, i) => i + min);
-    const isLimitReached = selected.length >= requiredCount;
-    const isValid = selected.length === requiredCount;
     
     return (
       <div className="mb-4">
         <div className="d-flex justify-content-between align-items-center mb-2">
           <label className="form-label fw-bold">{label}</label>
           <div>
-            <span className={`badge me-2 ${isValid ? 'bg-success' : isLimitReached ? 'bg-warning' : 'bg-info'}`}>
-              Selected: {selected.length} / {requiredCount} {isValid ? '✓' : ''}
+            <span className="badge me-2 bg-info">
+              Selected: {selected.length}
             </span>
             <button
               type="button"
@@ -468,16 +488,6 @@ const AdminPredictions: React.FC = () => {
             </button>
           </div>
         </div>
-        {!isValid && (
-          <div className={`alert alert-${isLimitReached ? 'warning' : 'info'} py-2 mb-2`} role="alert">
-            <small>
-              {isLimitReached 
-                ? `You have selected ${selected.length} numbers. Maximum allowed is ${requiredCount}. Please deselect some numbers.`
-                : `Please select exactly ${requiredCount} ${requiredCount === 1 ? 'number' : 'numbers'}. Currently selected: ${selected.length}`
-              }
-            </small>
-          </div>
-        )}
         <div
           className="border rounded p-3"
           style={{
@@ -489,22 +499,18 @@ const AdminPredictions: React.FC = () => {
           <div className="d-flex flex-wrap gap-2">
             {numbers.map(num => {
               const isSelected = selected.includes(num);
-              const isDisabled = !isSelected && isLimitReached;
               
               return (
                 <button
                   key={num}
                   type="button"
-                  className={`btn ${isSelected ? 'btn-primary' : isDisabled ? 'btn-secondary' : 'btn-outline-secondary'}`}
+                  className={`btn ${isSelected ? 'btn-primary' : 'btn-outline-secondary'}`}
                   style={{
                     minWidth: '50px',
-                    fontSize: '0.9rem',
-                    opacity: isDisabled ? 0.5 : 1,
-                    cursor: isDisabled ? 'not-allowed' : 'pointer'
+                    fontSize: '0.9rem'
                   }}
-                  onClick={() => !isDisabled && onToggle(num)}
-                  disabled={isDisabled}
-                  title={isDisabled ? `Maximum of ${requiredCount} selections allowed` : isSelected ? 'Click to deselect' : 'Click to select'}
+                  onClick={() => onToggle(num)}
+                  title={isSelected ? 'Click to deselect' : 'Click to select'}
                 >
                   {num.toString().padStart(2, '0')}
                 </button>
@@ -514,9 +520,8 @@ const AdminPredictions: React.FC = () => {
         </div>
         {selected.length > 0 && (
           <div className="mt-2">
-            <small className={`${isValid ? 'text-success fw-bold' : 'text-muted'}`}>
+            <small className="text-muted">
               Selected: {selected.join(', ')}
-              {!isValid && ` (Need ${requiredCount - selected.length} more)`}
             </small>
           </div>
         )}
@@ -633,7 +638,7 @@ const AdminPredictions: React.FC = () => {
               <h6 className="m-0 font-weight-bold text-primary">Predictions List</h6>
             </div>
             <div className="card-body">
-              {error && (
+              {error && !showCreateModal && !showEditModal && (
                 <div className="alert alert-danger" role="alert">
                   {error}
                 </div>
@@ -773,8 +778,8 @@ const AdminPredictions: React.FC = () => {
 
       {/* Prediction Details Modal */}
       {showModal && selectedPrediction && (
-        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1200, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="modal-dialog modal-lg" style={{ zIndex: 1205, marginTop: '60px' }}>
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Prediction Details</h5>
@@ -884,8 +889,8 @@ const AdminPredictions: React.FC = () => {
 
       {/* Create Prediction Modal */}
       {showCreateModal && (
-        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-xl">
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1200, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="modal-dialog modal-xl" style={{ zIndex: 1205, marginTop: '60px' }}>
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Create New Prediction</h5>
@@ -893,12 +898,18 @@ const AdminPredictions: React.FC = () => {
               </div>
               <form onSubmit={handleCreatePrediction}>
                 <div className="modal-body">
+                  {error && (
+                    <div className="alert alert-danger mb-3" role="alert">
+                      <i className="bi bi-exclamation-triangle me-2"></i>
+                      {error}
+                    </div>
+                  )}
                   <div className="row">
                     <div className="col-md-6">
                       <div className="mb-3">
                         <label className="form-label">Lottery Type</label>
                         <select
-                          className="form-select"
+                          className={`form-select ${fieldErrors.lotteryType ? 'is-invalid' : ''}`}
                           value={newPrediction.lotteryType}
                           onChange={(e) => {
                             const newType = e.target.value as LotteryType;
@@ -913,6 +924,14 @@ const AdminPredictions: React.FC = () => {
                               singleNumbers: [],
                               pick3Numbers: []
                             });
+                            // Clear error when field changes
+                            if (fieldErrors.lotteryType) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.lotteryType;
+                                return newErrors;
+                              });
+                            }
                           }}
                           required
                         >
@@ -922,6 +941,11 @@ const AdminPredictions: React.FC = () => {
                             </option>
                           ))}
                         </select>
+                        {fieldErrors.lotteryType && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.lotteryType}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="col-md-6">
@@ -929,11 +953,26 @@ const AdminPredictions: React.FC = () => {
                         <label className="form-label">Display Name</label>
                         <input
                           type="text"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.lotteryDisplayName ? 'is-invalid' : ''}`}
                           value={newPrediction.lotteryDisplayName}
-                          onChange={(e) => setNewPrediction({...newPrediction, lotteryDisplayName: e.target.value})}
+                          onChange={(e) => {
+                            setNewPrediction({...newPrediction, lotteryDisplayName: e.target.value});
+                            // Clear error when field changes
+                            if (fieldErrors.lotteryDisplayName) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.lotteryDisplayName;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.lotteryDisplayName && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.lotteryDisplayName}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -943,11 +982,49 @@ const AdminPredictions: React.FC = () => {
                         <label className="form-label">Draw Date</label>
                         <input
                           type="date"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.drawDate ? 'is-invalid' : ''}`}
                           value={newPrediction.drawDate}
-                          onChange={(e) => setNewPrediction({...newPrediction, drawDate: e.target.value})}
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => {
+                            const selectedDate = e.target.value;
+                            setNewPrediction({...newPrediction, drawDate: selectedDate});
+                            
+                            // Validate date in real-time
+                            if (selectedDate) {
+                              const date = new Date(selectedDate);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              date.setHours(0, 0, 0, 0);
+                              
+                              if (date < today) {
+                                setFieldErrors(prev => ({
+                                  ...prev,
+                                  drawDate: 'Draw date must be greater than or equal to the current date'
+                                }));
+                              } else {
+                                // Clear error when valid
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.drawDate;
+                                  return newErrors;
+                                });
+                              }
+                            } else {
+                              // Clear error when field is cleared
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.drawDate;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.drawDate && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.drawDate}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="col-md-6">
@@ -955,11 +1032,26 @@ const AdminPredictions: React.FC = () => {
                         <label className="form-label">Draw Time</label>
                         <input
                           type="time"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.drawTime ? 'is-invalid' : ''}`}
                           value={newPrediction.drawTime}
-                          onChange={(e) => setNewPrediction({...newPrediction, drawTime: e.target.value})}
+                          onChange={(e) => {
+                            setNewPrediction({...newPrediction, drawTime: e.target.value});
+                            // Clear error when field changes
+                            if (fieldErrors.drawTime) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.drawTime;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.drawTime && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.drawTime}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -970,11 +1062,29 @@ const AdminPredictions: React.FC = () => {
                         <input
                           type="number"
                           step="0.01"
-                          className="form-control"
-                          value={newPrediction.price}
-                          onChange={(e) => setNewPrediction({...newPrediction, price: parseFloat(e.target.value)})}
+                          min="0"
+                          className={`form-control ${fieldErrors.price ? 'is-invalid' : ''}`}
+                          value={newPrediction.price === '' ? '' : newPrediction.price}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow empty string, otherwise parse as float
+                            setNewPrediction({...newPrediction, price: value === '' ? '' as any : (parseFloat(value) || '' as any)});
+                            // Clear error when field changes
+                            if (fieldErrors.price) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.price;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.price && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.price}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -999,7 +1109,6 @@ const AdminPredictions: React.FC = () => {
                               onToggle={(num) => toggleNumber(num, 'whiteBalls')}
                               onClear={() => clearNumbers('whiteBalls')}
                               label={config.whiteBalls.label}
-                              requiredCount={config.whiteBalls.pickCount}
                             />
                             <NumberSelector
                               min={config.redBalls.min}
@@ -1008,7 +1117,6 @@ const AdminPredictions: React.FC = () => {
                               onToggle={(num) => toggleNumber(num, 'redBalls')}
                               onClear={() => clearNumbers('redBalls')}
                               label={config.redBalls.label}
-                              requiredCount={config.redBalls.pickCount}
                             />
                           </>
                         );
@@ -1021,7 +1129,6 @@ const AdminPredictions: React.FC = () => {
                             onToggle={(num) => toggleNumber(num, 'singleNumbers')}
                             onClear={() => clearNumbers('singleNumbers')}
                             label={config.numbers.label}
-                            requiredCount={config.numbers.pickCount}
                           />
                         );
                       } else if (config.type === 'pick3') {
@@ -1033,7 +1140,6 @@ const AdminPredictions: React.FC = () => {
                             onToggle={(num) => toggleNumber(num, 'pick3Numbers')}
                             onClear={() => clearNumbers('pick3Numbers')}
                             label={config.numbers.label}
-                            requiredCount={config.numbers.pickCount}
                           />
                         );
                       }
@@ -1043,11 +1149,26 @@ const AdminPredictions: React.FC = () => {
                   <div className="mb-3">
                     <label className="form-label">Notes</label>
                     <textarea
-                      className="form-control"
+                      className={`form-control ${fieldErrors.notes ? 'is-invalid' : ''}`}
                       rows={3}
                       value={newPrediction.notes}
-                      onChange={(e) => setNewPrediction({...newPrediction, notes: e.target.value})}
+                      onChange={(e) => {
+                        setNewPrediction({...newPrediction, notes: e.target.value});
+                        // Clear error when field changes
+                        if (fieldErrors.notes) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.notes;
+                            return newErrors;
+                          });
+                        }
+                      }}
                     />
+                    {fieldErrors.notes && (
+                      <div className="invalid-feedback d-block">
+                        {fieldErrors.notes}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">
@@ -1066,8 +1187,8 @@ const AdminPredictions: React.FC = () => {
 
       {/* Edit Prediction Modal */}
       {showEditModal && editingPrediction && (
-        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-xl">
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1200, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="modal-dialog modal-xl" style={{ zIndex: 1205, marginTop: '60px' }}>
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Edit Prediction</h5>
@@ -1075,12 +1196,18 @@ const AdminPredictions: React.FC = () => {
               </div>
               <form onSubmit={handleUpdatePrediction}>
                 <div className="modal-body">
+                  {error && (
+                    <div className="alert alert-danger mb-3" role="alert">
+                      <i className="bi bi-exclamation-triangle me-2"></i>
+                      {error}
+                    </div>
+                  )}
                   <div className="row">
                     <div className="col-md-6">
                       <div className="mb-3">
                         <label className="form-label">Lottery Type</label>
                         <select
-                          className="form-select"
+                          className={`form-select ${fieldErrors.lotteryType ? 'is-invalid' : ''}`}
                           value={newPrediction.lotteryType}
                           onChange={(e) => {
                             const newType = e.target.value as LotteryType;
@@ -1095,6 +1222,14 @@ const AdminPredictions: React.FC = () => {
                               singleNumbers: [],
                               pick3Numbers: []
                             });
+                            // Clear error when field changes
+                            if (fieldErrors.lotteryType) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.lotteryType;
+                                return newErrors;
+                              });
+                            }
                           }}
                           required
                         >
@@ -1104,6 +1239,11 @@ const AdminPredictions: React.FC = () => {
                             </option>
                           ))}
                         </select>
+                        {fieldErrors.lotteryType && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.lotteryType}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="col-md-6">
@@ -1111,11 +1251,26 @@ const AdminPredictions: React.FC = () => {
                         <label className="form-label">Display Name</label>
                         <input
                           type="text"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.lotteryDisplayName ? 'is-invalid' : ''}`}
                           value={newPrediction.lotteryDisplayName}
-                          onChange={(e) => setNewPrediction({...newPrediction, lotteryDisplayName: e.target.value})}
+                          onChange={(e) => {
+                            setNewPrediction({...newPrediction, lotteryDisplayName: e.target.value});
+                            // Clear error when field changes
+                            if (fieldErrors.lotteryDisplayName) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.lotteryDisplayName;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.lotteryDisplayName && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.lotteryDisplayName}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1125,11 +1280,49 @@ const AdminPredictions: React.FC = () => {
                         <label className="form-label">Draw Date</label>
                         <input
                           type="date"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.drawDate ? 'is-invalid' : ''}`}
                           value={newPrediction.drawDate}
-                          onChange={(e) => setNewPrediction({...newPrediction, drawDate: e.target.value})}
+                          min={new Date().toISOString().split('T')[0]}
+                          onChange={(e) => {
+                            const selectedDate = e.target.value;
+                            setNewPrediction({...newPrediction, drawDate: selectedDate});
+                            
+                            // Validate date in real-time
+                            if (selectedDate) {
+                              const date = new Date(selectedDate);
+                              const today = new Date();
+                              today.setHours(0, 0, 0, 0);
+                              date.setHours(0, 0, 0, 0);
+                              
+                              if (date < today) {
+                                setFieldErrors(prev => ({
+                                  ...prev,
+                                  drawDate: 'Draw date must be greater than or equal to the current date'
+                                }));
+                              } else {
+                                // Clear error when valid
+                                setFieldErrors(prev => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors.drawDate;
+                                  return newErrors;
+                                });
+                              }
+                            } else {
+                              // Clear error when field is cleared
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.drawDate;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.drawDate && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.drawDate}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="col-md-6">
@@ -1137,11 +1330,26 @@ const AdminPredictions: React.FC = () => {
                         <label className="form-label">Draw Time</label>
                         <input
                           type="time"
-                          className="form-control"
+                          className={`form-control ${fieldErrors.drawTime ? 'is-invalid' : ''}`}
                           value={newPrediction.drawTime}
-                          onChange={(e) => setNewPrediction({...newPrediction, drawTime: e.target.value})}
+                          onChange={(e) => {
+                            setNewPrediction({...newPrediction, drawTime: e.target.value});
+                            // Clear error when field changes
+                            if (fieldErrors.drawTime) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.drawTime;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.drawTime && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.drawTime}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1152,11 +1360,29 @@ const AdminPredictions: React.FC = () => {
                         <input
                           type="number"
                           step="0.01"
-                          className="form-control"
-                          value={newPrediction.price}
-                          onChange={(e) => setNewPrediction({...newPrediction, price: parseFloat(e.target.value)})}
+                          min="0"
+                          className={`form-control ${fieldErrors.price ? 'is-invalid' : ''}`}
+                          value={newPrediction.price === '' ? '' : newPrediction.price}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            // Allow empty string, otherwise parse as float
+                            setNewPrediction({...newPrediction, price: value === '' ? '' as any : (parseFloat(value) || '' as any)});
+                            // Clear error when field changes
+                            if (fieldErrors.price) {
+                              setFieldErrors(prev => {
+                                const newErrors = { ...prev };
+                                delete newErrors.price;
+                                return newErrors;
+                              });
+                            }
+                          }}
                           required
                         />
+                        {fieldErrors.price && (
+                          <div className="invalid-feedback d-block">
+                            {fieldErrors.price}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1181,7 +1407,6 @@ const AdminPredictions: React.FC = () => {
                               onToggle={(num) => toggleNumber(num, 'whiteBalls')}
                               onClear={() => clearNumbers('whiteBalls')}
                               label={config.whiteBalls.label}
-                              requiredCount={config.whiteBalls.pickCount}
                             />
                             <NumberSelector
                               min={config.redBalls.min}
@@ -1190,7 +1415,6 @@ const AdminPredictions: React.FC = () => {
                               onToggle={(num) => toggleNumber(num, 'redBalls')}
                               onClear={() => clearNumbers('redBalls')}
                               label={config.redBalls.label}
-                              requiredCount={config.redBalls.pickCount}
                             />
                           </>
                         );
@@ -1203,7 +1427,6 @@ const AdminPredictions: React.FC = () => {
                             onToggle={(num) => toggleNumber(num, 'singleNumbers')}
                             onClear={() => clearNumbers('singleNumbers')}
                             label={config.numbers.label}
-                            requiredCount={config.numbers.pickCount}
                           />
                         );
                       } else if (config.type === 'pick3') {
@@ -1215,7 +1438,6 @@ const AdminPredictions: React.FC = () => {
                             onToggle={(num) => toggleNumber(num, 'pick3Numbers')}
                             onClear={() => clearNumbers('pick3Numbers')}
                             label={config.numbers.label}
-                            requiredCount={config.numbers.pickCount}
                           />
                         );
                       }
@@ -1225,11 +1447,26 @@ const AdminPredictions: React.FC = () => {
                   <div className="mb-3">
                     <label className="form-label">Notes</label>
                     <textarea
-                      className="form-control"
+                      className={`form-control ${fieldErrors.notes ? 'is-invalid' : ''}`}
                       rows={3}
                       value={newPrediction.notes}
-                      onChange={(e) => setNewPrediction({...newPrediction, notes: e.target.value})}
+                      onChange={(e) => {
+                        setNewPrediction({...newPrediction, notes: e.target.value});
+                        // Clear error when field changes
+                        if (fieldErrors.notes) {
+                          setFieldErrors(prev => {
+                            const newErrors = { ...prev };
+                            delete newErrors.notes;
+                            return newErrors;
+                          });
+                        }
+                      }}
                     />
+                    {fieldErrors.notes && (
+                      <div className="invalid-feedback d-block">
+                        {fieldErrors.notes}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="modal-footer">

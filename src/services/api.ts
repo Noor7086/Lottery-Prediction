@@ -5,11 +5,23 @@ class ApiService {
   private api: AxiosInstance;
 
   constructor() {
+    // Use environment variable for API URL, fallback to relative path for same-domain setup
+    // For production with backend on different server, set VITE_API_BASE_URL
+    const apiBaseURL = import.meta.env.VITE_API_BASE_URL || '/api';
+    
+    // Log API URL for debugging (only in development)
+    if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+      console.log('🔗 API Base URL:', apiBaseURL);
+      console.log('🔗 Environment:', import.meta.env.MODE);
+    }
+    
     this.api = axios.create({
-      baseURL: '/api',
+      baseURL: apiBaseURL,
       timeout: 10000,
       headers: {
         'Content-Type': 'application/json',
+        // Skip ngrok browser warning page for free tier
+        'ngrok-skip-browser-warning': 'true',
       },
     });
 
@@ -23,6 +35,24 @@ class ApiService {
         const token = localStorage.getItem('token');
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
+          // Only log in debug mode
+          if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+            console.log('🔐 Auth token added to request:', token.substring(0, 20) + '...');
+          }
+        }
+        
+        // Always include ngrok skip browser warning header for free tier
+        config.headers['ngrok-skip-browser-warning'] = 'true';
+        
+        // Only log requests in debug mode
+        if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+          console.log('📤 Request:', {
+            method: config.method?.toUpperCase(),
+            url: config.url || '',
+            baseURL: config.baseURL || '',
+            fullURL: (config.baseURL || '') + (config.url || ''),
+            hasToken: !!token
+          });
         }
         return config;
       },
@@ -42,30 +72,59 @@ class ApiService {
           
           switch (status) {
             case 401:
-              // Unauthorized - clear token and redirect to login
-              localStorage.removeItem('token');
-              if (window.location.pathname !== '/login') {
+              // Unauthorized - only redirect if not already on login page
+              // Don't clear token or redirect during login attempt
+              if (window.location.pathname !== '/login' && !error.config?.url?.includes('/auth/login')) {
+                localStorage.removeItem('token');
                 window.location.href = '/login';
+              }
+              // Don't show toast for login attempts - let the component handle error display
+              if (data.message && !error.config?.url?.includes('/auth/login')) {
+                toast.error(data.message);
               }
               break;
             case 403:
-              toast.error('Access denied. You do not have permission to perform this action.');
+              // Don't show generic toast - let the component handle specific error messages
+              // The component will show the actual error message from the backend
               break;
             case 400:
-              // Bad request - don't show toast for validation errors (let components handle them)
-              // Only show toast for non-validation 400 errors
-              if (!data.errors && data.message) {
-                toast.error(data.message);
+              // Bad request - don't show toast for admin predictions endpoint (validation errors)
+              // Let the component handle field-specific error display
+              const url400 = error.config?.url || '';
+              if (!url400.includes('/admin/predictions')) {
+                // For other endpoints, let components handle it or show toast if needed
               }
-              // If data.errors exists, it's a validation error - let the component handle it
               break;
             case 404:
-              // Don't show toast for 404 errors - let components handle them
-              // Components can show appropriate messages or handle silently
+              // Don't show toast for endpoints that are expected to potentially return 404 for new users
+              // These endpoints are handled gracefully by components using Promise.allSettled
+              const url = error.config?.url || '';
+              const suppress404Endpoints = [
+                '/wallet/stats',
+                '/predictions/my-purchases',
+                '/wallet',
+                '/wallet/transactions'
+              ];
+              
+              const shouldSuppress = suppress404Endpoints.some(endpoint => url.includes(endpoint));
+              
+              if (!shouldSuppress) {
+                toast.error('Resource not found.');
+              }
               break;
             case 422:
-              // Validation errors - don't show toast (let components handle them)
-              // Components will display field-level validation errors
+              // Validation errors - don't show toast for admin predictions endpoint
+              // Let the component handle field-specific error display
+              const requestUrl = error.config?.url || '';
+              if (!requestUrl.includes('/admin/predictions')) {
+                if (data.errors && Array.isArray(data.errors)) {
+                  data.errors.forEach((error: any) => {
+                    toast.error(error.message || 'Validation error');
+                  });
+                } else {
+                  toast.error(data.message || 'Validation failed');
+                }
+              }
               break;
             case 429:
               toast.error('Too many requests. Please try again later.');
@@ -77,8 +136,15 @@ class ApiService {
               toast.error(data.message || 'An error occurred');
           }
         } else if (error.request) {
-          toast.error('Network error. Please check your connection.');
+          // Network error - backend not reachable
+          console.error('❌ Network Error - Backend not reachable:', {
+            url: error.config?.url,
+            baseURL: error.config?.baseURL,
+            fullURL: error.config?.baseURL + error.config?.url
+          });
+          toast.error('Cannot connect to server. Please check if backend is running.');
         } else {
+          console.error('❌ Unexpected error:', error);
           toast.error('An unexpected error occurred');
         }
         
@@ -89,18 +155,76 @@ class ApiService {
 
   // Generic methods
   async get<T>(url: string, params?: any): Promise<T> {
-    const response = await this.api.get(url, { params });
-    return response.data;
+    try {
+      // Only log in debug mode
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log(`📡 GET Request: ${this.api.defaults.baseURL}${url}`, params ? { params } : '');
+      }
+      const response = await this.api.get(url, { params });
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log(`✅ GET Response: ${url}`, response.data);
+      }
+      return response.data;
+    } catch (error: any) {
+      // Always log errors
+      console.error(`❌ GET Error: ${url}`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+      throw error;
+    }
   }
 
   async post<T>(url: string, data?: any): Promise<T> {
-    const response = await this.api.post(url, data);
-    return response.data;
+    try {
+      // Only log in debug mode
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log(`📡 POST Request: ${this.api.defaults.baseURL}${url}`, data ? { data: { ...data, password: data.password ? '***' : undefined } } : '');
+      }
+      const response = await this.api.post(url, data);
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log(`✅ POST Response: ${url}`, response.data);
+      }
+      return response.data;
+    } catch (error: any) {
+      // Always log errors
+      console.error(`❌ POST Error: ${url}`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        responseText: error.response?.data
+      });
+      throw error;
+    }
   }
 
   async put<T>(url: string, data?: any): Promise<T> {
-    const response = await this.api.put(url, data);
-    return response.data;
+    try {
+      // Only log in debug mode
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log(`📡 PUT Request: ${this.api.defaults.baseURL}${url}`, data ? { data: { ...data, password: data.password || data.currentPassword ? '***' : undefined, newPassword: data.newPassword ? '***' : undefined } } : '');
+      }
+      const response = await this.api.put(url, data);
+      if (import.meta.env.DEV && import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log(`✅ PUT Response: ${url}`, response.data);
+      }
+      return response.data;
+    } catch (error: any) {
+      // Always log errors
+      console.error(`❌ PUT Error: ${url}`, {
+        message: error.message,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL
+      });
+      throw error;
+    }
   }
 
   async delete<T>(url: string): Promise<T> {
@@ -136,16 +260,6 @@ class ApiService {
   // Health check
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     return this.get('/health');
-  }
-
-  // Contact form submission
-  async sendContactMessage(data: {
-    name: string;
-    email: string;
-    subject: string;
-    message: string;
-  }): Promise<{ success: boolean; message: string }> {
-    return this.post('/contact', data);
   }
 }
 

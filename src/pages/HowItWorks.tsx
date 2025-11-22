@@ -9,7 +9,7 @@ const HowItWorks: React.FC = () => {
       icon: 'bi-person-plus',
       details: [
         'Choose from 5 supported lottery types',
-        'Provide your phone number for SMS notifications',
+        'Provide your phone number',
         'No subscription fees during trial period'
       ]
     },
@@ -20,7 +20,7 @@ const HowItWorks: React.FC = () => {
       icon: 'bi-calendar-check',
       details: [
         'Predictions uploaded daily by our experts',
-        'SMS alerts when new predictions are available',
+        'Instant alerts when new predictions are available',
         'Clear format showing numbers to avoid'
       ]
     },
@@ -181,7 +181,7 @@ const HowItWorks: React.FC = () => {
                 <div className="col-md-6">
                   <div className="text-center">
                     <i className="bi bi-bell text-warning fs-1 mb-3"></i>
-                    <h5>SMS Alerts</h5>
+                    <h5>Instant Alerts</h5>
                     <p className="text-muted">
                       Get instant notifications when new predictions 
                       are available for your lottery.

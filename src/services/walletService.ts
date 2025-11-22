@@ -111,7 +111,7 @@ class WalletService {
     if (!response.success || !response.data) {
       throw new Error('Failed to fetch wallet statistics');
     }
-    console.log('Wallet stats API response:', response); // Debug log
+    // Debug log removed
     return response.data;
   }
 

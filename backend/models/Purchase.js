@@ -18,13 +18,17 @@ const purchaseSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['wallet', 'stripe', 'paypal'],
+    enum: ['wallet', 'stripe', 'paypal', 'trial'],
     required: [true, 'Payment method is required']
   },
   paymentStatus: {
     type: String,
-    enum: ['pending', 'completed', 'failed', 'refunded'],
+    enum: ['pending', 'completed', 'failed', 'refunded', 'trial'],
     default: 'pending'
+  },
+  isTrialView: {
+    type: Boolean,
+    default: false
   },
   stripePaymentIntentId: {
     type: String,
@@ -75,7 +79,8 @@ purchaseSchema.virtual('statusDisplay').get(function() {
     'pending': 'Payment Pending',
     'completed': 'Completed',
     'failed': 'Payment Failed',
-    'refunded': 'Refunded'
+    'refunded': 'Refunded',
+    'trial': 'Free Trial'
   };
   return statusMap[this.paymentStatus] || this.paymentStatus;
 });

@@ -60,7 +60,8 @@ const register = async (req, res) => {
           selectedLottery: user.selectedLottery,
           trialStartDate: user.trialStartDate,
           trialEndDate: user.trialEndDate,
-          isInTrial: user.isInTrial()
+          isInTrial: user.isInTrial(),
+          createdAt: user.createdAt
         },
         token
       }
@@ -138,7 +139,8 @@ const login = async (req, res) => {
           trialEndDate: user.trialEndDate,
           isInTrial: user.isInTrial(),
           walletBalance: user.walletBalance,
-          role: user.role
+          role: user.role,
+          createdAt: user.createdAt
         },
         token
       }
@@ -180,7 +182,8 @@ const getMe = async (req, res) => {
           isInTrial: user.isInTrial(),
           walletBalance: user.walletBalance,
           role: user.role,
-          notificationsEnabled: user.notificationsEnabled
+          notificationsEnabled: user.notificationsEnabled,
+          createdAt: user.createdAt
         }
       }
     });
@@ -201,8 +204,6 @@ const updateProfile = async (req, res) => {
     const { firstName, lastName, email, phone, selectedLottery, notificationsEnabled } = req.body;
     const userId = req.user.userId;
 
-    console.log('Update profile request body:', req.body);
-
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -211,38 +212,31 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    // Check if email is being changed and if it already exists
-    if (email !== undefined && email !== user.email) {
-      const existingUser = await User.findOne({ email });
-      if (existingUser) {
+    // Update fields
+    if (firstName) user.firstName = firstName;
+    if (lastName) user.lastName = lastName;
+    if (phone) user.phone = phone;
+    if (notificationsEnabled !== undefined) user.notificationsEnabled = notificationsEnabled;
+    
+    // Update email if provided and different from current
+    if (email && email !== user.email) {
+      // Check if email is already taken by another user
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser && existingUser._id.toString() !== userId) {
         return res.status(400).json({
           success: false,
-          message: 'Email already in use'
+          message: 'Email is already in use by another account'
         });
       }
+      user.email = email.toLowerCase();
     }
-
-    // Update fields - check for undefined to allow updates even if value is the same
-    if (firstName !== undefined) user.firstName = firstName;
-    if (lastName !== undefined) user.lastName = lastName;
-    if (email !== undefined) user.email = email;
-    if (phone !== undefined) user.phone = phone;
-    if (selectedLottery !== undefined && selectedLottery !== '') {
+    
+    // Update selectedLottery if provided and not empty
+    if (selectedLottery !== undefined && selectedLottery !== null && selectedLottery !== '') {
       user.selectedLottery = selectedLottery;
     }
-    if (notificationsEnabled !== undefined) user.notificationsEnabled = notificationsEnabled;
-
-    console.log('User before save:', {
-      email: user.email,
-      selectedLottery: user.selectedLottery
-    });
 
     await user.save();
-
-    console.log('User after save:', {
-      email: user.email,
-      selectedLottery: user.selectedLottery
-    });
 
     res.json({
       success: true,
@@ -260,7 +254,8 @@ const updateProfile = async (req, res) => {
           isInTrial: user.isInTrial(),
           walletBalance: user.walletBalance,
           role: user.role,
-          notificationsEnabled: user.notificationsEnabled
+          notificationsEnabled: user.notificationsEnabled,
+          createdAt: user.createdAt
         }
       }
     });

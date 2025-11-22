@@ -19,8 +19,23 @@ const PORT = process.env.PORT || 5000;
 
 // Security middleware
 app.use(helmet());
+
+// CORS configuration - support multiple origins
+const corsOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',').map(origin => origin.trim())
+  : [process.env.FRONTEND_URL || 'http://localhost:3000'];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (corsOrigins.indexOf(origin) !== -1 || corsOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 
@@ -60,7 +75,6 @@ import adminRoutes from './routes/admin.js';
 import notificationRoutes from './routes/notifications.js';
 import lotteryRoutes from './routes/lotteries.js';
 import walletRoutes from './routes/wallet.js';
-import contactRoutes from './routes/contact.js';
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
@@ -73,8 +87,6 @@ console.log('✅ Admin routes registered at /api/admin');
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/lotteries', lotteryRoutes);
 app.use('/api/wallet', walletRoutes);
-app.use('/api/contact', contactRoutes);
-console.log('✅ Contact routes registered at /api/contact');
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
@@ -95,7 +107,16 @@ app.use('*', (req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+// Listen on all network interfaces (0.0.0.0) to allow external connections
+// This is necessary when frontend is on a different domain
+const HOST = process.env.HOST || '0.0.0.0';
+
+app.listen(PORT, HOST, () => {
+  console.log(`🚀 Server running on http://${HOST}:${PORT}`);
+  console.log(`🌐 CORS enabled for: ${process.env.CORS_ORIGINS || process.env.FRONTEND_URL || 'http://localhost:3000'}`);
+  console.log(`📡 Backend is ready for ngrok!`);
+  console.log(`💡 Make sure ngrok is running: ngrok http 5000`);
+  console.log(`💡 Add your ngrok URL to CORS_ORIGINS in backend/env`);
+  console.log(`💡 Test backend: http://localhost:${PORT}/api/health`);
 });
 

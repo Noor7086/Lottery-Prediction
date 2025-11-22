@@ -7,6 +7,9 @@
 # ===========================================
 NODE_ENV=development
 PORT=5000
+# HOST: Leave empty to listen on all interfaces (0.0.0.0)
+# This allows external connections when frontend is on different domain
+# HOST=0.0.0.0
 
 # ===========================================
 # DATABASE CONFIGURATION
@@ -15,7 +18,7 @@ PORT=5000
 # MONGODB_URI=mongodb+srv://mahnoorazhar70:codingwithmahnoor@mahnoorcluster.tzuep24.mongodb.net/obyyo-lottery
 
 # Alternative MongoDB Atlas connection (for production)
-MONGODB_URI=mongodb+srv://mahnoorazhar70:codingwithmahnoor@mahnoorcluster.tzuep24.mongodb.net/obyyo-lottery
+MONGODB_URI=  'mongodb+srv://mahnoorazhar70:codingwithmahnoor@mahnoorcluster.tzuep24.mongodb.net/obyyo-lottery'
 
 # ===========================================
 # JWT AUTHENTICATION
@@ -46,36 +49,30 @@ PAYPAL_MODE=sandbox
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_SECURE=false
-SMTP_USER="mahnoorazhar70@gmail.com"
-SMTP_PASS="jysc rski aaju pltn"
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password-here
 
 # Email addresses
 FROM_EMAIL=noreply@obyyo.com
-# Admin email where contact form submissions will be sent
-ADMIN_EMAIL=mahnoorazhar70@gmail.com
-
-# ===========================================
-# SMS/OTP CONFIGURATION
-# ===========================================
-# Twilio configuration for SMS verification
-TWILIO_ACCOUNT_SID=your_twilio_account_sid
-TWILIO_AUTH_TOKEN=your_twilio_auth_token
-TWILIO_PHONE_NUMBER=+1234567890
+ADMIN_EMAIL=admin@obyyo.com
 
 # ===========================================
 # FRONTEND CONFIGURATION
 # ===========================================
 # Frontend URL (for CORS and redirects)
-FRONTEND_URL=http://localhost:3000
+FRONTEND_URL=https://seagreen-owl-810079.hostingersite.com
 
 # API base URL
-API_BASE_URL=http://localhost:5000/api
+API_BASE_URL=https://seagreen-owl-810079.hostingersite.com/api
 
 # ===========================================
 # SECURITY CONFIGURATION
 # ===========================================
 # CORS origins (comma-separated list)
-CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+# IMPORTANT: Add your ngrok URL here (e.g., https://abc123.ngrok.io)
+# Get your ngrok URL by running: ngrok http 5000
+# Then add it to the list below (replace YOUR_NGROK_URL with your actual ngrok URL)
+CORS_ORIGINS=https://seagreen-owl-810079.hostingersite.com,https://benito-musicianly-danuta.ngrok-free.dev,http://localhost:3000,http://localhost:5173
 
 # Rate limiting
 RATE_LIMIT_WINDOW_MS=900000

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { predictionService } from '../services/predictionService';
 import { lotteryService } from '../services/lotteryService';
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 const Predictions: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [selectedLottery, setSelectedLottery] = useState<LotteryType>('powerball');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [lotteries, setLotteries] = useState<Lottery[]>([]);
@@ -18,45 +19,210 @@ const Predictions: React.FC = () => {
   const [selectedPrediction, setSelectedPrediction] = useState<Prediction | null>(null);
   const [purchasedPrediction, setPurchasedPrediction] = useState<Prediction | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingLottery, setLoadingLottery] = useState<string | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showPredictionModal, setShowPredictionModal] = useState(false);
+  const [showTrialPredictionModal, setShowTrialPredictionModal] = useState(false);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [loadingPredictionDetails, setLoadingPredictionDetails] = useState(false);
+  const [loadingPredictionId, setLoadingPredictionId] = useState<string | null>(null);
   const [trialMessage, setTrialMessage] = useState<string | null>(null);
   const [acknowledgeDisclaimer, setAcknowledgeDisclaimer] = useState(false);
+  const prevLocationRef = useRef<string>('');
 
   // Fetch lotteries on component mount
   useEffect(() => {
     fetchLotteries();
   }, []);
 
+  // Refetch predictions when navigating to this page (especially from navbar)
+  useEffect(() => {
+    // Check if we just navigated to this page
+    const currentLocation = location.pathname + location.search;
+    if (location.pathname === '/predictions' && prevLocationRef.current !== currentLocation) {
+      prevLocationRef.current = currentLocation;
+      
+      // Get lottery type directly from URL to avoid state timing issues
+      const lotteryTypeFromUrl = searchParams.get('lottery');
+      const validLotteryTypes: LotteryType[] = ['gopher5', 'pick3', 'lottoamerica', 'megamillion', 'powerball'];
+      
+      if (lotteryTypeFromUrl && validLotteryTypes.includes(lotteryTypeFromUrl.toLowerCase() as LotteryType)) {
+        const normalizedType = lotteryTypeFromUrl.toLowerCase() as LotteryType;
+        console.log('🔄 Navigation detected - URL lottery:', normalizedType, 'Current state:', selectedLottery);
+        
+        // Update selectedLottery immediately to keep state in sync
+        if (normalizedType !== selectedLottery) {
+          setSelectedLottery(normalizedType);
+        }
+        
+        // Fetch predictions directly using URL parameter to avoid timing issues
+        const loadPredictions = async () => {
+          setLoadingLottery(normalizedType);
+          try {
+            await fetchPredictionsForLottery(normalizedType);
+          } finally {
+            setLoadingLottery(null);
+          }
+        };
+        loadPredictions();
+      } else if (selectedLottery) {
+        // Fallback to selectedLottery if no URL parameter
+        console.log('🔄 Navigation detected - using selectedLottery:', selectedLottery);
+        const loadPredictions = async () => {
+          setLoadingLottery(selectedLottery);
+          try {
+            await fetchPredictionsForLottery(selectedLottery);
+          } finally {
+            setLoadingLottery(null);
+          }
+        };
+        loadPredictions();
+      }
+    } else if (prevLocationRef.current !== currentLocation) {
+      prevLocationRef.current = currentLocation;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname, location.search]);
+
   // Read URL parameter and set selected lottery
   useEffect(() => {
     const lotteryType = searchParams.get('lottery');
-    if (lotteryType && lotteries.length > 0) {
+    const validLotteryTypes: LotteryType[] = ['gopher5', 'pick3', 'lottoamerica', 'megamillion', 'powerball'];
+    
+    console.log('🔍 URL parameter effect - lotteryType from URL:', lotteryType);
+    console.log('🔍 URL parameter effect - current selectedLottery:', selectedLottery);
+    console.log('🔍 URL parameter effect - lotteries loaded:', lotteries.length);
+    
+    if (lotteryType && validLotteryTypes.includes(lotteryType.toLowerCase() as LotteryType)) {
+      // Directly use the URL parameter if it's a valid lottery type
+      const normalizedType = lotteryType.toLowerCase() as LotteryType;
+      console.log('✅ Setting selectedLottery from URL:', normalizedType);
+      if (normalizedType !== selectedLottery) {
+        setSelectedLottery(normalizedType);
+      }
+    } else if (lotteryType && lotteries.length > 0) {
+      // Try to find lottery by id or code if URL param doesn't match valid types
+      console.log('🔍 Trying to find lottery by id/code:', lotteryType);
       const lottery = lotteries.find(l => 
-        l.id === lotteryType || 
-        l.code.toLowerCase() === lotteryType ||
-        l.id?.toLowerCase() === lotteryType
+        l.id?.toLowerCase() === lotteryType.toLowerCase() || 
+        l.code?.toLowerCase() === lotteryType.toLowerCase()
       );
       if (lottery) {
-        setSelectedLottery((lottery.id || lottery.code.toLowerCase()) as LotteryType);
+        const lotteryId = (lottery.id || lottery.code.toLowerCase()) as LotteryType;
+        console.log('✅ Found lottery:', lotteryId);
+        if (validLotteryTypes.includes(lotteryId) && lotteryId !== selectedLottery) {
+          setSelectedLottery(lotteryId);
+        }
+      } else {
+        console.warn('⚠️ Lottery not found for:', lotteryType);
       }
     } else if (lotteries.length > 0 && !searchParams.get('lottery')) {
       // Set first lottery as default if no URL parameter
       const firstLottery = lotteries.find(l => l.isActive) || lotteries[0];
       if (firstLottery) {
-        setSelectedLottery((firstLottery.id || firstLottery.code.toLowerCase()) as LotteryType);
+        const lotteryId = (firstLottery.id || firstLottery.code.toLowerCase()) as LotteryType;
+        console.log('✅ Setting default lottery:', lotteryId);
+        if (validLotteryTypes.includes(lotteryId) && lotteryId !== selectedLottery) {
+          setSelectedLottery(lotteryId);
+        }
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, lotteries]);
 
   // Fetch predictions when lottery type changes
   useEffect(() => {
     if (selectedLottery) {
-      fetchPredictions();
+      console.log('🔄 selectedLottery changed, fetching predictions for:', selectedLottery);
+      const loadPredictions = async () => {
+        setLoadingLottery(selectedLottery);
+        try {
+          // Pass selectedLottery directly to ensure we use the latest value
+          await fetchPredictionsForLottery(selectedLottery);
+        } finally {
+          setLoadingLottery(null);
+        }
+      };
+      loadPredictions();
     }
   }, [selectedLottery, user]);
+  
+  // Separate function that takes lottery type as parameter to avoid closure issues
+  const fetchPredictionsForLottery = async (lotteryType: LotteryType) => {
+    try {
+      setLoading(true);
+      setTrialMessage(null);
+      
+      console.log('🔍 Fetching predictions for lottery:', lotteryType);
+      console.log('🔍 URL search params:', searchParams.get('lottery'));
+      
+      if (!lotteryType) {
+        console.warn('⚠️ No lottery type provided, cannot fetch predictions');
+        setPredictions([]);
+        return;
+      }
+      
+      // Check if user is in trial period (case-insensitive comparison)
+      // Check trial status more robustly - check both isInTrial flag and trialEndDate
+      const isInTrial = user?.isInTrial || (user?.trialEndDate && new Date(user.trialEndDate) >= new Date());
+      const userSelectedLottery = user?.selectedLottery?.toLowerCase();
+      const currentSelectedLottery = lotteryType?.toLowerCase();
+      
+      console.log('🔍 Frontend fetchPredictions trial check:', {
+        isInTrial,
+        userIsInTrial: user?.isInTrial,
+        trialEndDate: user?.trialEndDate,
+        userSelectedLottery,
+        currentSelectedLottery,
+        match: userSelectedLottery === currentSelectedLottery
+      });
+      
+      if (isInTrial && userSelectedLottery === currentSelectedLottery) {
+        // Fetch trial predictions (free) - 1 per day
+        console.log('📥 Fetching trial predictions for:', lotteryType);
+        try {
+          const trialData = await predictionService.getTrialPredictions(lotteryType);
+          console.log('✅ Trial predictions received:', trialData);
+          // For trial users: Show only 1 prediction per day (backend should return only 1)
+          // Limit to 1 prediction in case backend returns multiple
+          const limitedPredictions = (trialData.predictions || []).slice(0, 1);
+          setPredictions(limitedPredictions);
+          if (trialData.message) {
+            setTrialMessage(trialData.message);
+          }
+        } catch (trialError: any) {
+          console.error('❌ Trial prediction fetch error:', trialError);
+          // If trial fetch fails, show error but don't fall back to regular predictions
+          if (trialError.response?.status === 403) {
+            setTrialMessage(trialError.response?.data?.message || 'Access denied for trial predictions');
+            setPredictions([]);
+          } else {
+            toast.error(trialError.message || 'Failed to fetch trial predictions');
+            setPredictions([]);
+          }
+        }
+      } else {
+        // Fetch regular predictions (trial expired or different lottery)
+        console.log('📥 Fetching regular predictions for:', lotteryType);
+        const fetchedPredictions = await predictionService.getPredictions(lotteryType, 1, 10);
+        console.log('✅ Predictions received:', fetchedPredictions);
+        console.log('✅ Number of predictions:', fetchedPredictions?.length || 0);
+        if (fetchedPredictions && fetchedPredictions.length > 0) {
+          console.log('✅ First prediction lottery type:', fetchedPredictions[0]?.lotteryType);
+        }
+        setPredictions(fetchedPredictions || []);
+      }
+    } catch (error: any) {
+      console.error('❌ Error fetching predictions:', error);
+      console.error('❌ Error details:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Lottery type was:', lotteryType);
+      toast.error(error.message || 'Failed to fetch predictions');
+      setPredictions([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchLotteries = async () => {
     try {
@@ -64,13 +230,8 @@ const Predictions: React.FC = () => {
       const fetchedLotteries = await lotteryService.getLotteries();
       setLotteries(fetchedLotteries);
       
-      // Set default selected lottery if not set
-      if (fetchedLotteries.length > 0) {
-        const activeLottery = fetchedLotteries.find(l => l.isActive) || fetchedLotteries[0];
-        if (activeLottery && !searchParams.get('lottery')) {
-          setSelectedLottery((activeLottery.id || activeLottery.code.toLowerCase()) as LotteryType);
-        }
-      }
+      // Don't set selectedLottery here - let the URL parameter effect handle it
+      // This prevents conflicts and ensures URL parameter takes precedence
     } catch (error: any) {
       console.error('Error fetching lotteries:', error);
       toast.error(error.message || 'Failed to fetch lotteries');
@@ -79,38 +240,9 @@ const Predictions: React.FC = () => {
     }
   };
 
+  // Keep the old fetchPredictions for backward compatibility (used by navigation refetch)
   const fetchPredictions = async () => {
-    try {
-      setLoading(true);
-      setTrialMessage(null);
-      
-      console.log('Fetching predictions for:', selectedLottery);
-      
-      // Check if user is in trial period
-      if (user?.isInTrial && user?.selectedLottery === selectedLottery) {
-        // Fetch trial predictions (free) - 1 per day
-        console.log('Fetching trial predictions');
-        const trialData = await predictionService.getTrialPredictions(selectedLottery);
-        console.log('Trial predictions received:', trialData);
-        setPredictions(trialData.predictions || []);
-        if (trialData.message) {
-          setTrialMessage(trialData.message);
-        }
-      } else {
-        // Fetch regular predictions (trial expired or different lottery)
-        console.log('Fetching regular predictions');
-        const fetchedPredictions = await predictionService.getPredictions(selectedLottery, 1, 10);
-        console.log('Predictions received:', fetchedPredictions);
-        setPredictions(fetchedPredictions || []);
-      }
-    } catch (error: any) {
-      console.error('Error fetching predictions:', error);
-      console.error('Error details:', error.response?.data);
-      toast.error(error.message || 'Failed to fetch predictions');
-      setPredictions([]);
-    } finally {
-      setLoading(false);
-    }
+    await fetchPredictionsForLottery(selectedLottery);
   };
 
   // Map lottery icon based on lottery code/name
@@ -196,10 +328,77 @@ const Predictions: React.FC = () => {
   ];
 
 
-  const handlePurchaseClick = (prediction: Prediction) => {
-    setSelectedPrediction(prediction);
-    setAcknowledgeDisclaimer(false); // Reset checkbox when opening modal
-    setShowPaymentModal(true);
+  const handlePurchaseClick = async (prediction: Prediction) => {
+    // Check if user is in trial and selected lottery matches (case-insensitive)
+    // Check trial status more robustly - check both isInTrial flag and trialEndDate
+    const isInTrial = user?.isInTrial || (user?.trialEndDate && new Date(user.trialEndDate) >= new Date());
+    const userSelectedLottery = user?.selectedLottery?.toLowerCase();
+    const currentSelectedLottery = selectedLottery?.toLowerCase();
+    
+    console.log('🔍 Frontend trial check:', {
+      isInTrial,
+      userIsInTrial: user?.isInTrial,
+      trialEndDate: user?.trialEndDate,
+      userSelectedLottery,
+      currentSelectedLottery,
+      match: userSelectedLottery === currentSelectedLottery
+    });
+    
+    if (isInTrial && userSelectedLottery === currentSelectedLottery) {
+      // For trial users, directly show the prediction without payment
+      try {
+        setLoadingPredictionDetails(true);
+        setLoadingPredictionId(prediction.id); // Track which prediction is loading
+        const fullPrediction = await predictionService.getPredictionDetails(
+          prediction.lotteryType,
+          prediction.id
+        );
+        
+        setPurchasedPrediction(fullPrediction);
+        setShowTrialPredictionModal(true); // Use separate trial modal
+        toast.success('Prediction loaded successfully!');
+        
+        // Refresh predictions list after viewing (to update the one-per-day status)
+        await fetchPredictions();
+      } catch (error: any) {
+        console.error('❌ Error fetching trial prediction details:', error);
+        console.error('❌ Error response:', error.response?.data);
+        console.error('❌ Error message:', error.message);
+        
+        // Get the actual error message from the response
+        let errorMessage = 'Failed to load prediction details';
+        if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        console.error('❌ Final error message:', errorMessage);
+        
+        // Check if it's the "already viewed today" error
+        if (errorMessage.includes('already viewed') || errorMessage.includes('already viewed your free prediction')) {
+          toast.error('You have already used your daily free prediction for today. Come back tomorrow for a new prediction!');
+        } else if (error.response?.status === 403) {
+          // Show the specific error message from backend
+          toast.error(errorMessage || 'Access denied. Please check your trial status.');
+        } else {
+          toast.error(errorMessage);
+        }
+        
+        // If it's a "already viewed today" error, refresh the list
+        if (errorMessage.includes('already viewed') || error.response?.status === 403) {
+          await fetchPredictions();
+        }
+      } finally {
+        setLoadingPredictionDetails(false);
+        setLoadingPredictionId(null); // Clear loading state
+      }
+    } else {
+      // For non-trial users or different lottery, show payment modal
+      setSelectedPrediction(prediction);
+      setAcknowledgeDisclaimer(false); // Reset checkbox when opening modal
+      setShowPaymentModal(true);
+    }
   };
 
   const handleWalletPayment = async () => {
@@ -214,7 +413,7 @@ const Predictions: React.FC = () => {
       return;
     }
 
-    const amount = selectedPrediction.price;
+    const amount = selectedPrediction.price || 0;
     
     // Check if user has sufficient wallet balance
     if (user.walletBalance < amount) {
@@ -517,24 +716,41 @@ const Predictions: React.FC = () => {
                         <div key={lottery.id} className="col-md-6 col-lg-4">
                           <div 
                             className={`card h-100 cursor-pointer ${selectedLottery === (lottery.id || lottery.code.toLowerCase()) ? 'border-primary' : ''}`}
-                            onClick={() => setSelectedLottery((lottery.id || lottery.code.toLowerCase()) as LotteryType)}
+                            onClick={() => {
+                              const lotteryType = (lottery.id || lottery.code.toLowerCase()) as LotteryType;
+                              if (lotteryType !== selectedLottery) {
+                                setSelectedLottery(lotteryType);
+                              }
+                            }}
                             style={{ 
                               cursor: 'pointer',
                               transition: 'all 0.3s ease',
-                              border: selectedLottery === (lottery.id || lottery.code.toLowerCase()) ? '2px solid var(--primary-color)' : '1px solid #e9ecef'
+                              border: selectedLottery === (lottery.id || lottery.code.toLowerCase()) ? '2px solid var(--primary-color)' : '1px solid #e9ecef',
+                              opacity: loadingLottery === (lottery.id || lottery.code.toLowerCase()) ? 0.7 : 1
                             }}
                           >
                             <div className="card-body text-center">
-                              <div className="mb-3">
-                                <span style={{ fontSize: '2rem' }}>{getLotteryIcon(lottery)}</span>
-                              </div>
-                              <h6 className="fw-bold">{lottery.name}</h6>
-                              <p className="small text-muted mb-2">{lottery.state}</p>
-                              <p className="small mb-2">{lottery.description}</p>
-                              <div className="d-flex justify-content-between align-items-center">
-                                <span className="badge bg-primary">${lottery.price}/prediction</span>
-                                <small className="text-muted">{getNextDraw(lottery)}</small>
-                              </div>
+                              {loadingLottery === (lottery.id || lottery.code.toLowerCase()) ? (
+                                <div className="py-3">
+                                  <div className="spinner-border spinner-border-sm text-primary mb-2" role="status">
+                                    <span className="visually-hidden">Loading...</span>
+                                  </div>
+                                  <p className="small text-muted mb-0">Loading predictions...</p>
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="mb-3">
+                                    <span style={{ fontSize: '2rem' }}>{getLotteryIcon(lottery)}</span>
+                                  </div>
+                                  <h6 className="fw-bold">{lottery.name}</h6>
+                                  <p className="small text-muted mb-2">{lottery.state}</p>
+                                  <p className="small mb-2">{lottery.description}</p>
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <span className="badge bg-primary">${lottery.price}/prediction</span>
+                                    <small className="text-muted">{getNextDraw(lottery)}</small>
+                                  </div>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -559,7 +775,12 @@ const Predictions: React.FC = () => {
                   <i className="bi bi-calendar-event me-2"></i>
                   Available Predictions for {selectedLotteryData?.name}
                 </h5>
-                {user?.isInTrial && user?.selectedLottery === selectedLottery && (
+                {(() => {
+                  const isInTrial = user?.isInTrial || (user?.trialEndDate && new Date(user.trialEndDate) >= new Date());
+                  const userSelectedLottery = user?.selectedLottery?.toLowerCase();
+                  const currentSelectedLottery = selectedLottery?.toLowerCase();
+                  return isInTrial && userSelectedLottery === currentSelectedLottery;
+                })() && (
                   <span className="badge bg-success">
                     <i className="bi bi-star me-1"></i>
                     Free Trial
@@ -621,11 +842,25 @@ const Predictions: React.FC = () => {
                                   {new Date(prediction.drawDate).toLocaleDateString()} at {prediction.drawTime}
                                 </small>
                               </div>
-                              <span className="badge bg-primary">${prediction.price.toFixed(2)}</span>
+                              {(() => {
+                                const isInTrial = user?.isInTrial || (user?.trialEndDate && new Date(user.trialEndDate) >= new Date());
+                                const userSelectedLottery = user?.selectedLottery?.toLowerCase();
+                                const currentSelectedLottery = selectedLottery?.toLowerCase();
+                                return isInTrial && userSelectedLottery === currentSelectedLottery ? (
+                                  <span className="badge bg-success">Free Trial</span>
+                                ) : (
+                                  <span className="badge bg-primary">${prediction.price ? prediction.price.toFixed(2) : '0.00'}</span>
+                                );
+                              })()}
                             </div>
 
                             {/* Show limited preview - just count, not actual numbers */}
-                            {viableData && (
+                            {(() => {
+                              const isInTrial = user?.isInTrial || (user?.trialEndDate && new Date(user.trialEndDate) >= new Date());
+                              const userSelectedLottery = user?.selectedLottery?.toLowerCase();
+                              const currentSelectedLottery = selectedLottery?.toLowerCase();
+                              return viableData && !(isInTrial && userSelectedLottery === currentSelectedLottery);
+                            })() && (
                               <div className="mb-3 p-2 bg-light rounded">
                                 {isDouble ? (
                                   <small className="text-muted">
@@ -648,14 +883,48 @@ const Predictions: React.FC = () => {
                                 <i className="bi bi-download me-1"></i>
                                 {prediction.downloadCount} downloads
                               </small>
-                              <button
-                                className="btn btn-primary btn-sm"
-                                onClick={() => handlePurchaseClick(prediction)}
-                                disabled={paymentLoading}
-                              >
-                                <i className="bi bi-cart me-1"></i>
-                                Purchase
-                              </button>
+                              {(() => {
+                                const isInTrial = user?.isInTrial || (user?.trialEndDate && new Date(user.trialEndDate) >= new Date());
+                                const userSelectedLottery = user?.selectedLottery?.toLowerCase();
+                                const currentSelectedLottery = selectedLottery?.toLowerCase();
+                                return isInTrial && userSelectedLottery === currentSelectedLottery;
+                              })() ? (
+                                <button
+                                  className="btn btn-sm btn-success"
+                                  onClick={() => handlePurchaseClick(prediction)}
+                                  disabled={loadingPredictionDetails && loadingPredictionId === prediction.id}
+                                >
+                                  {loadingPredictionDetails && loadingPredictionId === prediction.id ? (
+                                    <>
+                                      <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                                      Loading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <i className="bi bi-eye me-1"></i>
+                                      View More
+                                    </>
+                                  )}
+                                </button>
+                              ) : (
+                                <button
+                                  className="btn btn-sm btn-primary"
+                                  onClick={() => handlePurchaseClick(prediction)}
+                                  disabled={paymentLoading || (loadingPredictionDetails && loadingPredictionId === prediction.id)}
+                                >
+                                  {loadingPredictionDetails && loadingPredictionId === prediction.id ? (
+                                    <>
+                                      <span className="spinner-border spinner-border-sm me-1" role="status"></span>
+                                      Loading...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <i className="bi bi-cart me-1"></i>
+                                      Purchase
+                                    </>
+                                  )}
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -687,7 +956,7 @@ const Predictions: React.FC = () => {
                 <p className="text-muted mb-1">
                   Draw Date: <strong>{new Date(selectedPrediction.drawDate).toLocaleDateString()} at {selectedPrediction.drawTime}</strong>
                 </p>
-                <p className="text-muted">Amount: <strong className="fs-5">${selectedPrediction.price.toFixed(2)}</strong></p>
+                <p className="text-muted">Amount: <strong className="fs-5">${selectedPrediction.price ? selectedPrediction.price.toFixed(2) : '0.00'}</strong></p>
               </div>
               
               {user && (
@@ -695,7 +964,7 @@ const Predictions: React.FC = () => {
                   <p className="mb-1">
                     <strong>Wallet Balance:</strong> ${user.walletBalance.toFixed(2)}
                   </p>
-                  {user.walletBalance < selectedPrediction.price && (
+                  {selectedPrediction.price && user.walletBalance < selectedPrediction.price && (
                     <p className="mb-0 text-danger">
                       <i className="bi bi-exclamation-triangle me-1"></i>
                       Insufficient balance - <a href="/wallet" className="alert-link">Add funds</a>
@@ -751,7 +1020,7 @@ const Predictions: React.FC = () => {
               variant="outline-primary" 
               size="lg"
               onClick={handleWalletPayment}
-              disabled={paymentLoading || loadingPredictionDetails || !acknowledgeDisclaimer || (user && selectedPrediction ? user.walletBalance < selectedPrediction.price : false)}
+              disabled={paymentLoading || loadingPredictionDetails || !acknowledgeDisclaimer || (user && selectedPrediction && selectedPrediction.price ? user.walletBalance < selectedPrediction.price : false)}
               className="d-flex align-items-center justify-content-center"
             >
               {paymentLoading || loadingPredictionDetails ? (
@@ -831,6 +1100,59 @@ const Predictions: React.FC = () => {
             disabled={paymentLoading}
           >
             Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Free Trial Prediction Modal - No validation/disclaimer needed */}
+      <Modal 
+        show={showTrialPredictionModal} 
+        onHide={() => {
+          setShowTrialPredictionModal(false);
+          setPurchasedPrediction(null);
+        }} 
+        centered 
+        size="lg"
+      >
+        <Modal.Header closeButton className="bg-success text-white">
+          <Modal.Title>
+            <i className="bi bi-gift me-2"></i>
+            Free Trial Prediction
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {loadingPredictionDetails ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-success" role="status">
+                <span className="visually-hidden">Loading prediction details...</span>
+              </div>
+              <p className="mt-3 text-muted">Loading your free prediction...</p>
+            </div>
+          ) : purchasedPrediction ? (
+            <>
+              <div className="alert alert-info mb-3">
+                <i className="bi bi-info-circle me-2"></i>
+                <strong>Free Trial:</strong> This is your daily free prediction. You can view one prediction per day during your trial period.
+              </div>
+              {renderFullPrediction(purchasedPrediction)}
+            </>
+          ) : (
+            <div className="alert alert-warning">
+              <i className="bi bi-exclamation-triangle me-2"></i>
+              No prediction data available.
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="success" 
+            onClick={() => {
+              setShowTrialPredictionModal(false);
+              setPurchasedPrediction(null);
+            }}
+          >
+            <i className="bi bi-check me-2"></i>
+            Got it, thanks!
           </Button>
         </Modal.Footer>
       </Modal>

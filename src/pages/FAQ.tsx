@@ -34,7 +34,7 @@ const FAQ: React.FC = () => {
     },
     {
       question: "How do I receive my predictions?",
-      answer: "You can access predictions through our web dashboard, and we also send real-time SMS notifications when new predictions are available for your selected lottery games. All predictions are delivered instantly after analysis is complete."
+      answer: "You can access predictions through our web dashboard, and we also send real-time notifications when new predictions are available for your selected lottery games. All predictions are delivered instantly after analysis is complete."
     },
     {
       question: "Can I use the number generator with the predictions?",

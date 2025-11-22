@@ -81,9 +81,8 @@ const validateProfileUpdate = [
   
   body('email')
     .optional()
-    .trim()
     .isEmail()
-    .withMessage('Please provide a valid email address')
+    .withMessage('Please provide a valid email')
     .normalizeEmail(),
   
   body('phone')
@@ -93,8 +92,8 @@ const validateProfileUpdate = [
   
   body('selectedLottery')
     .optional()
-    .isIn(['gopher5', 'pick3', 'lottoamerica', 'megamillion', 'powerball', ''])
-    .withMessage('Invalid lottery type'),
+    .isIn(['gopher5', 'pick3', 'lottoamerica', 'megamillion', 'powerball'])
+    .withMessage('Please select a valid lottery type'),
   
   body('notificationsEnabled')
     .optional()
@@ -182,7 +181,18 @@ const validatePredictionUpload = [
   
   body('drawDate')
     .isISO8601()
-    .withMessage('Invalid draw date format'),
+    .withMessage('Invalid draw date format')
+    .custom((value) => {
+      const drawDate = new Date(value);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Reset time to start of day for comparison
+      drawDate.setHours(0, 0, 0, 0);
+      
+      if (drawDate < today) {
+        throw new Error('Draw date must be greater than or equal to the current date');
+      }
+      return true;
+    }),
   
   body('drawTime')
     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/)

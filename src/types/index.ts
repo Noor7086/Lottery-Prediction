@@ -17,6 +17,7 @@ export interface User {
   role: 'user' | 'admin';
   notificationsEnabled: boolean;
   isActive?: boolean; // User active/inactive status
+  createdAt?: string; // Account creation date
 }
 
 export interface AuthUser extends User {
@@ -97,12 +98,13 @@ export interface Purchase {
   user: string;
   prediction: Prediction | any; // Prediction can be populated or just an ID
   amount: number;
-  paymentMethod: 'wallet' | 'stripe' | 'paypal';
-  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded';
+  paymentMethod: 'wallet' | 'stripe' | 'paypal' | 'trial';
+  paymentStatus: 'pending' | 'completed' | 'failed' | 'refunded' | 'trial';
   transactionId?: string;
   downloadCount: number;
   lastDownloaded?: string;
   isRefunded: boolean;
+  isTrialView?: boolean;
   refundReason?: string;
   createdAt: string;
   updatedAt: string;
@@ -153,8 +155,8 @@ export interface ProfileUpdateForm {
   lastName: string;
   email: string;
   phone: string;
-  selectedLottery: LotteryType;
-  notificationsEnabled?: boolean;
+  selectedLottery: string;
+  notificationsEnabled: boolean;
 }
 
 export interface PasswordChangeForm {

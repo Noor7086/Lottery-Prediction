@@ -55,11 +55,11 @@ const AdminNavbar: React.FC = () => {
     >
       <div className="container-fluid px-2 px-md-3">
         <div className="d-flex align-items-center justify-content-between w-100" style={{ height: '60px' }}>
-          {/* Left Side - Toggle & Brand */}
+          {/* Left Side - Toggle & Logo */}
           <div className="d-flex align-items-center">
-            {/* Sidebar Toggle Button - Visible on all screens below 992px */}
+            {/* Sidebar Toggle Button - Visible on all screens */}
             <button 
-              className="btn btn-link text-dark d-lg-none me-2 sidebar-toggle-btn p-2"
+              className="btn btn-link text-dark d-admin-desktop-toggle me-2 sidebar-toggle-btn p-2"
               onClick={toggleSidebar}
               aria-label="Toggle sidebar"
               style={{ margin: 0, lineHeight: 1, textDecoration: 'none' }}
@@ -67,11 +67,11 @@ const AdminNavbar: React.FC = () => {
               <i className="bi bi-list" style={{ fontSize: '1.25rem' }}></i>
             </button>
 
-            {/* Brand */}
+            {/* Logo */}
             <Link 
-              className="navbar-brand d-flex align-items-center fw-bold text-dark m-0" 
+              className="navbar-brand d-flex align-items-center m-0" 
               to="/admin"
-              style={{ fontSize: 'clamp(1rem, 2vw, 1.25rem)', lineHeight: 1, textDecoration: 'none' }}
+              style={{ lineHeight: 1, textDecoration: 'none' }}
             >
               <img 
                 src={logo} 
@@ -85,8 +85,6 @@ const AdminNavbar: React.FC = () => {
                   transition: 'filter 0.3s ease'
                 }} 
               />
-              <span className="d-none d-sm-inline">Admin Panel</span>
-              <span className="d-inline d-sm-none">Admin</span>
             </Link>
           </div>
           

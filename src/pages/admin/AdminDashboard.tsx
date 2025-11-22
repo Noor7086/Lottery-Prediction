@@ -28,13 +28,26 @@ const AdminDashboard: React.FC = () => {
 
   const fetchStats = async () => {
     try {
+      console.log('📊 Fetching admin stats...');
       const response = await apiService.get('/admin/stats');
+      console.log('📊 Admin stats response:', response);
       if ((response as any).success) {
         setStats((response as any).data);
+        setError(null);
       } else {
+        console.error('❌ Admin stats failed - no success flag:', response);
         setError('Failed to fetch statistics');
       }
     } catch (err: any) {
+      console.error('❌ Admin stats error:', err);
+      console.error('❌ Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        url: err.config?.url,
+        baseURL: err.config?.baseURL,
+        fullURL: err.config?.baseURL + err.config?.url
+      });
       setError(err.message || 'Failed to fetch statistics');
     }
   };
@@ -202,13 +215,6 @@ const AdminDashboard: React.FC = () => {
             </div>
             <div className="header-actions">
               <button 
-                className="btn btn-outline-primary me-2"
-                onClick={() => exportData('analytics')}
-              >
-                <i className="bi bi-download me-2"></i>
-                Export Data
-              </button>
-              <button 
                 className="btn btn-primary" 
                 onClick={() => {
                   fetchStats();
@@ -294,6 +300,13 @@ const AdminDashboard: React.FC = () => {
               <div className="card-header">
                 <h4>Revenue Overview</h4>
                 <div className="card-actions">
+                  <button 
+                    className="btn btn-sm btn-outline-secondary me-2"
+                    onClick={() => exportData('revenue')}
+                  >
+                    <i className="bi bi-download me-1"></i>
+                    Export
+                  </button>
                   <button 
                     className="btn btn-sm btn-outline-primary"
                     onClick={() => navigate('/admin/payments')}
@@ -389,10 +402,11 @@ const AdminDashboard: React.FC = () => {
                 <h4>User Activity Analytics</h4>
                 <div className="card-actions">
                   <button 
-                    className="btn btn-sm btn-outline-primary"
+                    className="btn btn-sm btn-outline-secondary"
                     onClick={() => exportData('analytics')}
                   >
-                    Export Data
+                    <i className="bi bi-download me-1"></i>
+                    Export
                   </button>
                 </div>
               </div>

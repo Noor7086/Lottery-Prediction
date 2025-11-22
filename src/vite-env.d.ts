@@ -30,4 +30,3 @@ declare module '*.webp' {
   export default value;
 }
 
-

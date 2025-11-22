@@ -67,7 +67,7 @@ const Dashboard: React.FC = () => {
       }
       
       try {
-        console.log('Loading user stats from multiple APIs for user:', user.email);
+        // Loading user stats
         
         // Fetch data from multiple endpoints in parallel
         const [purchasesResponse, walletStatsResponse, lotteriesResponse] = await Promise.allSettled([
@@ -87,7 +87,12 @@ const Dashboard: React.FC = () => {
 
         if (purchasesResponse.status === 'fulfilled') {
           const purchases = purchasesResponse.value;
-          totalPredictions = purchases.filter(p => p.paymentStatus === 'completed' || p.paymentStatus === 'pending').length;
+          // Count all valid purchases: completed, pending, and trial (free trial predictions)
+          totalPredictions = purchases.filter(p => 
+            p.paymentStatus === 'completed' || 
+            p.paymentStatus === 'pending' || 
+            p.paymentStatus === 'trial'
+          ).length;
           
           // Get recent activity from purchases (last 5)
           recentActivity = purchases
@@ -126,12 +131,7 @@ const Dashboard: React.FC = () => {
           walletBalance
         });
 
-        console.log('✅ User stats loaded:', {
-          totalPredictions,
-          activeLotteries,
-          walletBalance,
-          recentActivityCount: recentActivity.length
-        });
+        // User stats loaded successfully
       } catch (error: any) {
         console.error('Error loading user stats:', error);
         // Set default values on error

@@ -10,7 +10,7 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 
 const Home: React.FC = () => {
-  const { user, canStartTrial, loading } = useAuth();
+  const { user, canStartTrial } = useAuth();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   // Hero slideshow effect
@@ -135,7 +135,7 @@ const Home: React.FC = () => {
     {
       icon: 'bi-phone',
       title: 'Instant Notifications',
-      description: 'Receive real-time SMS alerts when new predictions are available for your selected lottery games.',
+      description: 'Receive real-time alerts when new predictions are available for your selected lottery games.',
       color: 'info'
     },
     {
@@ -317,13 +317,7 @@ const Home: React.FC = () => {
                   Join over 50,000 professionals who trust Obyyo for data-driven lottery strategies.
                     </p>
                 <div className="d-flex flex-wrap gap-3 justify-content-center mb-5 fade-in animate-delay-2">
-                      {loading ? (
-                        <div className="d-flex align-items-center justify-content-center">
-                          <div className="spinner-border text-primary" role="status">
-                            <span className="visually-hidden">Loading...</span>
-                          </div>
-                        </div>
-                      ) : user ? (
+                      {user ? (
                     <Link to="/dashboard" className="btn btn-primary btn-lg px-5 hover-lift">
                           <i className="bi bi-speedometer2 me-2"></i>
                       Go to Dashboard
@@ -615,7 +609,7 @@ const Home: React.FC = () => {
                             }}>
                               <i className="bi bi-check text-white" style={{ fontSize: '0.7rem' }}></i>
                             </div>
-                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Register with phone number for SMS alerts</span>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Register with phone number</span>
                           </li>
                           <li className="mb-2 d-flex align-items-start">
                             <div style={{
@@ -906,7 +900,7 @@ const Home: React.FC = () => {
                             }}>
                               <i className="bi bi-graph-up text-white" style={{ fontSize: '0.7rem' }}></i>
                             </div>
-                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Access prediction & receive SMS alerts</span>
+                            <span style={{ color: '#374151', lineHeight: '1.4' }}>Access prediction instantly</span>
                           </li>
                         </ul>
                       </div>
@@ -1192,7 +1186,7 @@ const Home: React.FC = () => {
                           transition: 'all 0.3s ease'
                         }}>
                           <i className="bi bi-check2-circle text-success fs-5 mb-1 d-block"></i>
-                          <span className="small fw-semibold">SMS notifications</span>
+                          <span className="small fw-semibold">Instant notifications</span>
                         </div>
                       </div>
                       <div className="col-6">

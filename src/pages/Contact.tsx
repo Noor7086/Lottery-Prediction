@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { ContactForm } from '../types';
 import toast from 'react-hot-toast';
-import { apiService } from '../services/api';
 
 const Contact: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -11,49 +10,18 @@ const Contact: React.FC = () => {
     register,
     handleSubmit,
     formState: { errors },
-    reset,
-    setError
+    reset
   } = useForm<ContactForm>();
 
   const onSubmit = async (data: ContactForm) => {
     try {
       setIsSubmitting(true);
-      const response = await apiService.sendContactMessage(data);
-      if (response.success) {
-        toast.success(response.message || 'Message sent successfully! We\'ll get back to you soon.');
-        reset();
-      } else {
-        toast.error(response.message || 'Failed to send message. Please try again.');
-      }
-    } catch (error: any) {
-      // Extract and display specific validation errors
-      const errorData = error.response?.data;
-      const status = error.response?.status;
-      
-      // Handle validation errors (400, 422) - show below fields, NO toasts
-      if ((status === 400 || status === 422) && errorData?.errors && Array.isArray(errorData.errors)) {
-        // Map server validation errors to form fields
-        errorData.errors.forEach((err: any) => {
-          const fieldName = err.param || err.field || err.path;
-          const errorMsg = err.msg || err.message || 'Validation error';
-          
-          // Map server field names to form field names if needed
-          if (fieldName && ['name', 'email', 'subject', 'message'].includes(fieldName)) {
-            setError(fieldName as keyof ContactForm, {
-              type: 'server',
-              message: errorMsg
-            });
-          }
-        });
-        // Don't show toast for validation errors - they're shown below fields
-      } else if (status && status >= 500) {
-        // Only show toast for server errors (500+)
-        toast.error(errorData?.message || 'Server error. Please try again later.');
-      } else if (!error.response) {
-        // Network errors
-        toast.error('Network error. Please check your connection.');
-      }
-      // For other errors (like 400 without errors array), don't show toast either
+      // TODO: Implement contact form submission
+      console.log('Contact form data:', data);
+      toast.success('Message sent successfully! We\'ll get back to you soon.');
+      reset();
+    } catch (error) {
+      toast.error('Failed to send message. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

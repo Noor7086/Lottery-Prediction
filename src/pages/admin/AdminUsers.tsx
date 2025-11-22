@@ -333,8 +333,8 @@ const AdminUsers: React.FC = () => {
 
       {/* User Details Modal */}
       {showModal && selectedUser && (
-        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
-          <div className="modal-dialog modal-lg">
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1200, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="modal-dialog modal-lg" style={{ zIndex: 1205, marginTop: '60px' }}>
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">User Details</h5>

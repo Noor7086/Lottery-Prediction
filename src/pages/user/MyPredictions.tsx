@@ -280,15 +280,29 @@ const MyPredictions: React.FC = () => {
                               <div>
                                 <h5 className="fw-bold mb-1">{prediction.lotteryDisplayName}</h5>
                                 <div className="small text-muted">
-                                  Purchased: {new Date(purchase.createdAt).toLocaleDateString()} • 
+                                  {purchase.paymentStatus === 'trial' || purchase.isTrialView ? 'Viewed' : 'Purchased'}: {new Date(purchase.createdAt).toLocaleDateString()} • 
                                   Draw: {new Date(prediction.drawDate).toLocaleDateString()} at {prediction.drawTime}
                                 </div>
                                 <div className="small text-muted">
-                                  Amount: ${purchase.amount?.toFixed(2) || prediction.price?.toFixed(2) || '0.00'}
+                                  {purchase.paymentStatus === 'trial' || purchase.isTrialView ? (
+                                    <span className="text-success">
+                                      <i className="bi bi-gift me-1"></i>
+                                      Free Trial View
+                                    </span>
+                                  ) : (
+                                    <>Amount: ${purchase.amount?.toFixed(2) || prediction.price?.toFixed(2) || '0.00'}</>
+                                  )}
                                 </div>
                               </div>
                               <div className="text-end">
-                                <div className="badge bg-info fs-6">${prediction.price?.toFixed(2) || '0.00'}</div>
+                                {purchase.paymentStatus === 'trial' || purchase.isTrialView ? (
+                                  <span className="badge bg-success fs-6 mb-2">
+                                    <i className="bi bi-gift me-1"></i>
+                                    Free Trial
+                                  </span>
+                                ) : (
+                                  <div className="badge bg-info fs-6">${prediction.price?.toFixed(2) || '0.00'}</div>
+                                )}
                                 {prediction.accuracy && (
                                   <div className={`small fw-bold ${getAccuracyColor(prediction.accuracy)}`}>
                                     {prediction.accuracy}% Accuracy

@@ -180,9 +180,6 @@ const Register: React.FC = () => {
                       })}
                       placeholder="Enter your phone number"
                     />
-                    <div className="form-text">
-                      We'll send SMS notifications when new predictions are available
-                    </div>
                     {errors.phone && (
                       <div className="invalid-feedback">
                         {errors.phone.message}
@@ -237,21 +234,21 @@ const Register: React.FC = () => {
                               },
                               pattern: {
                                 value: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-                                message: 'Password must contain uppercase, lowercase, and number'
+                                message: 'Password must contain at least one uppercase letter, one lowercase letter, and one number'
                               }
                             })}
                             placeholder="Create a password"
                           />
                           <button
                             type="button"
-                            className="btn btn-link position-absolute end-0 top-50 translate-middle-y p-0 me-2 password-toggle-btn"
+                            className="password-toggle-btn"
                             onClick={() => togglePasswordVisibility('password')}
                           >
                             <i className={`bi bi-${showPasswords.password ? 'eye' : 'eye-slash'}`}></i>
                           </button>
                         </div>
                         {errors.password && (
-                          <div className="invalid-feedback">
+                          <div className="invalid-feedback d-block">
                             {errors.password.message}
                           </div>
                         )}
@@ -276,7 +273,7 @@ const Register: React.FC = () => {
                           />
                           <button
                             type="button"
-                            className="btn btn-link position-absolute end-0 top-50 translate-middle-y p-0 me-2 password-toggle-btn"
+                            className="password-toggle-btn"
                             onClick={() => togglePasswordVisibility('confirmPassword')}
                           >
                             <i className={`bi bi-${showPasswords.confirmPassword ? 'eye' : 'eye-slash'}`}></i>
@@ -366,10 +363,6 @@ const Register: React.FC = () => {
                   <li className="mb-2 text-dark">
                     <i className="bi bi-check-circle me-2 text-success"></i>
                     7 days of free predictions for your selected lottery
-                  </li>
-                  <li className="mb-2 text-dark">
-                    <i className="bi bi-check-circle me-2 text-success"></i>
-                    SMS notifications for new predictions
                   </li>
                   <li className="mb-2 text-dark">
                     <i className="bi bi-check-circle me-2 text-success"></i>

@@ -30,13 +30,54 @@ class PredictionService {
   }
 
   async getPredictionDetails(lotteryType: LotteryType, id: string): Promise<Prediction> {
-    const response = await apiService.get<ApiResponse<{ prediction: Prediction }>>(
-      `/predictions/${lotteryType}/${id}`
-    );
-    if (!response.success || !response.data) {
-      throw new Error(response.message || 'Failed to fetch prediction details');
+    try {
+      const response = await apiService.get<ApiResponse<{ prediction: Prediction }>>(
+        `/predictions/${lotteryType}/${id}`
+      );
+      
+      // Check if response is successful
+      if (!response.success) {
+        const errorMessage = response.message || 'Failed to fetch prediction details';
+        console.error('❌ getPredictionDetails error:', errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      // Handle different response structures
+      if (response.data?.prediction) {
+        return response.data.prediction;
+      } else if (response.data && typeof response.data === 'object' && 'id' in response.data) {
+        // If data itself is the prediction
+        return response.data as unknown as Prediction;
+      } else {
+        console.error('❌ Unexpected response format:', response);
+        throw new Error('Unexpected response format from server');
+      }
+    } catch (error: any) {
+      console.error('❌ getPredictionDetails catch error:', error);
+      console.error('❌ Error response:', error.response);
+      console.error('❌ Error response data:', error.response?.data);
+      console.error('❌ Error response status:', error.response?.status);
+      
+      // Re-throw with better error message
+      if (error.response?.data) {
+        // Handle different response structures
+        const errorData = error.response.data;
+        if (errorData.message) {
+          throw new Error(errorData.message);
+        } else if (typeof errorData === 'string') {
+          throw new Error(errorData);
+        } else if (errorData.error) {
+          throw new Error(errorData.error);
+        }
+      }
+      
+      // If no specific error message, use the generic one
+      if (error.response?.status === 403) {
+        throw new Error('Access denied. Please check your trial status.');
+      }
+      
+      throw error;
     }
-    return response.data.prediction;
   }
 
   async purchasePrediction(lotteryType: LotteryType, id: string, paymentMethod: string): Promise<void> {

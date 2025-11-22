@@ -16,7 +16,20 @@ import {
 
 const router = express.Router();
 
-// IMPORTANT: More specific routes must come before parameterized routes
+// Log all requests to predictions routes
+router.use((req, res, next) => {
+  console.log('📥📥📥 PREDICTIONS ROUTE REQUEST:', {
+    method: req.method,
+    path: req.path,
+    url: req.url,
+    params: req.params,
+    query: req.query,
+    hasUser: !!req.user
+  });
+  next();
+});
+
+// IMPORTANT: More specific routes must come FIRST!
 
 // @route   GET /api/predictions/my-purchases
 // @desc    Get user's purchased predictions
@@ -28,15 +41,20 @@ router.get('/my-purchases', protect, validatePagination, getMyPurchases);
 // @access  Private
 router.get('/trial/:lotteryType', protect, validateLotteryType, getTrialPredictions);
 
+// @route   GET /api/predictions/:lotteryType/:id
+// @desc    Get specific prediction details
+// @access  Private
+router.get('/:lotteryType/:id', protect, validateLotteryType, validatePredictionId, (req, res, next) => {
+  console.log('🚀🚀🚀 ROUTE HIT: /api/predictions/:lotteryType/:id');
+  console.log('🚀 Params:', req.params);
+  console.log('🚀 User:', req.user);
+  next();
+}, getPredictionDetails);
+
 // @route   GET /api/predictions/:lotteryType
 // @desc    Get all predictions for a specific lottery
 // @access  Public
 router.get('/:lotteryType', validateLotteryType, validatePagination, getPredictions);
-
-// @route   GET /api/predictions/:lotteryType/:id
-// @desc    Get specific prediction details
-// @access  Private
-router.get('/:lotteryType/:id', protect, validateLotteryType, validatePredictionId, getPredictionDetails);
 
 // @route   POST /api/predictions/:lotteryType/:id/purchase
 // @desc    Purchase a prediction

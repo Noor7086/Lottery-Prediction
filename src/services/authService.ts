@@ -8,11 +8,46 @@ interface AuthResponse {
 
 class AuthService {
   async login(credentials: LoginForm): Promise<AuthResponse> {
-    const response = await apiService.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
-    if (!response.success || !response.data) {
-      throw new Error(response.message || 'Login failed');
+    try {
+      console.log('🔐 Attempting login with:', { email: credentials.email });
+      const response = await apiService.post<ApiResponse<AuthResponse>>('/auth/login', credentials);
+      if (!response.success || !response.data) {
+        console.error('❌ Login failed:', response.message);
+        throw new Error(response.message || 'Login failed');
+      }
+      console.log('✅ Login successful');
+      return response.data;
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      console.error('❌ Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: error.config?.url,
+        baseURL: error.config?.baseURL,
+        fullError: error
+      });
+      
+      // Extract the actual error message from the response
+      let errorMessage = 'Login failed';
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        } else if (errorData.errors && Array.isArray(errorData.errors)) {
+          errorMessage = errorData.errors.map((err: any) => err.message || err.msg).join(', ');
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Create a new error with the proper message
+      const loginError = new Error(errorMessage);
+      (loginError as any).response = error.response;
+      throw loginError;
     }
-    return response.data;
   }
 
   async register(userData: RegisterForm): Promise<AuthResponse> {
@@ -49,24 +84,38 @@ class AuthService {
       console.error('AuthService changePassword error:', error);
       console.error('AuthService error response:', error.response);
       console.error('AuthService error data:', error.response?.data);
+      console.error('AuthService error status:', error.response?.status);
       
-      // Handle axios error response
+      // Handle axios error response (when backend returns error status like 400, 401, etc.)
       if (error.response && error.response.data) {
         const errorData = error.response.data;
+        console.log('Error data structure:', errorData);
         
-        // Handle validation errors (422 status)
+        // Handle validation errors (422 status) - array of errors
         if (errorData.errors && Array.isArray(errorData.errors)) {
           const errorMessages = errorData.errors.map((err: any) => err.message || err.msg).join(', ');
           throw new Error(errorMessages);
         }
         
-        // Handle other errors
-        const errorMessage = errorData.message || 'Password change failed';
-        throw new Error(errorMessage);
+        // Handle standard error response with message field
+        if (errorData.message) {
+          console.log('Extracting error message:', errorData.message);
+          throw new Error(errorData.message);
+        }
+        
+        // If errorData is a string
+        if (typeof errorData === 'string') {
+          throw new Error(errorData);
+        }
       }
       
-      // Handle other errors
-      throw new Error(error.message || 'Password change failed');
+      // If error already has a message, use it
+      if (error.message) {
+        throw new Error(error.message);
+      }
+      
+      // Fallback
+      throw new Error('Password change failed');
     }
   }
 
