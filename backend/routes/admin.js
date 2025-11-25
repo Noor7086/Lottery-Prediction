@@ -6,12 +6,27 @@ import User from '../models/User.js';
 import Prediction from '../models/Prediction.js';
 import Purchase from '../models/Purchase.js';
 import Lottery from '../models/Lottery.js';
+import Result from '../models/Result.js';
 import { getAdminPayments, getPaymentStats } from '../controllers/paymentController.js';
 
 const router = express.Router();
 
 // Debug: Log when router is initialized
 console.log('📝 Admin router initialized');
+
+// Log all requests to admin routes for debugging
+router.use((req, res, next) => {
+  if (req.path.includes('result')) {
+    console.log('🔍 Admin route request:', {
+      method: req.method,
+      path: req.path,
+      url: req.url,
+      originalUrl: req.originalUrl,
+      params: req.params
+    });
+  }
+  next();
+});
 
 // Test route to verify server is working (before authentication)
 router.get('/test-payments', (req, res) => {
@@ -50,6 +65,50 @@ router.get('/payments', (req, res, next) => {
 // @desc    Get payment statistics summary
 // @access  Private/Admin
 router.get('/payments/stats', protect, authorize('admin'), getPaymentStats);
+
+// @route   DELETE /api/admin/payments
+// @desc    Delete specific purchases by transaction IDs
+// @access  Private/Admin
+router.delete('/payments', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { transactionIds } = req.body;
+
+    if (!transactionIds || !Array.isArray(transactionIds) || transactionIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Transaction IDs array is required'
+      });
+    }
+
+    // Find and delete purchases by transaction IDs
+    const deleteResult = await Purchase.deleteMany({
+      transactionId: { $in: transactionIds }
+    });
+
+    if (deleteResult.deletedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'No purchases found with the provided transaction IDs'
+      });
+    }
+
+    console.log(`🗑️ Deleted ${deleteResult.deletedCount} purchases with transaction IDs:`, transactionIds);
+
+    res.json({
+      success: true,
+      message: `Successfully deleted ${deleteResult.deletedCount} purchase(s)`,
+      deleted: deleteResult.deletedCount,
+      transactionIds: transactionIds
+    });
+  } catch (error) {
+    console.error('Delete purchases error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while deleting purchases',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
 
 // @route   GET /api/admin/stats
 // @desc    Get admin dashboard statistics
@@ -132,7 +191,23 @@ router.post('/predictions', protect, authorize('admin'), validatePredictionUploa
     };
 
     // SET NESTED FIELDS BEFORE CREATION - This is the key!
-    if (predictionData.viableNumbers && typeof predictionData.viableNumbers === 'object') {
+    // Handle non-viable numbers (preferred), fall back to viable numbers (legacy)
+    if (predictionData.nonViableNumbers && typeof predictionData.nonViableNumbers === 'object') {
+      const whiteBalls = Array.isArray(predictionData.nonViableNumbers.whiteBalls) ? 
+        predictionData.nonViableNumbers.whiteBalls.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0) : [];
+      const redBalls = Array.isArray(predictionData.nonViableNumbers.redBalls) ? 
+        predictionData.nonViableNumbers.redBalls.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0) : [];
+      
+      finalData.nonViableNumbers = {
+        whiteBalls: whiteBalls,
+        redBalls: redBalls
+      };
+      
+      console.log('✓ Setting nonViableNumbers whiteBalls:', whiteBalls);
+      console.log('✓ Setting nonViableNumbers redBalls:', redBalls);
+      console.log('✓ Final nonViableNumbers object:', JSON.stringify(finalData.nonViableNumbers, null, 2));
+    } else if (predictionData.viableNumbers && typeof predictionData.viableNumbers === 'object') {
+      // Legacy support for viableNumbers
       const whiteBalls = Array.isArray(predictionData.viableNumbers.whiteBalls) ? 
         predictionData.viableNumbers.whiteBalls.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0) : [];
       const redBalls = Array.isArray(predictionData.viableNumbers.redBalls) ? 
@@ -143,21 +218,30 @@ router.post('/predictions', protect, authorize('admin'), validatePredictionUploa
         redBalls: redBalls
       };
       
-      console.log('✓ Setting viableNumbers whiteBalls:', whiteBalls);
-      console.log('✓ Setting viableNumbers redBalls:', redBalls);
-      console.log('✓ Final viableNumbers object:', JSON.stringify(finalData.viableNumbers, null, 2));
+      console.log('✓ Setting viableNumbers (legacy) whiteBalls:', whiteBalls);
+      console.log('✓ Setting viableNumbers (legacy) redBalls:', redBalls);
     }
     
-    if (predictionData.viableNumbersSingle && Array.isArray(predictionData.viableNumbersSingle)) {
+    if (predictionData.nonViableNumbersSingle && Array.isArray(predictionData.nonViableNumbersSingle)) {
+      const numbers = predictionData.nonViableNumbersSingle.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0);
+      finalData.nonViableNumbersSingle = numbers;
+      console.log('✓ Setting nonViableNumbersSingle:', numbers);
+    } else if (predictionData.viableNumbersSingle && Array.isArray(predictionData.viableNumbersSingle)) {
+      // Legacy support
       const numbers = predictionData.viableNumbersSingle.filter(n => n != null && n !== undefined && !isNaN(n) && n > 0);
       finalData.viableNumbersSingle = numbers;
-      console.log('✓ Setting viableNumbersSingle:', numbers);
+      console.log('✓ Setting viableNumbersSingle (legacy):', numbers);
     }
     
-    if (predictionData.viableNumbersPick3 && Array.isArray(predictionData.viableNumbersPick3)) {
+    if (predictionData.nonViableNumbersPick3 && Array.isArray(predictionData.nonViableNumbersPick3)) {
+      const numbers = predictionData.nonViableNumbersPick3.filter(n => n != null && n !== undefined && !isNaN(n) && n >= 0);
+      finalData.nonViableNumbersPick3 = numbers;
+      console.log('✓ Setting nonViableNumbersPick3:', numbers);
+    } else if (predictionData.viableNumbersPick3 && Array.isArray(predictionData.viableNumbersPick3)) {
+      // Legacy support
       const numbers = predictionData.viableNumbersPick3.filter(n => n != null && n !== undefined && !isNaN(n) && n >= 0);
       finalData.viableNumbersPick3 = numbers;
-      console.log('✓ Setting viableNumbersPick3:', numbers);
+      console.log('✓ Setting viableNumbersPick3 (legacy):', numbers);
     }
 
     // Create with ALL data including nested objects
@@ -526,6 +610,333 @@ router.put('/predictions/:id', protect, authorize('admin'), async (req, res) => 
   }
 });
 
+// @route   POST /api/admin/predictions/:id/result
+// @desc    Add result for a prediction
+// @access  Private/Admin
+console.log('📝 Registering POST /predictions/:id/result route');
+router.post('/predictions/:id/result', protect, authorize('admin'), async (req, res) => {
+  console.log('🔵 POST /predictions/:id/result route hit!');
+  console.log('Request params:', req.params);
+  console.log('Request body:', req.body);
+  console.log('Request URL:', req.url);
+  console.log('Request path:', req.path);
+  console.log('Request method:', req.method);
+  console.log('Request originalUrl:', req.originalUrl);
+  
+  try {
+    const { id } = req.params;
+    const { drawDate, winningNumbers, jackpot, winners } = req.body;
+
+    console.log('📥 Add result request:', {
+      predictionId: id,
+      drawDate,
+      winningNumbers,
+      jackpot,
+      winners
+    });
+
+    // Validate prediction exists
+    const prediction = await Prediction.findById(id);
+    if (!prediction) {
+      console.error('❌ Prediction not found:', id);
+      return res.status(404).json({
+        success: false,
+        message: 'Prediction not found'
+      });
+    }
+
+    console.log('✅ Prediction found:', prediction.lotteryType);
+
+    // Prepare result data
+    // Parse drawDate correctly to avoid timezone issues
+    // If drawDate is a date string (YYYY-MM-DD), create date at midnight in local time
+    let parsedDrawDate;
+    if (typeof drawDate === 'string' && drawDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Date-only string, parse as local date (not UTC)
+      const [year, month, day] = drawDate.split('-').map(Number);
+      parsedDrawDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+    } else {
+      parsedDrawDate = new Date(drawDate);
+    }
+    
+    console.log('📅 Parsing drawDate:', {
+      input: drawDate,
+      parsed: parsedDrawDate,
+      iso: parsedDrawDate.toISOString(),
+      local: parsedDrawDate.toLocaleDateString()
+    });
+    
+    const resultData = {
+      prediction: id,
+      lotteryType: prediction.lotteryType,
+      drawDate: parsedDrawDate,
+      jackpot: jackpot || 0,
+      winners: {
+        jackpot: winners?.jackpot || 0,
+        match5: winners?.match5 || 0,
+        match4: winners?.match4 || 0,
+        match3: winners?.match3 || 0,
+        exact: winners?.exact || 0,
+        any: winners?.any || 0
+      },
+      addedBy: req.user.userId
+    };
+
+    // Add winning numbers based on lottery type
+    if (winningNumbers.whiteBalls && winningNumbers.redBalls) {
+      resultData.winningNumbers = {
+        whiteBalls: winningNumbers.whiteBalls,
+        redBalls: winningNumbers.redBalls
+      };
+      // Clear other number types
+      resultData.winningNumbersSingle = [];
+      resultData.winningNumbersPick3 = [];
+    } else if (winningNumbers.singleNumbers) {
+      resultData.winningNumbersSingle = winningNumbers.singleNumbers;
+      // Clear other number types
+      resultData.winningNumbers = { whiteBalls: [], redBalls: [] };
+      resultData.winningNumbersPick3 = [];
+    } else if (winningNumbers.pick3Numbers) {
+      resultData.winningNumbersPick3 = winningNumbers.pick3Numbers;
+      // Clear other number types
+      resultData.winningNumbers = { whiteBalls: [], redBalls: [] };
+      resultData.winningNumbersSingle = [];
+    }
+
+    // Create result
+    console.log('💾 Attempting to create result...');
+    const result = await Result.create(resultData);
+    console.log('✅ Result created successfully:', result._id);
+
+    // Update prediction accuracy if possible
+    // TODO: Calculate accuracy based on prediction vs result
+
+    res.status(201).json({
+      success: true,
+      message: 'Result added successfully',
+      data: { result }
+    });
+  } catch (error) {
+    console.error('❌ Add result error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+    res.status(500).json({
+      success: false,
+      message: 'Server error while adding result',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   GET /api/admin/predictions/:id/results
+// @desc    Get results for a prediction
+// @access  Private/Admin
+router.get('/predictions/:id/results', protect, authorize('admin'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const results = await Result.find({ prediction: id })
+      .sort({ drawDate: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      data: { results }
+    });
+  } catch (error) {
+    console.error('Get results error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching results'
+    });
+  }
+});
+
+// Test route to verify results routes are working
+router.get('/results/test', (req, res) => {
+  console.log('✅ Test route /results/test hit!');
+  res.json({ success: true, message: 'Results routes are working' });
+});
+
+// IMPORTANT: PUT route must come BEFORE GET /results/lottery/:lotteryType
+// @route   PUT /api/admin/results/:id
+// @desc    Update a result
+// @access  Private/Admin
+console.log('📝 Registering PUT /results/:id route');
+router.put('/results/:id', async (req, res, next) => {
+  console.log('🔵 PUT /results/:id route hit! (before middleware)');
+  console.log('Request method:', req.method);
+  console.log('Request params:', req.params);
+  console.log('Request URL:', req.url);
+  console.log('Request path:', req.path);
+  next();
+}, protect, authorize('admin'), async (req, res) => {
+  console.log('🔵 PUT /results/:id route handler executing!');
+  console.log('Request method:', req.method);
+  console.log('Request params:', req.params);
+  console.log('Request body:', req.body);
+  console.log('Request URL:', req.url);
+  console.log('Request path:', req.path);
+  console.log('Request originalUrl:', req.originalUrl);
+  
+  try {
+    const { id } = req.params;
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.error('❌ Invalid ObjectId format:', id);
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid result ID format'
+      });
+    }
+    const { drawDate, winningNumbers, jackpot, winners } = req.body;
+
+    console.log('📥 Update result request:', {
+      resultId: id,
+      drawDate,
+      winningNumbers,
+      jackpot,
+      winners
+    });
+
+    // Find and update result
+    const result = await Result.findById(id);
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        message: 'Result not found'
+      });
+    }
+
+    // Update result fields
+    if (drawDate) {
+      // Parse drawDate correctly to avoid timezone issues
+      let parsedDrawDate;
+      if (typeof drawDate === 'string' && drawDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Date-only string, parse as local date (not UTC)
+        const [year, month, day] = drawDate.split('-').map(Number);
+        parsedDrawDate = new Date(year, month - 1, day, 0, 0, 0, 0);
+      } else {
+        parsedDrawDate = new Date(drawDate);
+      }
+      console.log('📅 Updating drawDate:', {
+        input: drawDate,
+        parsed: parsedDrawDate,
+        iso: parsedDrawDate.toISOString()
+      });
+      result.drawDate = parsedDrawDate;
+    }
+    if (jackpot !== undefined) result.jackpot = jackpot || 0;
+    if (winners) {
+      result.winners = {
+        jackpot: winners.jackpot || 0,
+        match5: winners.match5 || 0,
+        match4: winners.match4 || 0,
+        match3: winners.match3 || 0,
+        exact: winners.exact || 0,
+        any: winners.any || 0
+      };
+    }
+
+    // Update winning numbers based on lottery type
+    if (winningNumbers) {
+      if (winningNumbers.whiteBalls && winningNumbers.redBalls) {
+        result.winningNumbers = {
+          whiteBalls: winningNumbers.whiteBalls,
+          redBalls: winningNumbers.redBalls
+        };
+        // Clear other number types
+        result.winningNumbersSingle = [];
+        result.winningNumbersPick3 = [];
+      } else if (winningNumbers.singleNumbers) {
+        result.winningNumbersSingle = winningNumbers.singleNumbers;
+        // Clear other number types
+        result.winningNumbers = { whiteBalls: [], redBalls: [] };
+        result.winningNumbersPick3 = [];
+      } else if (winningNumbers.pick3Numbers) {
+        result.winningNumbersPick3 = winningNumbers.pick3Numbers;
+        // Clear other number types
+        result.winningNumbers = { whiteBalls: [], redBalls: [] };
+        result.winningNumbersSingle = [];
+      }
+    }
+
+    await result.save();
+
+    res.json({
+      success: true,
+      message: 'Result updated successfully',
+      data: { result }
+    });
+  } catch (error) {
+    console.error('Update result error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while updating result',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// @route   GET /api/admin/results/lottery/:lotteryType
+// @desc    Get latest results for a lottery type (public access via admin route)
+// @access  Public
+// NOTE: Changed to /results/lottery/:lotteryType to avoid conflict with /results/:id
+router.get('/results/lottery/:lotteryType', async (req, res) => {
+  try {
+    const { lotteryType } = req.params;
+    const { limit = 100 } = req.query; // Increased default limit to show more results
+
+    console.log('📥 Fetching results for lottery:', lotteryType);
+
+    // Get latest result - sort by drawDate descending, then by createdAt descending for tie-breaking
+    const latestResult = await Result.findOne({ lotteryType: lotteryType.toLowerCase() })
+      .sort({ drawDate: -1, createdAt: -1 })
+      .lean();
+
+    console.log('📅 Latest result:', latestResult ? {
+      drawDate: latestResult.drawDate,
+      createdAt: latestResult.createdAt,
+      _id: latestResult._id
+    } : 'No results found');
+
+    // Get all recent results for history - show all results uploaded by admin
+    // Sort by drawDate descending (newest first), then by createdAt descending
+    const limitValue = limit === 'all' ? 0 : parseInt(limit) || 100;
+    const recentResultsQuery = Result.find({ lotteryType: lotteryType.toLowerCase() })
+      .sort({ drawDate: -1, createdAt: -1 });
+    
+    // If limit is 0 or 'all', fetch all results, otherwise use the limit
+    const recentResults = limitValue > 0 
+      ? await recentResultsQuery.limit(limitValue).lean()
+      : await recentResultsQuery.lean();
+
+    console.log('📊 Total recent results:', recentResults.length);
+    if (recentResults.length > 0) {
+      console.log('📅 First result date:', recentResults[0].drawDate);
+      console.log('📅 Last result date:', recentResults[recentResults.length - 1].drawDate);
+    }
+
+    res.json({
+      success: true,
+      data: {
+        latest: latestResult,
+        recent: recentResults,
+        total: recentResults.length
+      }
+    });
+  } catch (error) {
+    console.error('Get results error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching results'
+    });
+  }
+});
+
 // @route   PATCH /api/admin/predictions/:id/:action
 // @desc    Update prediction status or delete prediction
 // @access  Private/Admin
@@ -753,7 +1164,7 @@ router.patch('/lotteries/:id/:action', protect, authorize('admin'), async (req, 
 // @access  Private/Admin
 router.get('/analytics', protect, authorize('admin'), async (req, res) => {
   try {
-    const { range = '30d' } = req.query;
+    const { range = '30d', lotteryType } = req.query;
     
     // Calculate date range
     const now = new Date();
@@ -794,49 +1205,118 @@ router.get('/analytics', protect, authorize('admin'), async (req, res) => {
       }
     ]);
 
-    // Get revenue data
-    const revenueData = await Purchase.aggregate([
-      {
-        $match: {
-          paymentStatus: 'completed',
-          createdAt: { $gte: startDate }
+    // Get revenue data - filter by lotteryType if provided
+    let revenueData;
+    if (lotteryType && lotteryType !== 'all') {
+      revenueData = await Purchase.aggregate([
+        {
+          $match: {
+            paymentStatus: 'completed',
+            createdAt: { $gte: startDate }
+          }
+        },
+        {
+          $lookup: {
+            from: 'predictions',
+            localField: 'prediction',
+            foreignField: '_id',
+            as: 'predictionData'
+          }
+        },
+        {
+          $unwind: '$predictionData'
+        },
+        {
+          $match: {
+            'predictionData.lotteryType': lotteryType.toLowerCase()
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            amount: { $sum: '$amount' }
+          }
+        },
+        {
+          $sort: { _id: 1 }
         }
-      },
-      {
-        $group: {
-          _id: {
-            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
-          },
-          amount: { $sum: '$amount' }
+      ]);
+    } else {
+      revenueData = await Purchase.aggregate([
+        {
+          $match: {
+            paymentStatus: 'completed',
+            createdAt: { $gte: startDate }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            amount: { $sum: '$amount' }
+          }
+        },
+        {
+          $sort: { _id: 1 }
         }
-      },
-      {
-        $sort: { _id: 1 }
-      }
-    ]);
+      ]);
+    }
 
-    // Get prediction stats by lottery type
-    const predictionStats = await Prediction.aggregate([
-      {
-        $lookup: {
-          from: 'purchases',
-          localField: '_id',
-          foreignField: 'prediction',
-          as: 'purchases'
-        }
-      },
-      {
-        $group: {
-          _id: '$lotteryType',
-          count: { $sum: 1 },
-          revenue: {
-            $sum: {
-              $sum: '$purchases.amount'
+    // Get prediction stats by lottery type - filter by lotteryType if provided
+    let predictionStats;
+    if (lotteryType && lotteryType !== 'all') {
+      predictionStats = await Prediction.aggregate([
+        {
+          $match: {
+            lotteryType: lotteryType.toLowerCase()
+          }
+        },
+        {
+          $lookup: {
+            from: 'purchases',
+            localField: '_id',
+            foreignField: 'prediction',
+            as: 'purchases'
+          }
+        },
+        {
+          $group: {
+            _id: '$lotteryType',
+            count: { $sum: 1 },
+            revenue: {
+              $sum: {
+                $sum: '$purchases.amount'
+              }
             }
           }
         }
-      }
-    ]);
+      ]);
+    } else {
+      predictionStats = await Prediction.aggregate([
+        {
+          $lookup: {
+            from: 'purchases',
+            localField: '_id',
+            foreignField: 'prediction',
+            as: 'purchases'
+          }
+        },
+        {
+          $group: {
+            _id: '$lotteryType',
+            count: { $sum: 1 },
+            revenue: {
+              $sum: {
+                $sum: '$purchases.amount'
+              }
+            }
+          }
+        }
+      ]);
+    }
 
     // Get top predictions
     const topPredictions = await Prediction.aggregate([
@@ -920,6 +1400,7 @@ router.get('/analytics', protect, authorize('admin'), async (req, res) => {
     });
   }
 });
+
 
 // @route   POST /api/admin/create-admin
 // @desc    Create admin user (one-time setup)

@@ -60,6 +60,21 @@ const Predictions: React.FC = () => {
           setLoadingLottery(normalizedType);
           try {
             await fetchPredictionsForLottery(normalizedType);
+            
+            // Auto-scroll to predictions section after loading
+            setTimeout(() => {
+              const predictionsSection = document.getElementById('available-predictions-section');
+              if (predictionsSection) {
+                const headerOffset = 80; // Account for fixed navbar
+                const elementPosition = predictionsSection.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                
+                window.scrollTo({
+                  top: offsetPosition,
+                  behavior: 'smooth'
+                });
+              }
+            }, 500); // Delay to ensure DOM is updated
           } finally {
             setLoadingLottery(null);
           }
@@ -139,13 +154,33 @@ const Predictions: React.FC = () => {
         try {
           // Pass selectedLottery directly to ensure we use the latest value
           await fetchPredictionsForLottery(selectedLottery);
+          
+          // Auto-scroll to predictions section if coming from navbar
+          // Check if there's a lottery parameter in URL (indicates navigation from navbar)
+          const lotteryFromUrl = searchParams.get('lottery');
+          if (lotteryFromUrl && location.pathname === '/predictions') {
+            // Small delay to ensure DOM is updated
+            setTimeout(() => {
+              const predictionsSection = document.getElementById('available-predictions-section');
+              if (predictionsSection) {
+                const headerOffset = 80; // Account for fixed navbar
+                const elementPosition = predictionsSection.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+                
+                window.scrollTo({
+                  top: offsetPosition,
+                  behavior: 'smooth'
+                });
+              }
+            }, 300);
+          }
         } finally {
           setLoadingLottery(null);
         }
       };
       loadPredictions();
     }
-  }, [selectedLottery, user]);
+  }, [selectedLottery, user, searchParams, location.pathname]);
   
   // Separate function that takes lottery type as parameter to avoid closure issues
   const fetchPredictionsForLottery = async (lotteryType: LotteryType) => {
@@ -328,7 +363,21 @@ const Predictions: React.FC = () => {
   ];
 
 
-  const handlePurchaseClick = async (prediction: Prediction) => {
+  const handlePurchaseClick = async (prediction: Prediction, event?: React.MouseEvent) => {
+    // Scroll to the clicked prediction card
+    if (event) {
+      const target = event.currentTarget.closest('.col-md-6');
+      if (target) {
+        setTimeout(() => {
+          target.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center',
+            inline: 'nearest'
+          });
+        }, 100);
+      }
+    }
+    
     // Check if user is in trial and selected lottery matches (case-insensitive)
     // Check trial status more robustly - check both isInTrial flag and trialEndDate
     const isInTrial = user?.isInTrial || (user?.trialEndDate && new Date(user.trialEndDate) >= new Date());
@@ -721,6 +770,18 @@ const Predictions: React.FC = () => {
                               if (lotteryType !== selectedLottery) {
                                 setSelectedLottery(lotteryType);
                               }
+                              
+                              // Scroll to Available Predictions section
+                              setTimeout(() => {
+                                const predictionsSection = document.getElementById('available-predictions-section');
+                                if (predictionsSection) {
+                                  predictionsSection.scrollIntoView({ 
+                                    behavior: 'smooth', 
+                                    block: 'start',
+                                    inline: 'nearest'
+                                  });
+                                }
+                              }, 100);
                             }}
                             style={{ 
                               cursor: 'pointer',
@@ -768,7 +829,7 @@ const Predictions: React.FC = () => {
           </div>
 
           {/* Available Predictions */}
-          <div className="card border-0 shadow-sm mb-4">
+          <div id="available-predictions-section" className="card border-0 shadow-sm mb-4">
             <div className="card-body p-4">
               <div className="d-flex justify-content-between align-items-center mb-4">
                 <h5 className="fw-bold mb-0">
@@ -831,7 +892,7 @@ const Predictions: React.FC = () => {
                     const isDouble = viableData && !Array.isArray(viableData);
                     
                     return (
-                      <div key={prediction.id} className="col-md-6">
+                      <div key={prediction.id} id={`prediction-${prediction.id}`} className="col-md-6">
                         <div className="card h-100 border">
                           <div className="card-body">
                             <div className="d-flex justify-content-between align-items-start mb-3">
@@ -891,7 +952,7 @@ const Predictions: React.FC = () => {
                               })() ? (
                                 <button
                                   className="btn btn-sm btn-success"
-                                  onClick={() => handlePurchaseClick(prediction)}
+                                  onClick={(e) => handlePurchaseClick(prediction, e)}
                                   disabled={loadingPredictionDetails && loadingPredictionId === prediction.id}
                                 >
                                   {loadingPredictionDetails && loadingPredictionId === prediction.id ? (
@@ -909,7 +970,7 @@ const Predictions: React.FC = () => {
                               ) : (
                                 <button
                                   className="btn btn-sm btn-primary"
-                                  onClick={() => handlePurchaseClick(prediction)}
+                                  onClick={(e) => handlePurchaseClick(prediction, e)}
                                   disabled={paymentLoading || (loadingPredictionDetails && loadingPredictionId === prediction.id)}
                                 >
                                   {loadingPredictionDetails && loadingPredictionId === prediction.id ? (

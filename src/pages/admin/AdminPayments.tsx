@@ -139,6 +139,22 @@ const AdminPayments: React.FC = () => {
     return icons[lotteryType.toLowerCase()] || '🎰';
   };
 
+  const getLotteryDisplayName = (lotteryType: string, lotteryDisplayName?: string): string => {
+    if (lotteryDisplayName && lotteryDisplayName !== 'N/A') {
+      return lotteryDisplayName;
+    }
+    
+    const lotteryNames: { [key: string]: string } = {
+      powerball: 'Powerball',
+      megamillion: 'Mega Million',
+      lottoamerica: 'Lotto America',
+      gopher5: 'Gopher 5',
+      pick3: 'Pick 3'
+    };
+    
+    return lotteryNames[lotteryType?.toLowerCase()] || lotteryType || 'N/A';
+  };
+
   return (
     <AdminLayout>
       <div className="admin-content">
@@ -238,7 +254,7 @@ const AdminPayments: React.FC = () => {
                           </td>
                           <td>
                             <span className="me-2">{getLotteryIcon(purchase.lotteryType)}</span>
-                            {purchase.lotteryDisplayName}
+                            <strong>{getLotteryDisplayName(purchase.lotteryType, purchase.lotteryDisplayName)}</strong>
                           </td>
                           <td>
                             {purchase.drawDate ? (

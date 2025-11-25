@@ -23,9 +23,11 @@ const Footer: React.FC = () => {
                 }} 
               />
             </div>
-            <p className="text-light mb-4">
-              Enhance your lottery winning odds with 80-100% accurate predictions. 
-              Reduce waste on low vibration numbers and build a winning community.
+            <p className="text-light mb-4" style={{ fontSize: '0.95rem', lineHeight: '1.6', opacity: 0.9 }}>
+              Your trusted partner in lottery prediction and winning strategy. 
+              We help you make smarter choices by identifying non-viable numbers 
+              with advanced analytics, maximizing your winning potential across 
+              all major lottery games.
             </p>
             <div className="social-links">
               <a href="#" className="text-light me-3" aria-label="Facebook">

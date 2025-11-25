@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AdminStats } from '../../types';
+import { AdminStats, LotteryType, Lottery } from '../../types';
 import { apiService } from '../../services/api';
+import { lotteryService } from '../../services/lotteryService';
 import AdminLayout from '../../components/layout/AdminLayout';
 import SimpleChart from '../../components/charts/SimpleChart';
 import toast from 'react-hot-toast';
@@ -20,11 +21,17 @@ const AdminDashboard: React.FC = () => {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedLottery, setSelectedLottery] = useState<LotteryType | 'all'>('all');
+  const [lotteries, setLotteries] = useState<Lottery[]>([]);
 
   useEffect(() => {
     fetchStats();
-    fetchAnalytics();
+    fetchLotteries();
   }, []);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [selectedLottery]);
 
   const fetchStats = async () => {
     try {
@@ -52,9 +59,19 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchLotteries = async () => {
+    try {
+      const fetchedLotteries = await lotteryService.getLotteries();
+      setLotteries(fetchedLotteries);
+    } catch (err: any) {
+      console.error('Failed to fetch lotteries:', err);
+    }
+  };
+
   const fetchAnalytics = async () => {
     try {
-      const response = await apiService.get('/admin/analytics?range=30d');
+      const lotteryParam = selectedLottery !== 'all' ? `&lotteryType=${selectedLottery}` : '';
+      const response = await apiService.get(`/admin/analytics?range=30d${lotteryParam}`);
       if ((response as any).success) {
         setAnalytics((response as any).data);
       }
@@ -65,6 +82,31 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // Get current revenue and purchases based on selected lottery
+  const getCurrentRevenue = (): number => {
+    if (selectedLottery === 'all') {
+      return stats?.totalRevenue || 0;
+    }
+    // Calculate revenue from predictionStats for selected lottery
+    const lotteryStats = analytics?.predictionStats?.find(
+      stat => stat.lotteryType.toLowerCase() === selectedLottery.toLowerCase()
+    );
+    return lotteryStats?.revenue || 0;
+  };
+
+  const getCurrentPurchases = (): number => {
+    if (selectedLottery === 'all') {
+      return stats?.totalPurchases || 0;
+    }
+    // Calculate purchases count from predictionStats for selected lottery
+    const lotteryStats = analytics?.predictionStats?.find(
+      stat => stat.lotteryType.toLowerCase() === selectedLottery.toLowerCase()
+    );
+    // If we have revenue data, we can estimate purchases, or use count from stats
+    // For now, let's use the count from predictionStats
+    return lotteryStats?.count || 0;
+  };
+
   // Calculate trend percentage for revenue
   const calculateRevenueTrend = (): string => {
     if (!analytics?.revenueData || analytics.revenueData.length < 2) return '0';
@@ -72,6 +114,13 @@ const AdminDashboard: React.FC = () => {
     const previous = analytics.revenueData[analytics.revenueData.length - 2]?.amount || 0;
     if (previous === 0) return '0';
     return ((current - previous) / previous * 100).toFixed(1);
+  };
+
+  // Get lottery display name
+  const getLotteryDisplayName = (lotteryType: LotteryType | 'all'): string => {
+    if (lotteryType === 'all') return 'All Lotteries';
+    const lottery = lotteries.find(l => l.id?.toLowerCase() === lotteryType.toLowerCase() || l.code?.toLowerCase() === lotteryType.toLowerCase());
+    return lottery?.name || lotteryType;
   };
 
   // Get monthly revenue chart data
@@ -300,6 +349,22 @@ const AdminDashboard: React.FC = () => {
               <div className="card-header">
                 <h4>Revenue Overview</h4>
                 <div className="card-actions">
+                  <select
+                    className="form-select form-select-sm me-2"
+                    style={{ width: 'auto', display: 'inline-block' }}
+                    value={selectedLottery}
+                    onChange={(e) => {
+                      setSelectedLottery(e.target.value as LotteryType | 'all');
+                      setLoading(true);
+                    }}
+                  >
+                    <option value="all">All Lotteries</option>
+                    {lotteries.map((lottery) => (
+                      <option key={lottery.id || lottery.code} value={lottery.id?.toLowerCase() || lottery.code?.toLowerCase()}>
+                        {lottery.name}
+                      </option>
+                    ))}
+                  </select>
                   <button 
                     className="btn btn-sm btn-outline-secondary me-2"
                     onClick={() => exportData('revenue')}
@@ -318,8 +383,8 @@ const AdminDashboard: React.FC = () => {
               <div className="card-body">
                 <div className="revenue-stats">
                   <div className="revenue-item">
-                    <h2>${stats?.totalRevenue?.toFixed(2) || '0.00'}</h2>
-                    <p>Total Revenue</p>
+                    <h2>${getCurrentRevenue().toFixed(2)}</h2>
+                    <p>Total Revenue {selectedLottery !== 'all' && `(${getLotteryDisplayName(selectedLottery)})`}</p>
                     <div className="trend positive">
                       {parseFloat(calculateRevenueTrend()) >= 0 ? (
                         <>
@@ -335,8 +400,8 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   </div>
                   <div className="revenue-item">
-                    <h2>{stats?.totalPurchases || 0}</h2>
-                    <p>Total Purchases</p>
+                    <h2>{getCurrentPurchases()}</h2>
+                    <p>Total Purchases {selectedLottery !== 'all' && `(${getLotteryDisplayName(selectedLottery)})`}</p>
                     <div className="trend positive">
                       <span>Active purchases</span>
                     </div>
@@ -345,12 +410,15 @@ const AdminDashboard: React.FC = () => {
                 <div className="revenue-chart">
                   {(() => {
                     const chartData = getMonthlyRevenueData();
+                    const chartTitle = selectedLottery !== 'all' 
+                      ? `Monthly Revenue - ${getLotteryDisplayName(selectedLottery)}`
+                      : 'Monthly Revenue';
                     return (
                       <SimpleChart
                         type="line"
                         data={chartData.data.length > 0 ? chartData.data : [0]}
                         labels={chartData.labels.length > 0 ? chartData.labels : ['No Data']}
-                        title="Monthly Revenue"
+                        title={chartTitle}
                         color="#6366f1"
                       />
                     );

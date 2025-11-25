@@ -19,6 +19,30 @@ const AdminPredictions: React.FC = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingPrediction, setEditingPrediction] = useState<Prediction | null>(null);
   const [togglingPredictionId, setTogglingPredictionId] = useState<string | null>(null);
+  const [showAddResultModal, setShowAddResultModal] = useState(false);
+  const [selectedPredictionForResult, setSelectedPredictionForResult] = useState<Prediction | null>(null);
+  const [predictionResults, setPredictionResults] = useState<any[]>([]);
+  const [loadingResults, setLoadingResults] = useState(false);
+  const [showEditResultModal, setShowEditResultModal] = useState(false);
+  const [editingResult, setEditingResult] = useState<any | null>(null);
+  const [resultData, setResultData] = useState({
+    drawDate: new Date().toISOString().split('T')[0],
+    winningNumbers: {
+      whiteBalls: [] as number[],
+      redBalls: [] as number[],
+      singleNumbers: [] as number[],
+      pick3Numbers: [] as number[]
+    },
+    jackpot: '',
+    winners: {
+      jackpot: '',
+      match5: '',
+      match4: '',
+      match3: '',
+      exact: '',
+      any: ''
+    }
+  });
   // Lottery configurations with pick limits
   const lotteryConfigs = {
     powerball: {
@@ -51,6 +75,7 @@ const AdminPredictions: React.FC = () => {
     lotteryDisplayName: '',
     drawDate: '',
     drawTime: '',
+    drawDay: '' as string, // Selected draw day (e.g., 'monday', 'tuesday')
     whiteBalls: [] as number[],
     redBalls: [] as number[],
     singleNumbers: [] as number[],
@@ -58,6 +83,97 @@ const AdminPredictions: React.FC = () => {
     price: '' as any,
     notes: ''
   });
+
+  // Draw schedule configuration (All times in Minnesota Time - CST/CDT)
+  const drawSchedule: Record<string, { days: string[], time: string }> = {
+    powerball: {
+      days: ['monday', 'wednesday', 'saturday'],
+      time: '21:59' // 9:59 PM Minnesota Time
+    },
+    megamillion: {
+      days: ['tuesday', 'friday'],
+      time: '22:00' // 10:00 PM Minnesota Time
+    },
+    lottoamerica: {
+      days: ['monday', 'wednesday', 'saturday'],
+      time: '21:15' // 9:15 PM Minnesota Time
+    },
+    gopher5: {
+      days: ['monday', 'wednesday', 'friday'],
+      time: '18:17' // 6:17 PM Minnesota Time
+    },
+    pick3: {
+      days: ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+      time: '18:17' // 6:17 PM Minnesota Time
+    }
+  };
+
+  // Get available draw days for selected lottery
+  const getAvailableDrawDays = (lotteryType: LotteryType): string[] => {
+    return drawSchedule[lotteryType]?.days || [];
+  };
+
+  // Calculate next occurrence of a day
+  const getNextDateForDay = (dayName: string): string => {
+    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+    const dayIndex = days.indexOf(dayName.toLowerCase());
+    
+    if (dayIndex === -1) return '';
+    
+    // Get current date (using local time to avoid UTC conversion issues)
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const currentDay = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    let daysUntil = dayIndex - currentDay;
+    if (daysUntil < 0) {
+      daysUntil += 7; // Next week
+    } else if (daysUntil === 0) {
+      // If it's today, check if the draw time has passed
+      const drawTime = drawSchedule[newPrediction.lotteryType]?.time || '18:17';
+      const [hours, minutes] = drawTime.split(':').map(Number);
+      const drawDateTime = new Date(now);
+      drawDateTime.setHours(hours, minutes, 0, 0);
+      
+      if (now > drawDateTime) {
+        daysUntil = 7; // Draw time has passed, use next week
+      }
+    }
+    
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + daysUntil);
+    
+    // Format as YYYY-MM-DD using local date (not UTC)
+    const year = nextDate.getFullYear();
+    const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const day = String(nextDate.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  };
+
+  // Handle draw day selection
+  const handleDrawDayChange = (day: string) => {
+    const drawDate = getNextDateForDay(day);
+    const drawTime = drawSchedule[newPrediction.lotteryType]?.time || '18:17';
+    
+    setNewPrediction(prev => ({
+      ...prev,
+      drawDay: day,
+      drawDate: drawDate,
+      drawTime: drawTime
+    }));
+  };
+
+  // Reset draw day when lottery type changes
+  const handleLotteryTypeChange = (lotteryType: LotteryType) => {
+    setNewPrediction(prev => ({
+      ...prev,
+      lotteryType: lotteryType,
+      drawDay: '',
+      drawDate: '',
+      drawTime: ''
+    }));
+  };
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const lotteryTypes: { value: LotteryType; label: string }[] = [
@@ -230,25 +346,25 @@ const AdminPredictions: React.FC = () => {
         notes: newPrediction.notes || undefined
       };
 
-      // Format viable numbers based on lottery type (these are the recommended numbers)
+      // Format non-viable numbers based on lottery type (these are the numbers to avoid)
       if (config.type === 'double') {
         const whiteBalls = newPrediction.whiteBalls.filter(n => n != null && !isNaN(n));
         const redBalls = newPrediction.redBalls.filter(n => n != null && !isNaN(n));
-        predictionData.viableNumbers = {
+        predictionData.nonViableNumbers = {
           whiteBalls: whiteBalls,
           redBalls: redBalls
         };
-        console.log('📤 FRONTEND - Sending viableNumbers:', JSON.stringify(predictionData.viableNumbers, null, 2));
+        console.log('📤 FRONTEND - Sending nonViableNumbers:', JSON.stringify(predictionData.nonViableNumbers, null, 2));
         console.log('📤 FRONTEND - White balls array:', whiteBalls);
         console.log('📤 FRONTEND - Red balls array:', redBalls);
       } else if (config.type === 'single') {
         const numbers = newPrediction.singleNumbers.filter(n => n != null && !isNaN(n));
-        predictionData.viableNumbersSingle = numbers;
-        console.log('📤 FRONTEND - Sending viableNumbersSingle:', numbers);
+        predictionData.nonViableNumbersSingle = numbers;
+        console.log('📤 FRONTEND - Sending nonViableNumbersSingle:', numbers);
       } else if (config.type === 'pick3') {
         const numbers = newPrediction.pick3Numbers.filter(n => n != null && !isNaN(n));
-        predictionData.viableNumbersPick3 = numbers;
-        console.log('📤 FRONTEND - Sending viableNumbersPick3:', numbers);
+        predictionData.nonViableNumbersPick3 = numbers;
+        console.log('📤 FRONTEND - Sending nonViableNumbersPick3:', numbers);
       }
 
       console.log('📤 FRONTEND - Full predictionData being sent:', JSON.stringify(predictionData, null, 2));
@@ -323,12 +439,209 @@ const AdminPredictions: React.FC = () => {
     }
   };
 
+  const handleAddResult = async () => {
+    if (!selectedPredictionForResult) return;
+
+    try {
+      // Check if this prediction already has results
+      const predictionId = selectedPredictionForResult.id || (selectedPredictionForResult as any)._id;
+      if (!predictionId) {
+        toast.error('Prediction ID is missing');
+        return;
+      }
+      
+      try {
+        const resultsResponse = await apiService.get(`/admin/predictions/${predictionId}/results`);
+        const existingResults = (resultsResponse as any).data?.results || [];
+        
+        if (existingResults.length > 0) {
+          toast.error('This prediction already has a result. Please use "Update Result" to modify it.');
+          setShowAddResultModal(false);
+          // Open edit modal instead
+          const latestResult = existingResults[0];
+          setEditingResult(latestResult);
+          
+          const whiteBalls = Array.isArray(latestResult.winningNumbers?.whiteBalls) 
+            ? latestResult.winningNumbers.whiteBalls 
+            : (latestResult.winningNumbers?.whiteBalls ? [latestResult.winningNumbers.whiteBalls] : []);
+          const redBalls = Array.isArray(latestResult.winningNumbers?.redBalls) 
+            ? latestResult.winningNumbers.redBalls 
+            : (latestResult.winningNumbers?.redBalls ? [latestResult.winningNumbers.redBalls] : []);
+          const singleNumbers = Array.isArray(latestResult.winningNumbersSingle) 
+            ? latestResult.winningNumbersSingle 
+            : (latestResult.winningNumbersSingle ? [latestResult.winningNumbersSingle] : []);
+          const pick3Numbers = Array.isArray(latestResult.winningNumbersPick3) 
+            ? latestResult.winningNumbersPick3 
+            : (latestResult.winningNumbersPick3 ? [latestResult.winningNumbersPick3] : []);
+          
+          const editData = {
+            drawDate: new Date(latestResult.drawDate).toISOString().split('T')[0],
+            winningNumbers: {
+              whiteBalls: whiteBalls,
+              redBalls: redBalls,
+              singleNumbers: singleNumbers,
+              pick3Numbers: pick3Numbers
+            },
+            jackpot: latestResult.jackpot?.toString() || '',
+            winners: {
+              jackpot: latestResult.winners?.jackpot?.toString() || '',
+              match5: latestResult.winners?.match5?.toString() || '',
+              match4: latestResult.winners?.match4?.toString() || '',
+              match3: latestResult.winners?.match3?.toString() || '',
+              exact: latestResult.winners?.exact?.toString() || '',
+              any: latestResult.winners?.any?.toString() || ''
+            }
+          };
+          setResultData(editData);
+          setShowEditResultModal(true);
+          return;
+        }
+      } catch (checkError) {
+        // If check fails, continue with add (might be network issue)
+        console.warn('Could not check existing results:', checkError);
+      }
+
+      const config = lotteryConfigs[selectedPredictionForResult.lotteryType];
+      let winningNumbers: any = {};
+
+      // No validation - allow any number of winning numbers
+      if (config.type === 'double') {
+        winningNumbers = {
+          whiteBalls: resultData.winningNumbers.whiteBalls || [],
+          redBalls: resultData.winningNumbers.redBalls || []
+        };
+      } else if (config.type === 'single') {
+        winningNumbers = {
+          singleNumbers: resultData.winningNumbers.singleNumbers || []
+        };
+      } else if (config.type === 'pick3') {
+        winningNumbers = {
+          pick3Numbers: resultData.winningNumbers.pick3Numbers || []
+        };
+      }
+
+      const resultPayload = {
+        drawDate: resultData.drawDate,
+        winningNumbers: winningNumbers,
+        jackpot: resultData.jackpot ? parseFloat(resultData.jackpot) : 0,
+        winners: {
+          jackpot: resultData.winners.jackpot ? parseInt(resultData.winners.jackpot) : 0,
+          match5: resultData.winners.match5 ? parseInt(resultData.winners.match5) : 0,
+          match4: resultData.winners.match4 ? parseInt(resultData.winners.match4) : 0,
+          match3: resultData.winners.match3 ? parseInt(resultData.winners.match3) : 0,
+          exact: resultData.winners.exact ? parseInt(resultData.winners.exact) : 0,
+          any: resultData.winners.any ? parseInt(resultData.winners.any) : 0
+        }
+      };
+
+      console.log('📤 Adding result for prediction:', predictionId);
+      console.log('📤 Result payload:', resultPayload);
+      const response = await apiService.post(`/admin/predictions/${predictionId}/result`, resultPayload);
+      
+      if ((response as any).success) {
+        toast.success('Result added successfully!');
+        setShowAddResultModal(false);
+        setSelectedPredictionForResult(null);
+        fetchPredictions();
+        // Refresh results if modal is open
+        if (selectedPrediction) {
+          await fetchPredictionResults(selectedPrediction);
+        }
+      } else {
+        throw new Error((response as any).message || 'Failed to add result');
+      }
+    } catch (error: any) {
+      console.error('Error adding result:', error);
+      // Don't show error if it's the validation check
+      if (!error.message?.includes('already has a result')) {
+        toast.error(error.message || 'Failed to add result');
+      }
+    }
+  };
+
+  const handleEditResult = async () => {
+    if (!editingResult) return;
+
+    try {
+      const config = lotteryConfigs[selectedPredictionForResult?.lotteryType || 'powerball'];
+      let winningNumbers: any = {};
+
+      // No validation - allow any number of winning numbers
+      if (config.type === 'double') {
+        winningNumbers = {
+          whiteBalls: resultData.winningNumbers.whiteBalls || [],
+          redBalls: resultData.winningNumbers.redBalls || []
+        };
+      } else if (config.type === 'single') {
+        winningNumbers = {
+          singleNumbers: resultData.winningNumbers.singleNumbers || []
+        };
+      } else if (config.type === 'pick3') {
+        winningNumbers = {
+          pick3Numbers: resultData.winningNumbers.pick3Numbers || []
+        };
+      }
+
+      const resultPayload = {
+        drawDate: resultData.drawDate,
+        winningNumbers: winningNumbers,
+        jackpot: resultData.jackpot ? parseFloat(resultData.jackpot) : 0,
+        winners: {
+          jackpot: resultData.winners.jackpot ? parseInt(resultData.winners.jackpot) : 0,
+          match5: resultData.winners.match5 ? parseInt(resultData.winners.match5) : 0,
+          match4: resultData.winners.match4 ? parseInt(resultData.winners.match4) : 0,
+          match3: resultData.winners.match3 ? parseInt(resultData.winners.match3) : 0,
+          exact: resultData.winners.exact ? parseInt(resultData.winners.exact) : 0,
+          any: resultData.winners.any ? parseInt(resultData.winners.any) : 0
+        }
+      };
+
+      const resultId = editingResult._id;
+      const response = await apiService.put(`/admin/results/${resultId}`, resultPayload);
+      
+      if ((response as any).success) {
+        toast.success('Result updated successfully!');
+        setShowEditResultModal(false);
+        setEditingResult(null);
+        // Reset result data
+        setResultData({
+          drawDate: new Date().toISOString().split('T')[0],
+          winningNumbers: {
+            whiteBalls: [],
+            redBalls: [],
+            singleNumbers: [],
+            pick3Numbers: []
+          },
+          jackpot: '',
+          winners: {
+            jackpot: '',
+            match5: '',
+            match4: '',
+            match3: '',
+            exact: '',
+            any: ''
+          }
+        });
+        // Refresh results
+        if (selectedPrediction) {
+          await fetchPredictionResults(selectedPrediction);
+        }
+      } else {
+        throw new Error((response as any).message || 'Failed to update result');
+      }
+    } catch (error: any) {
+      console.error('Error updating result:', error);
+      toast.error(error.message || 'Failed to update result');
+    }
+  };
+
   const resetPredictionForm = () => {
     setNewPrediction({
       lotteryType: 'powerball',
       lotteryDisplayName: '',
       drawDate: '',
       drawTime: '',
+      drawDay: '',
       whiteBalls: [],
       redBalls: [],
       singleNumbers: [],
@@ -345,9 +658,29 @@ const AdminPredictions: React.FC = () => {
     fetchPredictions();
   };
 
-  const openPredictionModal = (prediction: Prediction) => {
+  const openPredictionModal = async (prediction: Prediction) => {
     setSelectedPrediction(prediction);
     setShowModal(true);
+    // Fetch results for this prediction
+    await fetchPredictionResults(prediction);
+  };
+
+  const fetchPredictionResults = async (prediction: Prediction) => {
+    try {
+      setLoadingResults(true);
+      const predictionId = prediction.id || (prediction as any)._id;
+      if (predictionId) {
+        const response = await apiService.get(`/admin/predictions/${predictionId}/results`);
+        if ((response as any).success) {
+          setPredictionResults((response as any).data.results || []);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error fetching prediction results:', error);
+      setPredictionResults([]);
+    } finally {
+      setLoadingResults(false);
+    }
   };
 
   const openEditModal = (prediction: Prediction) => {
@@ -362,38 +695,38 @@ const AdminPredictions: React.FC = () => {
     let singleNumbers: number[] = [];
     let pick3Numbers: number[] = [];
 
-    // Handle the viableNumbers data structure from raw model (preferred), fall back to nonViableNumbers (legacy)
+    // Handle the nonViableNumbers data structure from raw model (preferred), fall back to viableNumbers (legacy)
     if (config.type === 'double') {
-      // Check viableNumbers first (new format), then fall back to nonViableNumbers (legacy)
-      if (predAny.viableNumbers && typeof predAny.viableNumbers === 'object') {
-        whiteBalls = Array.isArray(predAny.viableNumbers.whiteBalls) 
-          ? predAny.viableNumbers.whiteBalls 
-          : [];
-        redBalls = Array.isArray(predAny.viableNumbers.redBalls) 
-          ? predAny.viableNumbers.redBalls 
-          : [];
-      } else if (predAny.nonViableNumbers && typeof predAny.nonViableNumbers === 'object') {
-        // Legacy support
+      // Check nonViableNumbers first (new format), then fall back to viableNumbers (legacy)
+      if (predAny.nonViableNumbers && typeof predAny.nonViableNumbers === 'object') {
         whiteBalls = Array.isArray(predAny.nonViableNumbers.whiteBalls) 
           ? predAny.nonViableNumbers.whiteBalls 
           : [];
         redBalls = Array.isArray(predAny.nonViableNumbers.redBalls) 
           ? predAny.nonViableNumbers.redBalls 
           : [];
+      } else if (predAny.viableNumbers && typeof predAny.viableNumbers === 'object') {
+        // Legacy support
+        whiteBalls = Array.isArray(predAny.viableNumbers.whiteBalls) 
+          ? predAny.viableNumbers.whiteBalls 
+          : [];
+        redBalls = Array.isArray(predAny.viableNumbers.redBalls) 
+          ? predAny.viableNumbers.redBalls 
+          : [];
       }
     } else if (config.type === 'single') {
-      // Check viableNumbersSingle first, then fall back to nonViableNumbersSingle (legacy)
-      if (Array.isArray(predAny.viableNumbersSingle)) {
-        singleNumbers = predAny.viableNumbersSingle;
-      } else if (Array.isArray(predAny.nonViableNumbersSingle)) {
+      // Check nonViableNumbersSingle first, then fall back to viableNumbersSingle (legacy)
+      if (Array.isArray(predAny.nonViableNumbersSingle)) {
         singleNumbers = predAny.nonViableNumbersSingle;
+      } else if (Array.isArray(predAny.viableNumbersSingle)) {
+        singleNumbers = predAny.viableNumbersSingle;
       }
     } else if (config.type === 'pick3') {
-      // Check viableNumbersPick3 first, then fall back to nonViableNumbersPick3 (legacy)
-      if (Array.isArray(predAny.viableNumbersPick3)) {
-        pick3Numbers = predAny.viableNumbersPick3;
-      } else if (Array.isArray(predAny.nonViableNumbersPick3)) {
+      // Check nonViableNumbersPick3 first, then fall back to viableNumbersPick3 (legacy)
+      if (Array.isArray(predAny.nonViableNumbersPick3)) {
         pick3Numbers = predAny.nonViableNumbersPick3;
+      } else if (Array.isArray(predAny.viableNumbersPick3)) {
+        pick3Numbers = predAny.viableNumbersPick3;
       }
     }
 
@@ -407,6 +740,7 @@ const AdminPredictions: React.FC = () => {
       lotteryDisplayName: prediction.lotteryDisplayName || '',
       drawDate: formattedDate,
       drawTime: formattedTime,
+      drawDay: (prediction as any).drawDay || '',
       whiteBalls,
       redBalls,
       singleNumbers,
@@ -710,7 +1044,7 @@ const AdminPredictions: React.FC = () => {
                             <i className="bi bi-pencil"></i>
                           </button>
                           <button
-                            className={`btn btn-sm ${!prediction.isActive ? 'btn-outline-success' : 'btn-outline-warning'}`}
+                            className={`btn btn-sm me-2 ${!prediction.isActive ? 'btn-outline-success' : 'btn-outline-warning'}`}
                             onClick={() => {
                               const predictionId = prediction.id || (prediction as any)._id || (prediction as any).predictionId;
                               if (predictionId) {
@@ -728,6 +1062,113 @@ const AdminPredictions: React.FC = () => {
                             ) : (
                               <i className={`bi ${!prediction.isActive ? 'bi-toggle-off' : 'bi-toggle-on'}`}></i>
                             )}
+                          </button>
+                          <button
+                            className="btn btn-sm btn-info"
+                            onClick={async () => {
+                              setSelectedPredictionForResult(prediction);
+                              // Check if this prediction already has results
+                              const predictionId = prediction.id || (prediction as any)._id;
+                              try {
+                                const response = await apiService.get(`/admin/predictions/${predictionId}/results`);
+                                const results = (response as any).data?.results || [];
+                                
+                                if (results.length > 0) {
+                                  // Has results - open edit modal with latest result
+                                  const latestResult = results[0]; // Results are sorted by drawDate desc
+                                  setEditingResult(latestResult);
+                                  
+                                  // Populate edit form with result data
+                                  const whiteBalls = Array.isArray(latestResult.winningNumbers?.whiteBalls) 
+                                    ? latestResult.winningNumbers.whiteBalls 
+                                    : (latestResult.winningNumbers?.whiteBalls ? [latestResult.winningNumbers.whiteBalls] : []);
+                                  const redBalls = Array.isArray(latestResult.winningNumbers?.redBalls) 
+                                    ? latestResult.winningNumbers.redBalls 
+                                    : (latestResult.winningNumbers?.redBalls ? [latestResult.winningNumbers.redBalls] : []);
+                                  const singleNumbers = Array.isArray(latestResult.winningNumbersSingle) 
+                                    ? latestResult.winningNumbersSingle 
+                                    : (latestResult.winningNumbersSingle ? [latestResult.winningNumbersSingle] : []);
+                                  const pick3Numbers = Array.isArray(latestResult.winningNumbersPick3) 
+                                    ? latestResult.winningNumbersPick3 
+                                    : (latestResult.winningNumbersPick3 ? [latestResult.winningNumbersPick3] : []);
+                                  
+                                  const editData = {
+                                    drawDate: new Date(latestResult.drawDate).toISOString().split('T')[0],
+                                    winningNumbers: {
+                                      whiteBalls: whiteBalls,
+                                      redBalls: redBalls,
+                                      singleNumbers: singleNumbers,
+                                      pick3Numbers: pick3Numbers
+                                    },
+                                    jackpot: latestResult.jackpot?.toString() || '',
+                                    winners: {
+                                      jackpot: latestResult.winners?.jackpot?.toString() || '',
+                                      match5: latestResult.winners?.match5?.toString() || '',
+                                      match4: latestResult.winners?.match4?.toString() || '',
+                                      match3: latestResult.winners?.match3?.toString() || '',
+                                      exact: latestResult.winners?.exact?.toString() || '',
+                                      any: latestResult.winners?.any?.toString() || ''
+                                    }
+                                  };
+                                  setResultData(editData);
+                                  setShowEditResultModal(true);
+                                } else {
+                                  // No results - open add modal
+                                  // Use prediction's draw date
+                                  const predictionDrawDate = prediction.drawDate 
+                                    ? new Date(prediction.drawDate).toISOString().split('T')[0]
+                                    : new Date().toISOString().split('T')[0];
+                                  
+                                  setResultData({
+                                    drawDate: predictionDrawDate,
+                                    winningNumbers: {
+                                      whiteBalls: [],
+                                      redBalls: [],
+                                      singleNumbers: [],
+                                      pick3Numbers: []
+                                    },
+                                    jackpot: '',
+                                    winners: {
+                                      jackpot: '',
+                                      match5: '',
+                                      match4: '',
+                                      match3: '',
+                                      exact: '',
+                                      any: ''
+                                    }
+                                  });
+                                  setShowAddResultModal(true);
+                                }
+                              } catch (error) {
+                                // On error, default to add modal with prediction's draw date
+                                const predictionDrawDate = prediction.drawDate 
+                                  ? new Date(prediction.drawDate).toISOString().split('T')[0]
+                                  : new Date().toISOString().split('T')[0];
+                                
+                                setResultData({
+                                  drawDate: predictionDrawDate,
+                                  winningNumbers: {
+                                    whiteBalls: [],
+                                    redBalls: [],
+                                    singleNumbers: [],
+                                    pick3Numbers: []
+                                  },
+                                  jackpot: '',
+                                  winners: {
+                                    jackpot: '',
+                                    match5: '',
+                                    match4: '',
+                                    match3: '',
+                                    exact: '',
+                                    any: ''
+                                  }
+                                });
+                                setShowAddResultModal(true);
+                              }
+                            }}
+                            title="Add/Update Result"
+                          >
+                            <i className="bi bi-trophy"></i>
                           </button>
                         </td>
                       </tr>
@@ -809,7 +1250,7 @@ const AdminPredictions: React.FC = () => {
                 </div>
                 <div className="row mt-3">
                   <div className="col-12">
-                    <h6>Recommended Viable Numbers</h6>
+                    <h6>Non-viable Numbers</h6>
                     <pre className="bg-light p-3 rounded">
                       {JSON.stringify(selectedPrediction.viableNumbers || selectedPrediction.nonViableNumbers, null, 2)}
                     </pre>
@@ -823,6 +1264,237 @@ const AdminPredictions: React.FC = () => {
                     </div>
                   </div>
                 )}
+                
+                {/* Uploaded Results Section */}
+                <div className="row mt-4">
+                  <div className="col-12">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h6 className="mb-0">
+                        <i className="bi bi-trophy me-2"></i>
+                        Uploaded Results ({predictionResults.length})
+                      </h6>
+                      {predictionResults.length > 0 ? (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-warning"
+                          onClick={() => {
+                            // Open edit modal with latest result
+                            const latestResult = predictionResults[0]; // Results are sorted by drawDate desc
+                            setEditingResult(latestResult);
+                            setSelectedPredictionForResult(selectedPrediction);
+                            
+                            // Populate edit form with result data
+                            const whiteBalls = Array.isArray(latestResult.winningNumbers?.whiteBalls) 
+                              ? latestResult.winningNumbers.whiteBalls 
+                              : (latestResult.winningNumbers?.whiteBalls ? [latestResult.winningNumbers.whiteBalls] : []);
+                            const redBalls = Array.isArray(latestResult.winningNumbers?.redBalls) 
+                              ? latestResult.winningNumbers.redBalls 
+                              : (latestResult.winningNumbers?.redBalls ? [latestResult.winningNumbers.redBalls] : []);
+                            const singleNumbers = Array.isArray(latestResult.winningNumbersSingle) 
+                              ? latestResult.winningNumbersSingle 
+                              : (latestResult.winningNumbersSingle ? [latestResult.winningNumbersSingle] : []);
+                            const pick3Numbers = Array.isArray(latestResult.winningNumbersPick3) 
+                              ? latestResult.winningNumbersPick3 
+                              : (latestResult.winningNumbersPick3 ? [latestResult.winningNumbersPick3] : []);
+                            
+                            const editData = {
+                              drawDate: new Date(latestResult.drawDate).toISOString().split('T')[0],
+                              winningNumbers: {
+                                whiteBalls: whiteBalls,
+                                redBalls: redBalls,
+                                singleNumbers: singleNumbers,
+                                pick3Numbers: pick3Numbers
+                              },
+                              jackpot: latestResult.jackpot?.toString() || '',
+                              winners: {
+                                jackpot: latestResult.winners?.jackpot?.toString() || '',
+                                match5: latestResult.winners?.match5?.toString() || '',
+                                match4: latestResult.winners?.match4?.toString() || '',
+                                match3: latestResult.winners?.match3?.toString() || '',
+                                exact: latestResult.winners?.exact?.toString() || '',
+                                any: latestResult.winners?.any?.toString() || ''
+                              }
+                            };
+                            setResultData(editData);
+                            setShowEditResultModal(true);
+                          }}
+                        >
+                          <i className="bi bi-pencil me-1"></i>
+                          Update Result
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-primary"
+                          onClick={() => {
+                            setSelectedPredictionForResult(selectedPrediction);
+                            // Use prediction's draw date
+                            const predictionDrawDate = selectedPrediction.drawDate 
+                              ? new Date(selectedPrediction.drawDate).toISOString().split('T')[0]
+                              : new Date().toISOString().split('T')[0];
+                            
+                            setResultData({
+                              drawDate: predictionDrawDate,
+                              winningNumbers: {
+                                whiteBalls: [],
+                                redBalls: [],
+                                singleNumbers: [],
+                                pick3Numbers: []
+                              },
+                              jackpot: '',
+                              winners: {
+                                jackpot: '',
+                                match5: '',
+                                match4: '',
+                                match3: '',
+                                exact: '',
+                                any: ''
+                              }
+                            });
+                            setShowAddResultModal(true);
+                          }}
+                        >
+                          <i className="bi bi-plus-lg me-1"></i>
+                          Add Result
+                        </button>
+                      )}
+                    </div>
+                    
+                    {loadingResults ? (
+                      <div className="text-center py-3">
+                        <div className="spinner-border spinner-border-sm text-primary" role="status">
+                          <span className="visually-hidden">Loading...</span>
+                        </div>
+                      </div>
+                    ) : predictionResults.length > 0 ? (
+                      <div className="table-responsive">
+                        <table className="table table-sm table-hover">
+                          <thead>
+                            <tr>
+                              <th>Draw Date</th>
+                              <th>Winning Numbers</th>
+                              <th>Jackpot</th>
+                              <th>Winners</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {predictionResults.map((result) => {
+                              let winningNumbers: any = {};
+                              if (result.winningNumbers) {
+                                // Get all red balls as an array, not just the first one
+                                const redBalls = Array.isArray(result.winningNumbers.redBalls) 
+                                  ? result.winningNumbers.redBalls 
+                                  : (result.winningNumbers.redBalls ? [result.winningNumbers.redBalls] : []);
+                                winningNumbers = {
+                                  main: result.winningNumbers.whiteBalls || [],
+                                  special: redBalls
+                                };
+                              } else if (result.winningNumbersSingle) {
+                                winningNumbers = {
+                                  main: result.winningNumbersSingle,
+                                  special: []
+                                };
+                              } else if (result.winningNumbersPick3) {
+                                winningNumbers = {
+                                  main: result.winningNumbersPick3,
+                                  special: []
+                                };
+                              }
+                              
+                              const totalWinners = (result.winners?.jackpot || 0) + 
+                                (result.winners?.match5 || 0) + 
+                                (result.winners?.match4 || 0) + 
+                                (result.winners?.match3 || 0) + 
+                                (result.winners?.exact || 0) + 
+                                (result.winners?.any || 0);
+                              
+                              return (
+                                <tr key={result._id}>
+                                  <td>{new Date(result.drawDate).toLocaleDateString()}</td>
+                                  <td>
+                                    <div className="d-flex gap-1 flex-wrap">
+                                      {winningNumbers.main.map((num: number, i: number) => (
+                                        <span key={i} className="badge bg-primary">{num}</span>
+                                      ))}
+                                      {winningNumbers.special && winningNumbers.special.length > 0 && (
+                                        winningNumbers.special.map((num: number, i: number) => (
+                                          <span key={`special-${i}`} className="badge bg-warning text-dark">{num}</span>
+                                        ))
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td>${result.jackpot?.toLocaleString() || '0'}</td>
+                                  <td>{totalWinners}</td>
+                                  <td>
+                                    <button
+                                      type="button"
+                                      className="btn btn-sm btn-outline-primary"
+                                      onClick={() => {
+                                        setEditingResult(result);
+                                        setSelectedPredictionForResult(selectedPrediction);
+                                        // Populate edit form with result data
+                                        // Ensure arrays are properly formatted
+                                        const whiteBalls = Array.isArray(result.winningNumbers?.whiteBalls) 
+                                          ? result.winningNumbers.whiteBalls 
+                                          : (result.winningNumbers?.whiteBalls ? [result.winningNumbers.whiteBalls] : []);
+                                        const redBalls = Array.isArray(result.winningNumbers?.redBalls) 
+                                          ? result.winningNumbers.redBalls 
+                                          : (result.winningNumbers?.redBalls ? [result.winningNumbers.redBalls] : []);
+                                        const singleNumbers = Array.isArray(result.winningNumbersSingle) 
+                                          ? result.winningNumbersSingle 
+                                          : (result.winningNumbersSingle ? [result.winningNumbersSingle] : []);
+                                        const pick3Numbers = Array.isArray(result.winningNumbersPick3) 
+                                          ? result.winningNumbersPick3 
+                                          : (result.winningNumbersPick3 ? [result.winningNumbersPick3] : []);
+                                        
+                                        console.log('📥 Loading result for edit:', {
+                                          original: result.winningNumbers,
+                                          whiteBalls,
+                                          redBalls,
+                                          singleNumbers,
+                                          pick3Numbers
+                                        });
+                                        
+                                        const editData = {
+                                          drawDate: new Date(result.drawDate).toISOString().split('T')[0],
+                                          winningNumbers: {
+                                            whiteBalls: whiteBalls,
+                                            redBalls: redBalls,
+                                            singleNumbers: singleNumbers,
+                                            pick3Numbers: pick3Numbers
+                                          },
+                                          jackpot: result.jackpot?.toString() || '',
+                                          winners: {
+                                            jackpot: result.winners?.jackpot?.toString() || '',
+                                            match5: result.winners?.match5?.toString() || '',
+                                            match4: result.winners?.match4?.toString() || '',
+                                            match3: result.winners?.match3?.toString() || '',
+                                            exact: result.winners?.exact?.toString() || '',
+                                            any: result.winners?.any?.toString() || ''
+                                          }
+                                        };
+                                        setResultData(editData);
+                                        setShowEditResultModal(true);
+                                      }}
+                                    >
+                                      <i className="bi bi-pencil"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="text-center py-3 text-muted">
+                        <i className="bi bi-inbox fs-4 d-block mb-2"></i>
+                        No results uploaded yet
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>
@@ -887,6 +1559,654 @@ const AdminPredictions: React.FC = () => {
         </div>
       )}
 
+      {/* Add Result Modal */}
+      {showAddResultModal && selectedPredictionForResult && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1200, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="modal-dialog modal-lg" style={{ zIndex: 1205, marginTop: '60px' }}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="bi bi-trophy me-2"></i>
+                  Add Result - {selectedPredictionForResult.lotteryDisplayName}
+                </h5>
+                <button type="button" className="btn-close" onClick={() => {
+                  setShowAddResultModal(false);
+                  setSelectedPredictionForResult(null);
+                }}></button>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleAddResult();
+                }}>
+                  <div className="mb-3">
+                    <label className="form-label">Draw Date</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={resultData.drawDate}
+                      onChange={(e) => setResultData({ ...resultData, drawDate: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  {/* Winning Numbers Section */}
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Winning Numbers</label>
+                    {(() => {
+                      const config = lotteryConfigs[selectedPredictionForResult.lotteryType];
+                      if (config.type === 'double') {
+                        return (
+                          <>
+                            <div className="mb-3">
+                              <label className="form-label">White Balls ({config.whiteBalls.min}-{config.whiteBalls.max})</label>
+                              <NumberSelector
+                                min={config.whiteBalls.min}
+                                max={config.whiteBalls.max}
+                                selected={resultData.winningNumbers.whiteBalls}
+                                onToggle={(num) => {
+                                  const current = resultData.winningNumbers.whiteBalls;
+                                  if (current.includes(num)) {
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        whiteBalls: current.filter(n => n !== num)
+                                      }
+                                    });
+                                  } else {
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        whiteBalls: [...current, num].sort((a, b) => a - b)
+                                      }
+                                    });
+                                  }
+                                }}
+                                onClear={() => setResultData({
+                                  ...resultData,
+                                  winningNumbers: { ...resultData.winningNumbers, whiteBalls: [] }
+                                })}
+                                label="Balls"
+                              />
+                            </div>
+                            <div className="mb-3">
+                              <label className="form-label">{config.redBalls.label}</label>
+                              <NumberSelector
+                                min={config.redBalls.min}
+                                max={config.redBalls.max}
+                                selected={Array.isArray(resultData.winningNumbers.redBalls) ? resultData.winningNumbers.redBalls : []}
+                                onToggle={(num) => {
+                                  const current = Array.isArray(resultData.winningNumbers.redBalls) 
+                                    ? resultData.winningNumbers.redBalls 
+                                    : [];
+                                  if (current.includes(num)) {
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        redBalls: current.filter(n => n !== num)
+                                      }
+                                    });
+                                  } else {
+                                    const updated = [...current, num].sort((a, b) => a - b);
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        redBalls: updated
+                                      }
+                                    });
+                                  }
+                                }}
+                                onClear={() => setResultData({
+                                  ...resultData,
+                                  winningNumbers: { ...resultData.winningNumbers, redBalls: [] }
+                                })}
+                                label="Balls"
+                              />
+                            </div>
+                          </>
+                        );
+                      } else if (config.type === 'single') {
+                        return (
+                          <div className="mb-3">
+                            <label className="form-label">{config.numbers.label}</label>
+                            <NumberSelector
+                              min={config.numbers.min}
+                              max={config.numbers.max}
+                              selected={resultData.winningNumbers.singleNumbers}
+                              onToggle={(num) => {
+                                const current = resultData.winningNumbers.singleNumbers;
+                                if (current.includes(num)) {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      singleNumbers: current.filter(n => n !== num)
+                                    }
+                                  });
+                                } else {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      singleNumbers: [...current, num].sort((a, b) => a - b)
+                                    }
+                                  });
+                                }
+                              }}
+                              onClear={() => setResultData({
+                                ...resultData,
+                                winningNumbers: { ...resultData.winningNumbers, singleNumbers: [] }
+                              })}
+                              label="Balls"
+                            />
+                          </div>
+                        );
+                      } else if (config.type === 'pick3') {
+                        return (
+                          <div className="mb-3">
+                            <label className="form-label">{config.numbers.label}</label>
+                            <NumberSelector
+                              min={config.numbers.min}
+                              max={config.numbers.max}
+                              selected={resultData.winningNumbers.pick3Numbers}
+                              onToggle={(num) => {
+                                const current = resultData.winningNumbers.pick3Numbers;
+                                if (current.includes(num)) {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      pick3Numbers: current.filter(n => n !== num)
+                                    }
+                                  });
+                                } else {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      pick3Numbers: [...current, num].sort((a, b) => a - b)
+                                    }
+                                  });
+                                }
+                              }}
+                              onClear={() => setResultData({
+                                ...resultData,
+                                winningNumbers: { ...resultData.winningNumbers, pick3Numbers: [] }
+                              })}
+                              label="Balls"
+                            />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  {/* Jackpot */}
+                  <div className="mb-3">
+                    <label className="form-label">Jackpot Amount</label>
+                    <div className="input-group">
+                      <span className="input-group-text">$</span>
+                      <input
+                        type="number"
+                        className="form-control"
+                        placeholder="Enter jackpot amount"
+                        value={resultData.jackpot}
+                        onChange={(e) => setResultData({ ...resultData, jackpot: e.target.value })}
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Winners */}
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Winners</label>
+                    <div className="row g-3">
+                      {selectedPredictionForResult.lotteryType === 'pick3' ? (
+                        <>
+                          <div className="col-md-6">
+                            <label className="form-label">Exact Match</label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Number of exact match winners"
+                              value={resultData.winners.exact}
+                              onChange={(e) => setResultData({
+                                ...resultData,
+                                winners: { ...resultData.winners, exact: e.target.value }
+                              })}
+                              min="0"
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">Any Order</label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Number of any order winners"
+                              value={resultData.winners.any}
+                              onChange={(e) => setResultData({
+                                ...resultData,
+                                winners: { ...resultData.winners, any: e.target.value }
+                              })}
+                              min="0"
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="col-md-6">
+                            <label className="form-label">Jackpot Winners</label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Number of jackpot winners"
+                              value={resultData.winners.jackpot}
+                              onChange={(e) => setResultData({
+                                ...resultData,
+                                winners: { ...resultData.winners, jackpot: e.target.value }
+                              })}
+                              min="0"
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">Match 5 Winners</label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Number of match 5 winners"
+                              value={resultData.winners.match5}
+                              onChange={(e) => setResultData({
+                                ...resultData,
+                                winners: { ...resultData.winners, match5: e.target.value }
+                              })}
+                              min="0"
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">Match 4 Winners</label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Number of match 4 winners"
+                              value={resultData.winners.match4}
+                              onChange={(e) => setResultData({
+                                ...resultData,
+                                winners: { ...resultData.winners, match4: e.target.value }
+                              })}
+                              min="0"
+                            />
+                          </div>
+                          <div className="col-md-6">
+                            <label className="form-label">Match 3 Winners</label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              placeholder="Number of match 3 winners"
+                              value={resultData.winners.match3}
+                              onChange={(e) => setResultData({
+                                ...resultData,
+                                winners: { ...resultData.winners, match3: e.target.value }
+                              })}
+                              min="0"
+                            />
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowAddResultModal(false);
+                        setSelectedPredictionForResult(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-success">
+                      <i className="bi bi-trophy me-2"></i>
+                      Add Result
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Result Modal */}
+      {showEditResultModal && editingResult && selectedPredictionForResult && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1200, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <div className="modal-dialog modal-lg" style={{ zIndex: 1205, marginTop: '60px' }}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className="bi bi-pencil me-2"></i>
+                  Edit Result - {selectedPredictionForResult.lotteryDisplayName}
+                </h5>
+                <button type="button" className="btn-close" onClick={() => {
+                  setShowEditResultModal(false);
+                  setEditingResult(null);
+                  setSelectedPredictionForResult(null);
+                }}></button>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={(e) => {
+                  e.preventDefault();
+                  handleEditResult();
+                }}>
+                  {/* Same form fields as Add Result Modal - reuse the same structure */}
+                  <div className="mb-3">
+                    <label className="form-label">Draw Date</label>
+                    <input
+                      type="date"
+                      className="form-control"
+                      value={resultData.drawDate}
+                      onChange={(e) => setResultData({ ...resultData, drawDate: e.target.value })}
+                      required
+                    />
+                  </div>
+
+                  {/* Winning Numbers Section - same as Add Result Modal */}
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Winning Numbers</label>
+                    {(() => {
+                      const config = lotteryConfigs[selectedPredictionForResult.lotteryType];
+                      if (config.type === 'double') {
+                        return (
+                          <>
+                            <div className="mb-3">
+                              <label className="form-label">White Balls ({config.whiteBalls.min}-{config.whiteBalls.max})</label>
+                              <NumberSelector
+                                min={config.whiteBalls.min}
+                                max={config.whiteBalls.max}
+                                selected={resultData.winningNumbers.whiteBalls}
+                                onToggle={(num) => {
+                                  const current = resultData.winningNumbers.whiteBalls;
+                                  if (current.includes(num)) {
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        whiteBalls: current.filter(n => n !== num)
+                                      }
+                                    });
+                                  } else {
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        whiteBalls: [...current, num].sort((a, b) => a - b)
+                                      }
+                                    });
+                                  }
+                                }}
+                                onClear={() => setResultData({
+                                  ...resultData,
+                                  winningNumbers: { ...resultData.winningNumbers, whiteBalls: [] }
+                                })}
+                                label="Balls"
+                              />
+                            </div>
+                            <div className="mb-3">
+                              <label className="form-label">{config.redBalls.label}</label>
+                              <NumberSelector
+                                min={config.redBalls.min}
+                                max={config.redBalls.max}
+                                selected={Array.isArray(resultData.winningNumbers.redBalls) ? resultData.winningNumbers.redBalls : []}
+                                onToggle={(num) => {
+                                  const current = Array.isArray(resultData.winningNumbers.redBalls) 
+                                    ? resultData.winningNumbers.redBalls 
+                                    : [];
+                                  if (current.includes(num)) {
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        redBalls: current.filter(n => n !== num)
+                                      }
+                                    });
+                                  } else {
+                                    const updated = [...current, num].sort((a, b) => a - b);
+                                    setResultData({
+                                      ...resultData,
+                                      winningNumbers: {
+                                        ...resultData.winningNumbers,
+                                        redBalls: updated
+                                      }
+                                    });
+                                  }
+                                }}
+                                onClear={() => setResultData({
+                                  ...resultData,
+                                  winningNumbers: { ...resultData.winningNumbers, redBalls: [] }
+                                })}
+                                label="Balls"
+                              />
+                            </div>
+                          </>
+                        );
+                      } else if (config.type === 'single') {
+                        return (
+                          <div className="mb-3">
+                            <label className="form-label">{config.numbers.label}</label>
+                            <NumberSelector
+                              min={config.numbers.min}
+                              max={config.numbers.max}
+                              selected={resultData.winningNumbers.singleNumbers}
+                              onToggle={(num) => {
+                                const current = resultData.winningNumbers.singleNumbers;
+                                if (current.includes(num)) {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      singleNumbers: current.filter(n => n !== num)
+                                    }
+                                  });
+                                } else {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      singleNumbers: [...current, num].sort((a, b) => a - b)
+                                    }
+                                  });
+                                }
+                              }}
+                              onClear={() => setResultData({
+                                ...resultData,
+                                winningNumbers: { ...resultData.winningNumbers, singleNumbers: [] }
+                              })}
+                              label="Balls"
+                            />
+                          </div>
+                        );
+                      } else if (config.type === 'pick3') {
+                        return (
+                          <div className="mb-3">
+                            <label className="form-label">{config.numbers.label}</label>
+                            <NumberSelector
+                              min={config.numbers.min}
+                              max={config.numbers.max}
+                              selected={resultData.winningNumbers.pick3Numbers}
+                              onToggle={(num) => {
+                                const current = resultData.winningNumbers.pick3Numbers;
+                                if (current.includes(num)) {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      pick3Numbers: current.filter(n => n !== num)
+                                    }
+                                  });
+                                } else {
+                                  setResultData({
+                                    ...resultData,
+                                    winningNumbers: {
+                                      ...resultData.winningNumbers,
+                                      pick3Numbers: [...current, num].sort((a, b) => a - b)
+                                    }
+                                  });
+                                }
+                              }}
+                              onClear={() => setResultData({
+                                ...resultData,
+                                winningNumbers: { ...resultData.winningNumbers, pick3Numbers: [] }
+                              })}
+                              label="Balls"
+                            />
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
+
+                  {/* Jackpot */}
+                  <div className="mb-3">
+                    <label className="form-label">Jackpot</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      value={resultData.jackpot}
+                      onChange={(e) => setResultData({ ...resultData, jackpot: e.target.value })}
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+
+                  {/* Winners */}
+                  <div className="mb-3">
+                    <label className="form-label fw-bold">Winners</label>
+                    {(() => {
+                      const config = lotteryConfigs[selectedPredictionForResult.lotteryType];
+                      if (config.type === 'pick3') {
+                        return (
+                          <div className="row">
+                            <div className="col-md-6">
+                              <label className="form-label">Exact</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={resultData.winners.exact}
+                                onChange={(e) => setResultData({
+                                  ...resultData,
+                                  winners: { ...resultData.winners, exact: e.target.value }
+                                })}
+                                min="0"
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label">Any</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={resultData.winners.any}
+                                onChange={(e) => setResultData({
+                                  ...resultData,
+                                  winners: { ...resultData.winners, any: e.target.value }
+                                })}
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="row">
+                            <div className="col-md-6">
+                              <label className="form-label">Jackpot</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={resultData.winners.jackpot}
+                                onChange={(e) => setResultData({
+                                  ...resultData,
+                                  winners: { ...resultData.winners, jackpot: e.target.value }
+                                })}
+                                min="0"
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label">Match 5</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={resultData.winners.match5}
+                                onChange={(e) => setResultData({
+                                  ...resultData,
+                                  winners: { ...resultData.winners, match5: e.target.value }
+                                })}
+                                min="0"
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label">Match 4</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={resultData.winners.match4}
+                                onChange={(e) => setResultData({
+                                  ...resultData,
+                                  winners: { ...resultData.winners, match4: e.target.value }
+                                })}
+                                min="0"
+                              />
+                            </div>
+                            <div className="col-md-6">
+                              <label className="form-label">Match 3</label>
+                              <input
+                                type="number"
+                                className="form-control"
+                                value={resultData.winners.match3}
+                                onChange={(e) => setResultData({
+                                  ...resultData,
+                                  winners: { ...resultData.winners, match3: e.target.value }
+                                })}
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+
+                  <div className="modal-footer">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setShowEditResultModal(false);
+                        setEditingResult(null);
+                        setSelectedPredictionForResult(null);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button type="submit" className="btn btn-primary">
+                      <i className="bi bi-save me-2"></i>
+                      Update Result
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Create Prediction Modal */}
       {showCreateModal && (
         <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1200, position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}>
@@ -914,16 +2234,16 @@ const AdminPredictions: React.FC = () => {
                           onChange={(e) => {
                             const newType = e.target.value as LotteryType;
                             const lotteryName = lotteryTypes.find(lt => lt.value === newType)?.label || '';
-                            setNewPrediction({
-                              ...newPrediction,
-                              lotteryType: newType,
+                            handleLotteryTypeChange(newType);
+                            setNewPrediction(prev => ({
+                              ...prev,
                               lotteryDisplayName: lotteryName,
                               // Clear numbers when type changes
                               whiteBalls: [],
                               redBalls: [],
                               singleNumbers: [],
                               pick3Numbers: []
-                            });
+                            }));
                             // Clear error when field changes
                             if (fieldErrors.lotteryType) {
                               setFieldErrors(prev => {
@@ -977,7 +2297,27 @@ const AdminPredictions: React.FC = () => {
                     </div>
                   </div>
                   <div className="row">
-                    <div className="col-md-6">
+                    <div className="col-md-4">
+                      <div className="mb-3">
+                        <label className="form-label">Draw Day <span className="text-muted">(Auto-fills date & time)</span></label>
+                        <select
+                          className="form-control"
+                          value={newPrediction.drawDay}
+                          onChange={(e) => handleDrawDayChange(e.target.value)}
+                        >
+                          <option value="">-- Select Draw Day --</option>
+                          {getAvailableDrawDays(newPrediction.lotteryType).map((day) => (
+                            <option key={day} value={day}>
+                              {day.charAt(0).toUpperCase() + day.slice(1)}
+                            </option>
+                          ))}
+                        </select>
+                        <small className="text-muted d-block mt-1">
+                          Available: {getAvailableDrawDays(newPrediction.lotteryType).map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
+                        </small>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
                       <div className="mb-3">
                         <label className="form-label">Draw Date</label>
                         <input
@@ -987,7 +2327,7 @@ const AdminPredictions: React.FC = () => {
                           min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => {
                             const selectedDate = e.target.value;
-                            setNewPrediction({...newPrediction, drawDate: selectedDate});
+                            setNewPrediction({...newPrediction, drawDate: selectedDate, drawDay: ''});
                             
                             // Validate date in real-time
                             if (selectedDate) {
@@ -1027,15 +2367,18 @@ const AdminPredictions: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="col-md-6">
+                    <div className="col-md-4">
                       <div className="mb-3">
-                        <label className="form-label">Draw Time</label>
+                        <label className="form-label">
+                          Draw Time 
+                          <span className="text-muted ms-1">(Minnesota Time)</span>
+                        </label>
                         <input
                           type="time"
                           className={`form-control ${fieldErrors.drawTime ? 'is-invalid' : ''}`}
                           value={newPrediction.drawTime}
                           onChange={(e) => {
-                            setNewPrediction({...newPrediction, drawTime: e.target.value});
+                            setNewPrediction({...newPrediction, drawTime: e.target.value, drawDay: ''});
                             // Clear error when field changes
                             if (fieldErrors.drawTime) {
                               setFieldErrors(prev => {
@@ -1047,6 +2390,10 @@ const AdminPredictions: React.FC = () => {
                           }}
                           required
                         />
+                        <small className="text-muted d-block mt-1">
+                          <i className="bi bi-clock me-1"></i>
+                          All times are in Minnesota Time (CST/CDT)
+                        </small>
                         {fieldErrors.drawTime && (
                           <div className="invalid-feedback d-block">
                             {fieldErrors.drawTime}
@@ -1091,9 +2438,9 @@ const AdminPredictions: React.FC = () => {
 
                   {/* Number Selection Interface */}
                   <div className="mb-3">
-                    <h6 className="mb-3">Select Recommended Viable Numbers</h6>
+                    <h6 className="mb-3">Select Non-viable Numbers</h6>
                     <p className="text-muted small mb-3">
-                      Select the recommended numbers for this prediction. These are the numbers that players should use.
+                      Select the non-viable numbers for this prediction. These are the numbers that players should avoid.
                     </p>
                     
                     {(() => {
@@ -1212,16 +2559,16 @@ const AdminPredictions: React.FC = () => {
                           onChange={(e) => {
                             const newType = e.target.value as LotteryType;
                             const lotteryName = lotteryTypes.find(lt => lt.value === newType)?.label || '';
-                            setNewPrediction({
-                              ...newPrediction,
-                              lotteryType: newType,
+                            handleLotteryTypeChange(newType);
+                            setNewPrediction(prev => ({
+                              ...prev,
                               lotteryDisplayName: lotteryName,
                               // Clear numbers when type changes
                               whiteBalls: [],
                               redBalls: [],
                               singleNumbers: [],
                               pick3Numbers: []
-                            });
+                            }));
                             // Clear error when field changes
                             if (fieldErrors.lotteryType) {
                               setFieldErrors(prev => {
@@ -1275,7 +2622,27 @@ const AdminPredictions: React.FC = () => {
                     </div>
                   </div>
                   <div className="row">
-                    <div className="col-md-6">
+                    <div className="col-md-4">
+                      <div className="mb-3">
+                        <label className="form-label">Draw Day <span className="text-muted">(Auto-fills date & time)</span></label>
+                        <select
+                          className="form-control"
+                          value={newPrediction.drawDay}
+                          onChange={(e) => handleDrawDayChange(e.target.value)}
+                        >
+                          <option value="">-- Select Draw Day --</option>
+                          {getAvailableDrawDays(newPrediction.lotteryType).map((day) => (
+                            <option key={day} value={day}>
+                              {day.charAt(0).toUpperCase() + day.slice(1)}
+                            </option>
+                          ))}
+                        </select>
+                        <small className="text-muted d-block mt-1">
+                          Available: {getAvailableDrawDays(newPrediction.lotteryType).map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ')}
+                        </small>
+                      </div>
+                    </div>
+                    <div className="col-md-4">
                       <div className="mb-3">
                         <label className="form-label">Draw Date</label>
                         <input
@@ -1285,7 +2652,7 @@ const AdminPredictions: React.FC = () => {
                           min={new Date().toISOString().split('T')[0]}
                           onChange={(e) => {
                             const selectedDate = e.target.value;
-                            setNewPrediction({...newPrediction, drawDate: selectedDate});
+                            setNewPrediction({...newPrediction, drawDate: selectedDate, drawDay: ''});
                             
                             // Validate date in real-time
                             if (selectedDate) {
@@ -1325,15 +2692,18 @@ const AdminPredictions: React.FC = () => {
                         )}
                       </div>
                     </div>
-                    <div className="col-md-6">
+                    <div className="col-md-4">
                       <div className="mb-3">
-                        <label className="form-label">Draw Time</label>
+                        <label className="form-label">
+                          Draw Time 
+                          <span className="text-muted ms-1">(Minnesota Time)</span>
+                        </label>
                         <input
                           type="time"
                           className={`form-control ${fieldErrors.drawTime ? 'is-invalid' : ''}`}
                           value={newPrediction.drawTime}
                           onChange={(e) => {
-                            setNewPrediction({...newPrediction, drawTime: e.target.value});
+                            setNewPrediction({...newPrediction, drawTime: e.target.value, drawDay: ''});
                             // Clear error when field changes
                             if (fieldErrors.drawTime) {
                               setFieldErrors(prev => {
@@ -1345,6 +2715,10 @@ const AdminPredictions: React.FC = () => {
                           }}
                           required
                         />
+                        <small className="text-muted d-block mt-1">
+                          <i className="bi bi-clock me-1"></i>
+                          All times are in Minnesota Time (CST/CDT)
+                        </small>
                         {fieldErrors.drawTime && (
                           <div className="invalid-feedback d-block">
                             {fieldErrors.drawTime}
@@ -1389,9 +2763,9 @@ const AdminPredictions: React.FC = () => {
 
                   {/* Number Selection Interface */}
                   <div className="mb-3">
-                    <h6 className="mb-3">Select Recommended Viable Numbers</h6>
+                    <h6 className="mb-3">Select Non-viable Numbers</h6>
                     <p className="text-muted small mb-3">
-                      Select the recommended numbers for this prediction. These are the numbers that players should use.
+                      Select the non-viable numbers for this prediction. These are the numbers that players should avoid.
                     </p>
                     
                     {(() => {
